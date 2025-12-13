@@ -51,7 +51,7 @@ export default ({config}: ConfigContext): ExpoConfig => ({
       adaptiveIcon: {
         foregroundImage: "./assets/icons/adaptive-icon.png",
         monochromeImage: "./assets/icons/adaptive-icon.png",
-        backgroundColor: "#C8FF42"
+        backgroundColor: "#E60549"
       },
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
@@ -75,7 +75,7 @@ export default ({config}: ConfigContext): ExpoConfig => ({
         "expo-notifications",
        {
           icon: "./assets/icons/notification_logo_black.png",
-          color: "#4ECA00",
+          color: "#E60549",
           defaultChannel: "default",
           enableBackgroundRemoteNotifications: true
         }
@@ -89,7 +89,7 @@ export default ({config}: ConfigContext): ExpoConfig => ({
           backgroundColor: "#ffffff",
           dark: {
             image: "./assets/icons/splash-icon-light.png",
-            backgroundColor: "#C8FF42",
+            backgroundColor: "#E60549",
           }
         }
       ],
