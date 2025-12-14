@@ -2,8 +2,8 @@ import { getNotificationStats } from "@/utils/apiEndpoints";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { router } from "expo-router";
-import React, { useCallback, useState, useEffect } from "react";
-import { Image, StatusBar, Text, TouchableOpacity, View } from "react-native";
+import React, { useCallback, useState, useEffect, useRef } from "react";
+import { Image, StatusBar, Text, TouchableOpacity, View, FlatList, Dimensions } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import GradientBackground from "./GradientBackground";
 import { useAuthStore } from "@/utils/authStore";
@@ -31,6 +31,37 @@ const SEARCH_TERMS = [
   "Find your next purchase...",
 ];
 
+// Carousel banner data - replace with your actual images/promotions
+const CAROUSEL_DATA = [
+  {
+    id: "1",
+    image: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800&q=80",
+    title: "Summer Sale",
+    subtitle: "Up to 50% off",
+  },
+  {
+    id: "2",
+    image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80",
+    title: "New Arrivals",
+    subtitle: "Check out latest products",
+  },
+  {
+    id: "3",
+    image: "https://images.unsplash.com/photo-1472851294608-062f824d29cc?w=800&q=80",
+    title: "Flash Deals",
+    subtitle: "Limited time offers",
+  },
+  {
+    id: "4",
+    image: "https://images.unsplash.com/photo-1534452203293-494d7ddbf7e0?w=800&q=80",
+    title: "Free Shipping",
+    subtitle: "On orders over $50",
+  },
+];
+
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const CAROUSEL_WIDTH = SCREEN_WIDTH - 40; // Account for padding
+
 export default function Header({
   statusBarStyle = "dark-content",
 }: ScreenWrapperProps) {
@@ -42,6 +73,8 @@ export default function Header({
   const [loading, setLoading] = useState(true);
   const [searchPlaceholder, setSearchPlaceholder] = useState(SEARCH_TERMS[0]);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [currentCarouselIndex, setCurrentCarouselIndex] = useState(0);
+  const carouselRef = useRef<FlatList>(null);
 
   // Compute display name
   const displayName = user?.username || user?.email?.split("@")[0] || "User";
@@ -60,6 +93,22 @@ export default function Header({
         return nextIndex;
       });
     }, 3000); // Change every 3 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Auto-slide carousel
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentCarouselIndex((prev) => {
+        const nextIndex = (prev + 1) % CAROUSEL_DATA.length;
+        carouselRef.current?.scrollToIndex({
+          index: nextIndex,
+          animated: true,
+        });
+        return nextIndex;
+      });
+    }, 4000); // Change every 4 seconds
 
     return () => clearInterval(interval);
   }, []);
@@ -93,8 +142,70 @@ export default function Header({
 
   const handleSearchPress = async () => {
     await trigger("light");
-    router.push("/(tabs)/(category)/categorymain"); // Navigate to search page
+    router.push("/search"); // Navigate to search page
   };
+
+  const handleCarouselScroll = (event: any) => {
+    const offsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(offsetX / CAROUSEL_WIDTH);
+    setCurrentCarouselIndex(index);
+  };
+
+  const renderCarouselItem = ({ item }: { item: typeof CAROUSEL_DATA[0] }) => (
+    <TouchableOpacity
+      style={{
+        width: CAROUSEL_WIDTH,
+        height: 250,
+        borderRadius: 12,
+        overflow: "hidden",
+        backgroundColor: "#F5F5F5",
+      }}
+      activeOpacity={0.9}
+      onPress={() => {
+        // Navigate to promotion detail or category
+        console.log("Carousel item pressed:", item.id);
+      }}
+    >
+      <Image
+        source={{ uri: item.image }}
+        style={{
+          width: "100%",
+          height: "100%",
+        }}
+        resizeMode="cover"
+      />
+      <View
+        style={{
+          position: "absolute",
+          bottom: 0,
+          left: 0,
+          right: 0,
+          backgroundColor: "rgba(0, 0, 0, 0.5)",
+          padding: 16,
+        }}
+      >
+        <Text
+          style={{
+            color: "#FFFFFF",
+            fontSize: 20,
+            fontWeight: "800",
+            marginBottom: 4,
+          }}
+        >
+          {item.title}
+        </Text>
+        <Text
+          style={{
+            color: "#FFFFFF",
+            fontSize: 14,
+            fontWeight: "500",
+          }}
+        >
+          {item.subtitle}
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <View style={{ backgroundColor: "transparent" }}>
@@ -271,6 +382,56 @@ export default function Header({
           </Text>
           <Ionicons name="options-outline" size={18} color="#999" />
         </TouchableOpacity>
+
+        {/* Image Carousel */}
+        <View style={{ marginTop: 16, marginBottom: 10 }}>
+          <FlatList
+            ref={carouselRef}
+            data={CAROUSEL_DATA}
+            renderItem={renderCarouselItem}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => item.id}
+            onScroll={handleCarouselScroll}
+            scrollEventThrottle={16}
+            snapToInterval={CAROUSEL_WIDTH}
+            decelerationRate="fast"
+            contentContainerStyle={{ paddingRight: 0 }}
+            getItemLayout={(data, index) => ({
+              length: CAROUSEL_WIDTH,
+              offset: CAROUSEL_WIDTH * index,
+              index,
+            })}
+            onScrollToIndexFailed={() => {
+              // Handle scroll failure
+            }}
+          />
+
+          {/* Pagination Dots */}
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "center",
+              alignItems: "center",
+              marginTop: 9,
+            }}
+          >
+            {CAROUSEL_DATA.map((_, index) => (
+              <View
+                key={index}
+                style={{
+                  width: currentCarouselIndex === index ? 24 : 8,
+                  height: 4,
+                  borderRadius: 2,
+                  backgroundColor:
+                    currentCarouselIndex === index ? "#000" : "#D1D1D1",
+                  marginHorizontal: 2,
+                }}
+              />
+            ))}
+          </View>
+        </View>
       </View>
 
       <GradientBackground />
