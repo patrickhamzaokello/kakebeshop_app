@@ -28,6 +28,17 @@ export default function TabsLayout() {
         
       />
       <Tabs.Screen
+        name="(cart)"
+        options={{
+          title: "Cart",
+          popToTopOnBlur: true,
+          tabBarIcon: ({ color, size }) => (
+            <Feather name="shopping-cart" size={size} color={color} />
+          ),
+        }}
+        
+      />
+      <Tabs.Screen
         name="(favourites)"
         options={{
           title: "Bookmarks",

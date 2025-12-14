@@ -336,7 +336,7 @@ export const postNotificationToken = async (
   platform: string
 ): Promise<any> => {
   try {
-    const response = await apiService.post<any>(`/news/api/push-tokens/`, {
+    const response = await apiService.post<any>(`/api/v1/push-tokens/`, {
       token: token,
       device_id: deviceId,
       platform: platform,
