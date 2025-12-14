@@ -1,5 +1,23 @@
 import apiService from "@/utils/apiBase";
 
+export const postUserIntent = async (
+  intent: string
+): Promise<any> => {
+  try {
+    const response = await apiService.post<any>("/api/v1/user-intent/", {
+      intent: intent,
+    });
+
+    if (response.success && response.data) {
+      return response.data;
+    }
+
+    throw new Error(response.message || "Failed to fetch login details");
+  } catch (error) {
+    return null;
+  }
+};
+
 export const loginwithEmailPassword = async (
   email: string,
   password: string

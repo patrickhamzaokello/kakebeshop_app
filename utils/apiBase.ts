@@ -9,7 +9,7 @@ interface ApiResponse<T = any> {
 
 class ApiService {
   private axiosInstance: AxiosInstance;
-  private baseURL = "https://newsapi.mwonya.com";
+  private baseURL = "https://backend.kakebeshop.com";
   private isRefreshing = false;
   private failedQueue: Array<{
     resolve: (value: any) => void;
