@@ -93,7 +93,7 @@ export default function Header({
 
   const handleSearchPress = async () => {
     await trigger("light");
-    router.push("/search"); // Navigate to search page
+    router.push("/(tabs)/(category)/categorymain"); // Navigate to search page
   };
 
   return (
@@ -159,7 +159,29 @@ export default function Header({
             {/* header center */}
           </View>
 
-          <View style={{ flex: 1, alignItems: "flex-end" }}>
+          <View style={{ flex: 1, alignItems: "flex-end", flexDirection: "row", justifyContent: "flex-end", gap: 10 }}>
+            {/* Wishlist Icon */}
+            <TouchableOpacity
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 25,
+                backgroundColor: "#FFFFFF",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
+              onPress={async () => {
+                await trigger("light");
+                router.push("/wishlist");
+              }}
+            >
+              <Ionicons
+                name="heart-outline"
+                size={20}
+                color="#000"
+              />
+            </TouchableOpacity>
+
             {/* Notification Bell */}
             <TouchableOpacity
               style={{
