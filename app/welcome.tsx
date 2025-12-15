@@ -47,7 +47,7 @@ const carouselData = [
   
 ];
 
-export default function WelcomeScreen() {
+export function WelcomeScreen() {
   const translateX = useSharedValue(0);
   const currentIndex = useSharedValue(0);
   const contextX = useSharedValue(0); // Store context for gesture
@@ -58,8 +58,8 @@ export default function WelcomeScreen() {
 
     intervalRef.current = setInterval(() => {
       currentIndex.value = (currentIndex.value + 1) % carouselData.length;
-      translateX.value = withTiming(-currentIndex.value * width, { 
-        duration: 500 
+      translateX.value = withTiming(-currentIndex.value * width, {
+        duration: 500
       });
     }, 4000);
   };
@@ -77,167 +77,167 @@ export default function WelcomeScreen() {
   }, []);
 
   const panGesture = Gesture.Pan()
-    .onStart(() => {
-      contextX.value = translateX.value;
-      runOnJS(stopAutoSlide)();
-    })
-    .onUpdate((event) => {
-      // Allow free dragging with boundaries
-      const newTranslateX = contextX.value + event.translationX;
-      const maxTranslate = 0;
-      const minTranslate = -(carouselData.length - 1) * width;
-      
-      // Add resistance at boundaries
-      if (newTranslateX > maxTranslate) {
-        translateX.value = maxTranslate + event.translationX * 0.3;
-      } else if (newTranslateX < minTranslate) {
-        translateX.value = minTranslate + (newTranslateX - minTranslate) * 0.3;
-      } else {
-        translateX.value = newTranslateX;
-      }
-    })
-    .onEnd((event) => {
-      const SWIPE_VELOCITY = 500;
-      const SWIPE_DISTANCE = width * 0.2;
+      .onStart(() => {
+        contextX.value = translateX.value;
+        runOnJS(stopAutoSlide)();
+      })
+      .onUpdate((event) => {
+        // Allow free dragging with boundaries
+        const newTranslateX = contextX.value + event.translationX;
+        const maxTranslate = 0;
+        const minTranslate = -(carouselData.length - 1) * width;
 
-      let targetIndex = currentIndex.value;
+        // Add resistance at boundaries
+        if (newTranslateX > maxTranslate) {
+          translateX.value = maxTranslate + event.translationX * 0.3;
+        } else if (newTranslateX < minTranslate) {
+          translateX.value = minTranslate + (newTranslateX - minTranslate) * 0.3;
+        } else {
+          translateX.value = newTranslateX;
+        }
+      })
+      .onEnd((event) => {
+        const SWIPE_VELOCITY = 500;
+        const SWIPE_DISTANCE = width * 0.2;
 
-      // Determine swipe direction
-      if (
-        event.translationX < -SWIPE_DISTANCE || 
-        event.velocityX < -SWIPE_VELOCITY
-      ) {
-        // Swipe left - go to next
-        targetIndex = Math.min(currentIndex.value + 1, carouselData.length - 1);
-      } else if (
-        event.translationX > SWIPE_DISTANCE || 
-        event.velocityX > SWIPE_VELOCITY
-      ) {
-        // Swipe right - go to previous
-        targetIndex = Math.max(currentIndex.value - 1, 0);
-      }
+        let targetIndex = currentIndex.value;
 
-      // Update index and animate to target position
-      currentIndex.value = targetIndex;
-      translateX.value = withSpring(-targetIndex * width, {
-        damping: 20,
-        stiffness: 90,
-        velocity: event.velocityX,
+        // Determine swipe direction
+        if (
+            event.translationX < -SWIPE_DISTANCE ||
+            event.velocityX < -SWIPE_VELOCITY
+        ) {
+          // Swipe left - go to next
+          targetIndex = Math.min(currentIndex.value + 1, carouselData.length - 1);
+        } else if (
+            event.translationX > SWIPE_DISTANCE ||
+            event.velocityX > SWIPE_VELOCITY
+        ) {
+          // Swipe right - go to previous
+          targetIndex = Math.max(currentIndex.value - 1, 0);
+        }
+
+        // Update index and animate to target position
+        currentIndex.value = targetIndex;
+        translateX.value = withSpring(-targetIndex * width, {
+          damping: 20,
+          stiffness: 90,
+          velocity: event.velocityX,
+        });
+
+        // Restart auto-slide after gesture ends
+        runOnJS(startAutoSlide)();
       });
 
-      // Restart auto-slide after gesture ends
-      runOnJS(startAutoSlide)();
-    });
-
   const animatedCarouselStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
+    transform: [{translateX: translateX.value}],
   }));
 
   const CarouselIndicators = () => {
     return (
-      <View style={styles.indicatorContainer}>
-        {carouselData.map((_, index) => {
-          const animatedDotStyle = useAnimatedStyle(() => {
-            const activeIndex = Math.round(-translateX.value / width);
-            const isActive = activeIndex === index;
-            
-            // Smooth scale animation for dots
-            const scale = interpolate(
-              -translateX.value,
-              [(index - 1) * width, index * width, (index + 1) * width],
-              [0.8, 1, 0.8],
-              Extrapolation.CLAMP
+        <View style={styles.indicatorContainer}>
+          {carouselData.map((_, index) => {
+            const animatedDotStyle = useAnimatedStyle(() => {
+              const activeIndex = Math.round(-translateX.value / width);
+              const isActive = activeIndex === index;
+
+              // Smooth scale animation for dots
+              const scale = interpolate(
+                  -translateX.value,
+                  [(index - 1) * width, index * width, (index + 1) * width],
+                  [0.8, 1, 0.8],
+                  Extrapolation.CLAMP
+              );
+
+              return {
+                width: withSpring(isActive ? 24 : 8, {damping: 15}),
+                opacity: withSpring(isActive ? 1 : 0.5, {damping: 15}),
+                transform: [{scale}],
+                backgroundColor: isActive ? colors.white : colors.neutral400,
+              };
+            });
+
+            return (
+                <Animated.View
+                    key={index}
+                    style={[styles.indicator, animatedDotStyle]}
+                />
             );
-
-            return {
-              width: withSpring(isActive ? 24 : 8, { damping: 15 }),
-              opacity: withSpring(isActive ? 1 : 0.5, { damping: 15 }),
-              transform: [{ scale }],
-              backgroundColor: isActive ? colors.white : colors.neutral400,
-            };
-          });
-
-          return (
-            <Animated.View
-              key={index}
-              style={[styles.indicator, animatedDotStyle]}
-            />
-          );
-        })}
-      </View>
+          })}
+        </View>
     );
   };
 
   return (
-    <View style={styles.container}>
-      <GestureDetector gesture={panGesture}>
-        <View style={{ flex: 1 }}>
-          {/* Image Section */}
-          <View style={styles.imageContainer}>
-            <Animated.View style={[styles.imageCarousel, animatedCarouselStyle]}>
-              {carouselData.map((item, index) => (
-                <View key={item.id} style={styles.imageSlide}>
-                  <ImageBackground
-                    source={item.image}
-                    style={styles.backgroundImage}
-                    contentFit="cover"
-                  />
-                </View>
-              ))}
-            </Animated.View>
-          </View>
-
-          {/* Content Section */}
-          <View style={styles.contentSection}>
-            <View style={styles.contentContainer}>
-              <Animated.View style={[styles.textCarousel, animatedCarouselStyle]}>
+      <View style={styles.container}>
+        <GestureDetector gesture={panGesture}>
+          <View style={{flex: 1}}>
+            {/* Image Section */}
+            <View style={styles.imageContainer}>
+              <Animated.View style={[styles.imageCarousel, animatedCarouselStyle]}>
                 {carouselData.map((item, index) => (
-                  <View key={item.id} style={styles.textSlide}>
-                    <View style={styles.textContent}>
-                      <Animated.View
-                        entering={FadeInDown.duration(800).springify().damping(12)}
-                      >
-                        <Typo size={28} fontWeight="800" style={styles.heading}>
-                          {item.heading}
-                        </Typo>
-                      </Animated.View>
-
-                      <Animated.View
-                        entering={FadeInDown.duration(800).delay(100).springify().damping(12)}
-                      >
-                        <Typo size={16} color={colors.white} style={styles.description}>
-                          {item.description}
-                        </Typo>
-                      </Animated.View>
+                    <View key={item.id} style={styles.imageSlide}>
+                      <ImageBackground
+                          source={item.image}
+                          style={styles.backgroundImage}
+                          contentFit="cover"
+                      />
                     </View>
-                  </View>
                 ))}
-              </Animated.View>
-
-              <Animated.View
-                entering={FadeInDown.duration(800).delay(200).springify().damping(12)}
-              >
-                <CarouselIndicators />
               </Animated.View>
             </View>
 
-            <Animated.View
-              entering={FadeInDown.duration(800).delay(300).springify().damping(12)}
-              style={styles.buttonContainer}
-            >
-              <CustomButton
-                onPress={() => router.push("/(auth)/login")}
-                style={styles.button}
+            {/* Content Section */}
+            <View style={styles.contentSection}>
+              <View style={styles.contentContainer}>
+                <Animated.View style={[styles.textCarousel, animatedCarouselStyle]}>
+                  {carouselData.map((item, index) => (
+                      <View key={item.id} style={styles.textSlide}>
+                        <View style={styles.textContent}>
+                          <Animated.View
+                              entering={FadeInDown.duration(800).springify().damping(12)}
+                          >
+                            <Typo size={28} fontWeight="800" style={styles.heading}>
+                              {item.heading}
+                            </Typo>
+                          </Animated.View>
+
+                          <Animated.View
+                              entering={FadeInDown.duration(800).delay(100).springify().damping(12)}
+                          >
+                            <Typo size={16} color={colors.white} style={styles.description}>
+                              {item.description}
+                            </Typo>
+                          </Animated.View>
+                        </View>
+                      </View>
+                  ))}
+                </Animated.View>
+
+                <Animated.View
+                    entering={FadeInDown.duration(800).delay(200).springify().damping(12)}
+                >
+                  <CarouselIndicators/>
+                </Animated.View>
+              </View>
+
+              <Animated.View
+                  entering={FadeInDown.duration(800).delay(300).springify().damping(12)}
+                  style={styles.buttonContainer}
               >
-                <Typo size={18} color={colors.black} fontWeight="600">
-                  Get Started
-                </Typo>
-              </CustomButton>
-            </Animated.View>
+                <CustomButton
+                    onPress={() => router.push("/(auth)/login")}
+                    style={styles.button}
+                >
+                  <Typo size={18} color={colors.black} fontWeight="600">
+                    Get Started
+                  </Typo>
+                </CustomButton>
+              </Animated.View>
+            </View>
           </View>
-        </View>
-      </GestureDetector>
-    </View>
+        </GestureDetector>
+      </View>
   );
 }
 

@@ -12,7 +12,7 @@ interface CarouselProps {
   data: { imageUrl: string }[];
 }
 
-const Carousel: React.FC<CarouselProps> = ({ data }) => {
+export const  Carousel: React.FC<CarouselProps> = ({ data }) => {
   const flatListRef = useRef<FlatList>(null);
 
   const renderItem = ({ item }: { item: { imageUrl: string } }) => (
@@ -68,7 +68,6 @@ const Carousel: React.FC<CarouselProps> = ({ data }) => {
   );
 };
 
-export default Carousel;
 
 const styles = StyleSheet.create({
   container: {

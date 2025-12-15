@@ -108,7 +108,7 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({
                 <Typo style={styles.socialButtonText}>Loading...</Typo>
               ) : (
                 <>
-                  <AntDesign name="apple1" size={26} color="#000" />
+                  <AntDesign name="apple" size={26} color="#000" />
                   <Typo style={styles.socialButtonText} color={"#374151"}>
                     Continue with Apple
                   </Typo>

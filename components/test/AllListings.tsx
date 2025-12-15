@@ -10,6 +10,8 @@ import {
     ListRenderItem,
 } from 'react-native';
 import { Listing } from '@/utils/types/models';
+import { ListingImage } from '@/components/test/common/ListingImage';
+
 
 interface AllListingsProps {
     data: Listing[];
@@ -32,17 +34,23 @@ export const AllListings: React.FC<AllListingsProps> = ({
             onPress={() => onListingPress(item)}
             activeOpacity={0.7}
         >
-            <Image source={{ uri: item.images.at(0).image }} style={styles.listingImage} />
-            <Text style={styles.listingTitle} numberOfLines={2}>
-                {item.title}
-            </Text>
-            <Text style={styles.merchantName} numberOfLines={1}>
-                {item.merchant.business_name}
-            </Text>
-            <Text style={styles.listingPrice}>
-                {item.currency}
-                {item.price}
-            </Text>
+            <ListingImage
+                images={item.images}
+                style={styles.listingImage}
+                fallbackSource={require('@/assets/images/placeholder.png')}
+            />
+            <View style={styles.listingDescription}>
+                <Text style={styles.listingTitle} numberOfLines={2}>
+                    {item.title}
+                </Text>
+                <Text style={styles.merchantName} numberOfLines={1}>
+                    {item.merchant.business_name}
+                </Text>
+                <Text style={styles.listingPrice}>
+                    {item.currency}
+                    {item.price}
+                </Text>
+            </View>
         </TouchableOpacity>
     );
 
@@ -57,7 +65,7 @@ export const AllListings: React.FC<AllListingsProps> = ({
 
     return (
         <View style={styles.container}>
-            <Text style={styles.sectionTitle}>All Products</Text>
+            <Text style={styles.sectionTitle}>For you</Text>
             <FlatList
                 data={data}
                 renderItem={renderItem}
@@ -90,22 +98,18 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     listingCard: {
-        width: '48%',
+        width: '49%',
         backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 12,
-        marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+        borderRadius: 4,
+        marginBottom: 8,
     },
     listingImage: {
         width: '100%',
-        height: 120,
+        height: 245,
         borderRadius: 8,
-        marginBottom: 8,
+    },
+    listingDescription:{
+        padding: 8
     },
     listingTitle: {
         fontSize: 14,
@@ -120,7 +124,7 @@ const styles = StyleSheet.create({
     listingPrice: {
         fontSize: 16,
         fontWeight: 'bold',
-        color: '#007AFF',
+        color: '#000',
     },
     footerLoader: {
         paddingVertical: 20,

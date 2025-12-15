@@ -29,10 +29,10 @@ export function useInfiniteScroll<T>(
         try {
             setLoading(true);
             setError(null);
-            const result = await fetchFunction(page, itemsPerPage);
+            const response = await fetchFunction(page, itemsPerPage);
 
-            setData((prev) => [...prev, ...result.data]);
-            setHasMore(result.hasMore);
+            setData((prev) => [...prev, ...response.results]);
+            setHasMore(response.next !== null);
             setPage((prev) => prev + 1);
         } catch (err) {
             const apiError = err as ApiError;
@@ -47,11 +47,11 @@ export function useInfiniteScroll<T>(
         try {
             setRefreshing(true);
             setError(null);
-            const result = await fetchFunction(1, itemsPerPage);
+            const data = await fetchFunction(1, itemsPerPage);
 
-            setData(result.data);
+            setData(data.results);
             setPage(2);
-            setHasMore(result.hasMore);
+            setHasMore(data.next !== null);
         } catch (err) {
             const apiError = err as ApiError;
             setError(apiError);

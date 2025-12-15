@@ -1,11 +1,12 @@
 import { verticalScale } from "@/utils/styling";
-import { TypoProps } from "@/utils/types";
-import React from "react";
+import { TypoProps } from "@/utils/types/models";
+import React,{ PropsWithChildren } from "react";
 import { StyleSheet, Text, TextStyle } from "react-native";
 
-interface ExtendedTypoProps extends TypoProps {
+type ExtendedTypoProps = PropsWithChildren<TypoProps & {
     numberOfLines?: number;
-}
+    style?: TextStyle | TextStyle[];
+}>;
 
 const Typo = ({
     size,

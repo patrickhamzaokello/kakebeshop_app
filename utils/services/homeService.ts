@@ -82,7 +82,7 @@ export const homeService = {
 
             // Transform to match our hook's expected format
             return {
-                data: response.data.results,
+                results: response.data.results,
                 hasMore: response.data.next !== null,
                 count: response.data.count,
                 next: response.data.next,
@@ -91,7 +91,7 @@ export const homeService = {
         } catch (error) {
             console.error('Error fetching listings:', error);
             return {
-                data: [],
+                results: [],
                 hasMore: false,
                 count: 0,
                 next: null,
