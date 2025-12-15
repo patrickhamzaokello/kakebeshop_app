@@ -12,31 +12,11 @@ import {AllListings} from "@/components/test/AllListings";
 import {ApiResponse} from "@/utils/types";
 import {Category, Listing, Merchant} from "@/utils/types/models";
 import {useNavigation} from "expo-router";
+import {CategoriesSection} from "@/components/test/CategoriesSection";
+import {FeaturedMerchants} from "@/components/test/FeaturedMerchants";
+import {FeaturedListings} from "@/components/test/FeaturedListings";
 
 
-function CategoriesSection(props: {
-    data: ApiResponse<Category[]> | null,
-    loading: boolean,
-    onCategoryPress: (category: any) => void
-}) {
-    return null;
-}
-
-function FeaturedMerchants(props: {
-    data: ApiResponse<Merchant[]> | null,
-    loading: boolean,
-    onMerchantPress: (merchant: any) => void
-}) {
-    return null;
-}
-
-function FeaturedListings(props: {
-    data: ApiResponse<Listing[]> | null,
-    loading: boolean,
-    onListingPress: (listing: any) => void
-}) {
-    return null;
-}
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
