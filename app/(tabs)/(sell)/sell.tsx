@@ -5,14 +5,14 @@ import {
 } from "react-native";
 import Typo from "@/components/Typo";
 
-export default function CartMain() {
+export default function MerchantSellMain() {
 
 
   return (
       <ScreenWrapper style={styles.container}>
         <StatusBar style="dark" />
 
-        <Typo>Cart List</Typo>
+        <Typo>Merchant Sell page</Typo>
       </ScreenWrapper>
   );
 }

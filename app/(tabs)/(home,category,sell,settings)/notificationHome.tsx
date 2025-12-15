@@ -5,16 +5,16 @@ import {
 } from "react-native";
 import Typo from "@/components/Typo";
 
-export default function CartMain() {
+export default function NotificationHome() {
 
 
-  return (
+    return (
       <ScreenWrapper style={styles.container}>
         <StatusBar style="dark" />
 
-        <Typo>Cart List</Typo>
+        <Typo>Notifications</Typo>
       </ScreenWrapper>
-  );
+    );
 }
 
 const styles = StyleSheet.create({

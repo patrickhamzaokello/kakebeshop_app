@@ -1,18 +1,12 @@
-import Header from "@/components/header/Header";
-import NewsFeed from "@/components/NewsFeed";
-import ScreenWrapper from "@/components/ScreenWrapper";
-
-import Typo from "@/components/Typo";
+// app/index.tsx or app/(tabs)/index.tsx
 import { colors } from "@/constants/theme";
-import { ScrollView, StyleSheet, View } from "react-native";
+import { View } from "react-native";
+import {HomeScreen} from "@/Screens/HomeScreen";
 
 export default function Index() {
-  return (
-    <>
-      <Header statusBarStyle="dark-content" />
-      <View style={{ flex: 1, backgroundColor: colors.white }}>
-        <NewsFeed />
-      </View>
-    </>
-  );
+    return (
+        <View style={{ flex: 1, backgroundColor: colors.white }}>
+            <HomeScreen />
+        </View>
+    );
 }

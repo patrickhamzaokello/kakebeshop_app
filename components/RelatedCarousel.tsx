@@ -60,7 +60,7 @@ const RelatedCarousel: React.FC<RelatedCarouselProps> = ({
   // Fetch related articles with proper error handling
   const fetchRelatedArticles = useCallback(async () => {
     if (!articleID) {
-      setError("No article ID provided");
+      setError("No listing ID provided");
       setIsLoading(false);
       return;
     }
@@ -100,7 +100,7 @@ const RelatedCarousel: React.FC<RelatedCarouselProps> = ({
     fetchRelatedArticles();
   }, [fetchRelatedArticles]);
 
-  // Handle article press with navigation
+  // Handle listing press with navigation
   const handleArticlePress = useCallback(
     (article: RelatedArticle) => {
       if (onArticlePress) {

@@ -253,7 +253,7 @@ export const getArticleDetails = async (articleID: number): Promise<any> => {
     if (response.success && response.data) {
       return response.data.article;
     }
-    throw new Error(response.message || "Failed to fetch article details");
+    throw new Error(response.message || "Failed to fetch listing details");
   } catch (error) {}
 };
 
@@ -268,7 +268,7 @@ export const getArticleDetailsBatch = async (
       return response.data;
     }
     throw new Error(
-      response.message || "Failed to fetch article batch details"
+      response.message || "Failed to fetch listing batch details"
     );
   } catch (error) {}
 };
@@ -281,7 +281,7 @@ export const getArticleComments = async (articleID: number): Promise<any> => {
     if (response.success && response.data) {
       return response.data;
     }
-    throw new Error(response.message || "Failed to fetch article comments");
+    throw new Error(response.message || "Failed to fetch listing comments");
   } catch (error) {}
 };
 
@@ -297,7 +297,7 @@ export const postComment = async (
     if (response.success && response.data) {
       return response.data;
     }
-    throw new Error(response.message || "Failed to fetch article comments");
+    throw new Error(response.message || "Failed to fetch listing comments");
   } catch (error) {}
 };
 
@@ -315,7 +315,7 @@ export const replyComment = async (
     if (response.success && response.data) {
       return response.data;
     }
-    throw new Error(response.message || "Failed to fetch article comments");
+    throw new Error(response.message || "Failed to fetch listing comments");
   } catch (error) {}
 };
 

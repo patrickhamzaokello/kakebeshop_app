@@ -48,7 +48,7 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
     // Default navigation handling based on notification type
     switch (metadata.notificationType) {
       case "breaking_news":
-        // Navigate to single article
+        // Navigate to single listing
         if (metadata.articleId) {
           console.log(`Navigating to article: ${metadata.articleId}`);
 

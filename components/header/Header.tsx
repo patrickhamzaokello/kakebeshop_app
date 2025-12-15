@@ -8,7 +8,6 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import GradientBackground from "./GradientBackground";
 import { useAuthStore } from "@/utils/authStore";
 import { useHaptic } from "@/hooks/useHaptics";
-const { trigger } = useHaptic();
 
 interface ScreenWrapperProps {
   statusBarStyle?: "light-content" | "dark-content";
@@ -28,7 +27,7 @@ const SEARCH_TERMS = [
   "Search electronics...",
   "Browse fashion...",
   "Explore home goods...",
-  "Find your next purchase...",
+  "Speakers in Lira..",
 ];
 
 // Carousel banner data - replace with your actual images/promotions
@@ -36,7 +35,7 @@ const CAROUSEL_DATA = [
   {
     id: "1",
     image: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800&q=80",
-    title: "Summer Sale",
+    title: "Sale for grabsrr",
     subtitle: "Up to 50% off",
   },
   {
@@ -67,6 +66,8 @@ export default function Header({
 }: ScreenWrapperProps) {
   const edgeInsets = useSafeAreaInsets();
   const { user } = useAuthStore();
+    const { trigger } = useHaptic();
+
 
   const [notificationStats, setNotificationStats] =
     useState<NotificationStats | null>(null);
@@ -142,7 +143,7 @@ export default function Header({
 
   const handleSearchPress = async () => {
     await trigger("light");
-    router.push("/search"); // Navigate to search page
+    router.push("/category"); // Navigate to search page
   };
 
   const handleCarouselScroll = (event: any) => {

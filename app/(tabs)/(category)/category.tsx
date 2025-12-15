@@ -5,14 +5,14 @@ import {
 } from "react-native";
 import Typo from "@/components/Typo";
 
-export default function CartMain() {
+export default function Category() {
 
 
   return (
       <ScreenWrapper style={styles.container}>
         <StatusBar style="dark" />
 
-        <Typo>Cart List</Typo>
+        <Typo>Category List</Typo>
       </ScreenWrapper>
   );
 }

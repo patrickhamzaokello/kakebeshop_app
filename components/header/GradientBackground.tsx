@@ -11,7 +11,7 @@ export default function GradientBackground() {
         bottom: 0,
         zIndex: -1,
       }}
-      colors={["#05E2E6", "#FFFFFF"]}
+      colors={["#BFDAD3", "#FFFFFF"]}
       start={{ x: 0, y: 0 }}
       end={{ x: 0, y: 1 }}
     />

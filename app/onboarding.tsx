@@ -1,4 +1,3 @@
-import SelectCategory from "@/components/SelectCategory";
 import ScreenWrapper from "@/components/ScreenWrapper";
 
 import Typo from "@/components/Typo";
@@ -10,8 +9,8 @@ export default function selectCategoryScreen() {
     <ScreenWrapper
       style={{ backgroundColor: colors.white }}
       statusBarStyle="dark-content"
-    >    
-      <SelectCategory />
+    >
+      <Typo>onboarding</Typo>
     </ScreenWrapper>
   );
 }

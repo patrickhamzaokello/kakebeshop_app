@@ -1,5 +1,5 @@
 import Header from "@/components/header/Header";
-import { Feather, Ionicons, MaterialCommunityIcons, Octicons } from "@expo/vector-icons";
+import {AntDesign, Feather, Ionicons, MaterialCommunityIcons, MaterialIcons, Octicons} from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 
 export default function TabsLayout() {
@@ -11,7 +11,7 @@ export default function TabsLayout() {
           title: "Home",
           popToTopOnBlur: true,
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons name="newspaper-variant-outline" size={size} color={color} />
+            <AntDesign name="product" size={size} color={color} />
           ),
         }}
         
@@ -27,6 +27,16 @@ export default function TabsLayout() {
         }}
         
       />
+        <Tabs.Screen
+            name="(sell)"
+            options={{
+                title: "Sell",
+                popToTopOnBlur: true,
+                tabBarIcon: ({ color, size }) => (
+                <MaterialCommunityIcons name="tag-plus-outline" size={size} color={color} />
+                ),
+            }}
+        />
       <Tabs.Screen
         name="(cart)"
         options={{
@@ -38,20 +48,11 @@ export default function TabsLayout() {
         }}
         
       />
+
       <Tabs.Screen
-        name="(favourites)"
+        name="(settings)"
         options={{
-          title: "Bookmarks",
-          popToTopOnBlur: true,
-          tabBarIcon: ({ color, size }) => (
-            <Ionicons name="albums-outline" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="(settings)"        
-        options={{
-          title: "Profile",
+          title: "Account",
           popToTopOnBlur: true,
           tabBarIcon: ({ color, size }) => (
             <Octicons name="person" size={size} color={color} />
