@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { PaginatedResponse } from '@/utils/models';
+import { PaginatedResponse } from '@/utils/types/models';
 import {ApiError} from "@/utils/types";
 
 interface UseInfiniteScrollReturn<T> {

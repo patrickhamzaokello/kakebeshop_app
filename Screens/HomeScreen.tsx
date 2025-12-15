@@ -5,12 +5,12 @@ import { useSectionData } from '@/hooks/useSectionData';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { homeService } from '@/utils/services/homeService';
 
-import { RootStackParamList } from '@/utils/navigation';
+import { RootStackParamList } from '@/utils/types/navigation';
 import {HeaderSection} from "@/components/test/HeaderSection";
 import {CarouselSection} from "@/components/test/CarouselSection";
 import {AllListings} from "@/components/test/AllListings";
 import {ApiResponse} from "@/utils/types";
-import {Category, Listing, Merchant} from "@/utils/models";
+import {Category, Listing, Merchant} from "@/utils/types/models";
 import {useNavigation} from "expo-router";
 
 
@@ -50,6 +50,7 @@ export const HomeScreen: React.FC = () => {
     const merchantsData = useSectionData(() => homeService.getFeaturedMerchants(10));
     const featuredData = useSectionData(() => homeService.getFeaturedListings(10));
 
+    // Infinite scroll for all listings
     // Infinite scroll for all listings
     const {
         data: listings,

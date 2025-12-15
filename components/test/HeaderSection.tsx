@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { HeaderData } from '@/utils/models';
+import { HeaderData } from '@/utils/types/models';
 
 interface HeaderSectionProps {
     data: HeaderData | null;

@@ -1,6 +1,6 @@
 import { colors } from '@/constants/theme'
 import { verticalScale } from '@/utils/styling'
-import { BackButtonProps } from '@/utils/types'
+import { BackButtonProps } from '@/utils/types/models'
 import { Ionicons } from '@expo/vector-icons'
 import { useRouter } from 'expo-router'
 import React from 'react'

@@ -9,7 +9,7 @@ import {
     NativeScrollEvent,
     NativeSyntheticEvent,
 } from 'react-native';
-import { CarouselImage } from '@/utils/models';
+import { CarouselImage } from '@/utils/types/models';
 
 const { width } = Dimensions.get('window');
 const CAROUSEL_WIDTH = width - 32;

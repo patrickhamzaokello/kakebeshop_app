@@ -1,6 +1,6 @@
 import { colors, radius } from "@/constants/theme";
 import { verticalScale } from "@/utils/styling";
-import { CustomButtonProps } from "@/utils/types";
+import { CustomButtonProps } from "@/utils/types/models";
 import React from "react";
 import { ActivityIndicator, StyleSheet, TouchableOpacity } from "react-native";
 

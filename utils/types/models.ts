@@ -1,0 +1,173 @@
+import {
+    TextProps,
+    TextStyle,
+    TouchableOpacityProps,
+    ViewStyle,
+} from "react-native";
+
+
+
+
+export interface User {
+    id: string;
+    name: string;
+    email: string;
+    avatar: string;
+}
+
+export interface CarouselImage {
+    id: string;
+    image: string;
+    link?: string;
+    title?: string;
+}
+
+export interface Category {
+    id: string;
+    name: string;
+    slug: string;
+    icon: string | null;
+    parent: string | null;
+    children: Category[];
+    allows_order_intent: boolean;
+    allows_cart: boolean;
+    is_contact_only: boolean;
+    sort_order: number;
+    is_active: boolean;
+    created_at: string;
+}
+
+export interface Location {
+    id: string;
+    region: string;
+    district: string;
+    area: string;
+    latitude: string;
+    longitude: string;
+    address: string;
+    is_active: boolean;
+    created_at: string;
+}
+
+export interface Tag {
+    id: string;
+    name: string;
+    slug: string;
+    created_at: string;
+}
+
+export interface ListingImage {
+    id: string;
+    image: string;
+    thumbnail: string;
+    is_primary: boolean;
+    sort_order: number;
+    created_at: string;
+}
+
+export interface Merchant {
+    id: string;
+    user_id: string;
+    username: string;
+    email: string;
+    display_name: string;
+    business_name: string;
+    description: string;
+    business_phone: string;
+    business_email: string;
+    logo: string | null;
+    cover_image: string | null;
+    verified: boolean;
+    verification_date: string | null;
+    rating: number;
+    status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+    created_at: string;
+    deleted_at: string | null;
+}
+
+export interface Listing {
+    id: string;
+    merchant: Merchant;
+    title: string;
+    description: string;
+    listing_type: 'PRODUCT' | 'SERVICE';
+    category: Category;
+    location: Location;
+    tags: Tag[];
+    price_type: 'FIXED' | 'RANGE' | 'FREE';
+    price: string;
+    price_min: string | null;
+    price_max: string | null;
+    currency: string;
+    is_price_negotiable: boolean;
+    status: 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'REJECTED';
+    rejection_reason: string;
+    is_verified: boolean;
+    is_featured: boolean;
+    featured_until: string | null;
+    views_count: number;
+    contact_count: number;
+    metadata: any;
+    expires_at: string | null;
+    created_at: string;
+    updated_at: string;
+    deleted_at: string | null;
+    images: ListingImage[];
+    business_hours: any[];
+}
+
+export interface HeaderData {
+    user: User;
+    notificationsCount: number;
+}
+
+export interface PaginatedResponse<T> {
+    count: number;
+    next: string | null;
+    previous: string | null;
+    results: T[];
+}
+
+
+
+export type TypoProps = {
+    size?: number;
+    color?: string;
+    fontWeight?: TextStyle["fontWeight"];
+    children: any | null;
+    style?: TextStyle;
+    textProps?: TextProps;
+};
+
+export type BackButtonProps = {
+    style?: ViewStyle;
+    iconSize?: number;
+};
+
+
+export interface CustomButtonProps extends TouchableOpacityProps {
+    style?: ViewStyle;
+    onPress?: () => void;
+    loading?: boolean;
+    children: React.ReactNode;
+}
+
+export type UserType = {
+    user_id?: string;
+    email?: string | null;
+    username?: string | null;
+    full_name?: string | null;
+    phone_number?: string | null;
+    image?: any;
+} | null;
+
+
+export type AuthVerificationResponse = {
+    expires_in: string;     // "10 minutes"
+    message: string;        // "Code verified successfully"
+    reset_token: string;    // "cw2kbu-..."
+    success: boolean;       // true
+    uidb64: string;         // "YjNhNTVmOGEt..."
+};
+
+

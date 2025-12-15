@@ -9,7 +9,7 @@ import {
     ActivityIndicator,
     ListRenderItem,
 } from 'react-native';
-import { Listing } from '@/utils/models';
+import { Listing } from '@/utils/types/models';
 
 interface AllListingsProps {
     data: Listing[];
@@ -32,16 +32,16 @@ export const AllListings: React.FC<AllListingsProps> = ({
             onPress={() => onListingPress(item)}
             activeOpacity={0.7}
         >
-            <Image source={{ uri: item.image }} style={styles.listingImage} />
+            <Image source={{ uri: item.images.at(0).image }} style={styles.listingImage} />
             <Text style={styles.listingTitle} numberOfLines={2}>
                 {item.title}
             </Text>
             <Text style={styles.merchantName} numberOfLines={1}>
-                {item.merchantName}
+                {item.merchant.business_name}
             </Text>
             <Text style={styles.listingPrice}>
                 {item.currency}
-                {item.price.toFixed(2)}
+                {item.price}
             </Text>
         </TouchableOpacity>
     );

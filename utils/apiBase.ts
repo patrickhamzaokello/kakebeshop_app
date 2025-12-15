@@ -46,6 +46,9 @@ class ApiService {
         if (this.isAuthEndpoint(config.url || "")) {
           return config;
         }
+        if (__DEV__) {
+          console.log('📤 API Request:', config.method?.toUpperCase(), config.url);
+        }
 
         try {
           const accessToken = await SecureStore.getItemAsync("accessToken");
@@ -64,6 +67,9 @@ class ApiService {
     // Response interceptor for token refresh
     this.axiosInstance.interceptors.response.use(
       (response: AxiosResponse) => {
+        if (__DEV__) {
+          console.log('📥 API Response:', response.config.url, response.status);
+        }
         return response;
       },
       async (error) => {
