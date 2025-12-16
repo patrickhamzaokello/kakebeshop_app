@@ -70,7 +70,7 @@ export const FeaturedListings: React.FC<FeaturedListingsProps> = ({
                     >
                         {/* Use ListingImage component */}
                         <ListingImage
-                            images={listing.images}
+                            primaryImage={listing.primary_image}
                             style={styles.listingImage}
                             fallbackSource={require('@/assets/images/placeholder.png')}
                         />

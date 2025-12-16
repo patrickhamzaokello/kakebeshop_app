@@ -35,7 +35,7 @@ export const AllListings: React.FC<AllListingsProps> = ({
             activeOpacity={0.7}
         >
             <ListingImage
-                images={item.images}
+                primaryImage={item.primary_image}
                 style={styles.listingImage}
                 fallbackSource={require('@/assets/images/placeholder.png')}
             />

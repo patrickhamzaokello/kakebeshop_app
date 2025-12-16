@@ -34,7 +34,7 @@ export const FeaturedMerchants: React.FC<FeaturedMerchantsProps> = ({
     }
 
     const getMerchantImage = (merchant: Merchant): string => {
-        return merchant.logo || merchant.cover_image || 'https://via.placeholder.com/100';
+        return merchant.logo  || 'https://via.placeholder.com/100';
     };
 
     return (
@@ -73,7 +73,7 @@ export const FeaturedMerchants: React.FC<FeaturedMerchantsProps> = ({
                             </View>
 
                             <View style={styles.ratingRow}>
-                                <Text style={styles.ratingText}>⭐ {merchant.rating.toFixed(1)}</Text>
+                                <Text style={styles.ratingText}>{merchant.rating.toFixed(1)}</Text>
                             </View>
                         </View>
                     </TouchableOpacity>

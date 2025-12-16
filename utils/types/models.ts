@@ -94,7 +94,12 @@ export interface Tag {
     created_at: string;
 }
 
-export interface ListingImage {
+export interface ListingImageType {
+    image: string;
+    thumbnail: string;
+}
+
+export interface ListingDetailImageType {
     id: string;
     image: string;
     thumbnail: string;
@@ -104,6 +109,17 @@ export interface ListingImage {
 }
 
 export interface Merchant {
+    id: string;
+    display_name: string;
+    business_name: string;
+    logo: string;
+    rating: number;
+    total_reviews: number;
+    verified: boolean;
+    featured: boolean
+}
+
+export interface MerchantDetails {
     id: string;
     user_id: string;
     username: string;
@@ -131,33 +147,41 @@ export interface Merchant {
 
 
 export interface Listing {
-    id: string;
-    merchant: Merchant;
-    title: string;
+    id: string,
+    merchant: Merchant,
+    title: string,
+    listing_type: string,
+    category_name: string,
+    price_type: string,
+    price: string,
+    price_min: string | null,
+    price_max: string | null,
+    currency: string ,
+    is_featured: boolean,
+    is_verified: boolean,
+    views_count: number,
+    primary_image: ListingImageType,
+    created_at: string
+}
+
+
+export interface ListingDetail extends Listing   {
     description: string;
-    listing_type: 'PRODUCT' | 'SERVICE';
     category: Category;
     location: Location;
     tags: Tag[];
-    price_type: 'FIXED' | 'RANGE' | 'FREE';
-    price: string;
-    price_min: string | null;
-    price_max: string | null;
     currency: string;
     is_price_negotiable: boolean;
-    status: 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'REJECTED';
+    status: string;
     rejection_reason: string;
-    is_verified: boolean;
-    is_featured: boolean;
     featured_until: string | null;
     views_count: number;
     contact_count: number;
     metadata: any;
     expires_at: string | null;
-    created_at: string;
     updated_at: string;
     deleted_at: string | null;
-    images: ListingImage[];
+    images: ListingDetailImageType[];
     business_hours: any[];
 }
 

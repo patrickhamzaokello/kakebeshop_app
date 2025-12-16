@@ -67,13 +67,13 @@ export const homeService = {
     // Featured Listings - filter by is_featured=true
     async getFeaturedListings(limit: number = 10): Promise<Listing[]> {
         try {
-            const response = await apiService.get<PaginatedResponse<Listing>>('/api/v1/listings/', {
+            const response = await apiService.get<Listing[]>('/api/v1/listings/featured/', {
                 params: {
                     is_featured: true,
                     limit,
                 },
             });
-            return response.data.results;
+            return response.data;
         } catch (error) {
             console.error('Error fetching featured listings:', error);
             return [];
