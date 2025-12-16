@@ -1,14 +1,21 @@
 import apiService from "@/utils/apiBase";
 
-import {CarouselImage, Category, HeaderData, Listing, Merchant, PaginatedResponse} from '@/utils/types/models';
+import {
+    CarouselImage,
+    Category,
+    HeaderData,
+    Listing,
+    Merchant,
+    PaginatedResponse
+} from '@/utils/types/models';
 
 export const homeService = {
     // Header data - combine user profile and notifications
     async getHeaderData(): Promise<HeaderData> {
         try {
             const [userResponse, notificationsResponse] = await Promise.all([
-                apiService.get('/api/v1/categories/'),
-                apiService.get('/api/v1/categories/'),
+                apiService.get('/auth/profile/'),
+                apiService.get('/api/v1/notifications/'),
             ]);
 
             return {
@@ -24,8 +31,8 @@ export const homeService = {
     // Carousel images
     async getCarouselImages(): Promise<CarouselImage[]> {
         try {
-            const response = await apiService.get<CarouselImage[]>('/api/v1/merchants');
-            return response.data;
+            const response = await apiService.get<PaginatedResponse<CarouselImage>>('/api/v1/banners/');
+            return response.data.results;
         } catch (error) {
             console.error('Error fetching carousel:', error);
             // Return empty array for graceful degradation
@@ -47,10 +54,10 @@ export const homeService = {
     // Featured Merchants
     async getFeaturedMerchants(limit: number = 10): Promise<Merchant[]> {
         try {
-            const response = await apiService.get<PaginatedResponse<Merchant>>('/api/v1/merchants', {
+            const response = await apiService.get<Merchant[]>('api/v1/merchants/featured/', {
                 params: { limit },
             });
-            return response.data.results;
+            return response.data;
         } catch (error) {
             console.error('Error fetching merchants:', error);
             return [];

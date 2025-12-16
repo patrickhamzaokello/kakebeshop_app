@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, Image, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { HeaderData } from '@/utils/types/models';
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface HeaderSectionProps {
     data: HeaderData | null;
@@ -26,6 +27,7 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
 
     return (
         <View style={styles.container}>
+            <SafeAreaView style={{ flex: 1 }}>
             <View style={styles.topRow}>
                 <View style={styles.userInfo}>
                     <Image source={{ uri: data?.user.avatar }} style={styles.avatar} />
@@ -49,6 +51,8 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
                 <Ionicons name="search" size={20} color="#666" />
                 <Text style={styles.searchPlaceholder}>Search products...</Text>
             </TouchableOpacity>
+            </SafeAreaView>
+
         </View>
     );
 };
