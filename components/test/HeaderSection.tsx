@@ -25,15 +25,16 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
         );
     }
 
+
     return (
         <View style={styles.container}>
             <SafeAreaView style={{ flex: 1 }}>
             <View style={styles.topRow}>
                 <View style={styles.userInfo}>
-                    <Image source={{ uri: data?.user.avatar }} style={styles.avatar} />
+                    <Image source={{ uri: data?.profile.name }} style={styles.avatar} />
                     <View>
                         <Text style={styles.welcomeText}>Welcome back,</Text>
-                        <Text style={styles.userName}>{data?.user.name}</Text>
+                        <Text style={styles.userName}>{data?.profile.name}</Text>
                     </View>
                 </View>
 

@@ -10,10 +10,48 @@ import {
 
 export interface User {
     id: string;
+    username: string;
     name: string;
     email: string;
-    avatar: string;
+    profile_image: string | null;
+    phone: string | null;
+    bio: string | null;
+
+    is_verified: boolean;
+    phone_verified: boolean;
+    is_merchant: boolean;
+
+    intent: UserIntent | null;
+    onboarding: UserOnboarding | null;
+    merchant: Merchant | null;
+
+    created_at: string;
+    updated_at: string;
 }
+export interface UserIntent {
+    id: string;
+    user_email: string;
+    user_name: string;
+    intent: "sell" | "buy";
+    intent_display: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface UserOnboarding {
+    id: string;
+    user_email: string;
+    user_name: string;
+    intent_completed: boolean;
+    categories_completed: boolean;
+    profile_completed: boolean;
+    is_onboarding_complete: boolean;
+    progress_percentage: number;
+    completed_at: string;
+    created_at: string;
+    updated_at: string;
+}
+
 
 export interface CarouselImage {
     id: string;
@@ -77,13 +115,20 @@ export interface Merchant {
     business_email: string;
     logo: string | null;
     cover_image: string | null;
+
     verified: boolean;
     verification_date: string | null;
+    featured: boolean;
+
     rating: number;
-    status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
+    total_reviews: number;
+    status: "ACTIVE" | "SUSPENDED" | "BANNED";
+    is_active: boolean;
+
     created_at: string;
-    deleted_at: string | null;
+    updated_at: string;
 }
+
 
 export interface Listing {
     id: string;
@@ -117,7 +162,7 @@ export interface Listing {
 }
 
 export interface HeaderData {
-    user: User;
+    profile: User;
     notificationsCount: number;
 }
 

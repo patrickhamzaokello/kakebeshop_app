@@ -19,7 +19,7 @@ export const homeService = {
             ]);
 
             return {
-                user: userResponse.data,
+                profile: userResponse.data.user,
                 notificationsCount: notificationsResponse.data.count || 0,
             };
         } catch (error) {

@@ -25,7 +25,6 @@ export const FeaturedMerchants: React.FC<FeaturedMerchantsProps> = ({
                                                                         onSeeAll,
                                                                     }) => {
 
-    console.log(data)
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
