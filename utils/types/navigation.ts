@@ -1,6 +1,7 @@
 export type RootStackParamList = {
     Home: undefined;
     Search: undefined;
+    Wishlist: undefined;
     Notifications: undefined;
     Category: { categoryId: string };
     Merchant: { merchantId: string };

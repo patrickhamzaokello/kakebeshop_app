@@ -72,6 +72,7 @@ export const HomeScreen: React.FC = () => {
                 data={headerData.data}
                 loading={headerData.loading}
                 onSearch={() => navigation.navigate('Search')}
+                onWishlistPress={() => navigation.navigate('Wishlist')}
                 onNotificationPress={() => navigation.navigate('Notifications')}
             />
 
