@@ -40,7 +40,7 @@ export const FeaturedMerchants: React.FC<FeaturedMerchantsProps> = ({
     return (
         <View style={styles.container}>
             <SectionHeader
-                title="Featured Merchants"
+                title="Top Brands"
                 onSeeAll={onSeeAll}
                 showSeeAll={!!onSeeAll}
             />
@@ -57,17 +57,10 @@ export const FeaturedMerchants: React.FC<FeaturedMerchantsProps> = ({
                         onPress={() => onMerchantPress(merchant)}
                         activeOpacity={0.7}
                     >
-                        <View style={styles.imageContainer}>
-                            <Image
-                                source={{ uri: getMerchantImage(merchant) }}
-                                style={styles.merchantImage}
-                            />
-                            {merchant.verified && (
-                                <View style={styles.verifiedBadge}>
-                                    <Text style={styles.verifiedIcon}>✓</Text>
-                                </View>
-                            )}
-                        </View>
+                        <Image
+                            source={{ uri: getMerchantImage(merchant) }}
+                            style={styles.merchantImage}
+                        />
 
                         <Text style={styles.merchantName} numberOfLines={1}>
                             {merchant.business_name || merchant.display_name}
@@ -76,6 +69,11 @@ export const FeaturedMerchants: React.FC<FeaturedMerchantsProps> = ({
                         <View style={styles.ratingContainer}>
                             <Text style={styles.ratingStar}>★</Text>
                             <Text style={styles.ratingText}>{merchant.rating.toFixed(1)}</Text>
+                            {merchant.verified && (
+                                <View style={styles.verifiedBadge}>
+                                    <Text style={styles.verifiedIcon}>✓</Text>
+                                </View>
+                            )}
                         </View>
                     </TouchableOpacity>
                 ))}
@@ -87,7 +85,7 @@ export const FeaturedMerchants: React.FC<FeaturedMerchantsProps> = ({
 const styles = StyleSheet.create({
     container: {
         paddingVertical: 12,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#FFFFFF',
     },
     loadingContainer: {
         height: 120,
@@ -96,40 +94,34 @@ const styles = StyleSheet.create({
     },
     scrollContent: {
         paddingHorizontal: 16,
-        gap: 12,
+        gap: 8,
     },
     merchantCard: {
-        width: 100,
-        marginRight: 0,
-    },
-    imageContainer: {
-        position: 'relative',
-        marginBottom: 8,
+        width: 120,
+        padding: 4,
+        backgroundColor: '#fff',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#E5E5EA',
     },
     merchantImage: {
-        width: 100,
+        width: '100%',
         height: 100,
-        borderRadius: 12,
+        borderRadius: 8,
         backgroundColor: '#F5F5F5',
+        marginBottom: 8,
     },
     verifiedBadge: {
-        position: 'absolute',
-        top: 6,
-        right: 6,
         backgroundColor: '#34C759',
-        width: 20,
-        height: 20,
-        borderRadius: 10,
+        width: 16,
+        height: 16,
+        borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.2,
-        shadowRadius: 2,
-        elevation: 2,
+        marginLeft: 4,
     },
     verifiedIcon: {
-        fontSize: 12,
+        fontSize: 10,
         color: '#fff',
         fontWeight: '700',
     },

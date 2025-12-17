@@ -65,7 +65,7 @@ export const AllListings: React.FC<AllListingsProps> = ({
 
     return (
         <View style={styles.container}>
-            <Text style={styles.sectionTitle}>For you</Text>
+            <Text style={styles.sectionTitle}>All Listings</Text>
             <FlatList
                 data={data}
                 renderItem={renderItem}

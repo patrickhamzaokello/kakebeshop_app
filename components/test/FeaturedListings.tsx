@@ -37,7 +37,7 @@ export const FeaturedListings: React.FC<FeaturedListingsProps> = ({
         return (
             <View style={styles.container}>
                 <SectionHeader
-                    title="Featured Products"
+                    title="Trending Listings"
                     onSeeAll={onSeeAll}
                     showSeeAll={!!onSeeAll}
                 />
@@ -51,7 +51,7 @@ export const FeaturedListings: React.FC<FeaturedListingsProps> = ({
     return (
         <View style={styles.container}>
             <SectionHeader
-                title="Featured Products"
+                title="Trending Listings"
                 onSeeAll={onSeeAll}
                 showSeeAll={!!onSeeAll}
             />
