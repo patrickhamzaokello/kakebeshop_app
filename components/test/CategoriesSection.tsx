@@ -103,7 +103,7 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
                                 <IconComponent
                                     name={iconConfig.name}
                                     size={32}
-                                    color="#E60549"
+                                    color="#000"
                                 />
                             </View>
                             <Text style={styles.categoryName} numberOfLines={3}>
@@ -138,7 +138,7 @@ const styles = StyleSheet.create({
         width: 64,
         height: 64,
         borderRadius: 32,
-        backgroundColor: '#FFF2F5', // Light blue background for better contrast
+        backgroundColor: '#E0E8ED', // Light blue background for better contrast
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 8,

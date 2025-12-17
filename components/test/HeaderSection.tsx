@@ -66,7 +66,7 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
   }, []);
 
   return (
-    <LinearGradient colors={["#E3D5D5", "#FFFFFF"]} style={styles.container}>
+    <LinearGradient colors={["#BFDAD3", "#FFFFFF"]} style={styles.container}>
       <View style={{ flex: 1 }}>
         <SafeAreaView />
 
@@ -117,7 +117,9 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
             flexDirection: "row",
             alignItems: "center",
             backgroundColor: "#FFFFFF",
-            borderRadius: 12,
+            borderRadius: 4,
+            borderColor: "#2F4F4F",
+            borderWidth: 1,
             paddingHorizontal: 16,
             paddingVertical: 14,
           }}
@@ -148,7 +150,6 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     paddingBottom: 8,
-    paddingTop: 16,
   },
   loadingContainer: {
     padding: 16,
@@ -202,7 +203,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#fff",
-    borderRadius: 8,
+    borderRadius: 4,
+    borderColor: "#2F4F4F",
+    borderWidth: 1,
   },
   badge: {
     position: "absolute",
@@ -221,18 +224,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "bold",
   },
-  searchBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F2F2F7",
-    borderRadius: 10,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: "#E5E5EA",
-  },
-  searchPlaceholder: {
-    marginLeft: 8,
-    fontSize: 16,
-    color: "#666",
-  },
+ 
+
 });
