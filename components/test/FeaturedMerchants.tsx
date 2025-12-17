@@ -19,11 +19,11 @@ interface FeaturedMerchantsProps {
 }
 
 export const FeaturedMerchants: React.FC<FeaturedMerchantsProps> = ({
-                                                                        data,
-                                                                        loading,
-                                                                        onMerchantPress,
-                                                                        onSeeAll,
-                                                                    }) => {
+    data,
+    loading,
+    onMerchantPress,
+    onSeeAll,
+}) => {
 
     if (loading) {
         return (
@@ -34,7 +34,7 @@ export const FeaturedMerchants: React.FC<FeaturedMerchantsProps> = ({
     }
 
     const getMerchantImage = (merchant: Merchant): string => {
-        return merchant.logo  || 'https://via.placeholder.com/100';
+        return merchant.logo || 'https://via.placeholder.com/100';
     };
 
     return (
@@ -57,24 +57,25 @@ export const FeaturedMerchants: React.FC<FeaturedMerchantsProps> = ({
                         onPress={() => onMerchantPress(merchant)}
                         activeOpacity={0.7}
                     >
-                        <Image
-                            source={{ uri: getMerchantImage(merchant) }}
-                            style={styles.merchantImage}
-                        />
+                        <View style={styles.imageContainer}>
+                            <Image
+                                source={{ uri: getMerchantImage(merchant) }}
+                                style={styles.merchantImage}
+                            />
+                            {merchant.verified && (
+                                <View style={styles.verifiedBadge}>
+                                    <Text style={styles.verifiedIcon}>✓</Text>
+                                </View>
+                            )}
+                        </View>
 
-                        <View style={styles.merchantInfo}>
-                            <View style={styles.nameRow}>
-                                <Text style={styles.merchantName} numberOfLines={1}>
-                                    {merchant.business_name || merchant.display_name}
-                                </Text>
-                                {merchant.verified && (
-                                    <Text style={styles.verifiedBadge}>✓</Text>
-                                )}
-                            </View>
+                        <Text style={styles.merchantName} numberOfLines={1}>
+                            {merchant.business_name || merchant.display_name}
+                        </Text>
 
-                            <View style={styles.ratingRow}>
-                                <Text style={styles.ratingText}>{merchant.rating.toFixed(1)}</Text>
-                            </View>
+                        <View style={styles.ratingContainer}>
+                            <Text style={styles.ratingStar}>★</Text>
+                            <Text style={styles.ratingText}>{merchant.rating.toFixed(1)}</Text>
                         </View>
                     </TouchableOpacity>
                 ))}
@@ -85,60 +86,71 @@ export const FeaturedMerchants: React.FC<FeaturedMerchantsProps> = ({
 
 const styles = StyleSheet.create({
     container: {
-        paddingVertical: 16,
+        paddingVertical: 12,
+        backgroundColor: '#ffffff'
     },
     loadingContainer: {
-        height: 140,
+        height: 120,
         alignItems: 'center',
         justifyContent: 'center',
     },
     scrollContent: {
         paddingHorizontal: 16,
+        gap: 12,
     },
     merchantCard: {
-        width: 140,
-        backgroundColor: '#fff',
-        borderRadius: 12,
-        padding: 12,
-        marginRight: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 3,
+        width: 100,
+        marginRight: 0,
+    },
+    imageContainer: {
+        position: 'relative',
+        marginBottom: 8,
     },
     merchantImage: {
-        width: '100%',
-        height: 80,
-        borderRadius: 8,
-        marginBottom: 8,
-        backgroundColor: '#F2F2F7',
-    },
-    merchantInfo: {
-        flex: 1,
-    },
-    nameRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 4,
-    },
-    merchantName: {
-        fontSize: 14,
-        fontWeight: '600',
-        flex: 1,
+        width: 100,
+        height: 100,
+        borderRadius: 12,
+        backgroundColor: '#F5F5F5',
     },
     verifiedBadge: {
-        fontSize: 14,
-        color: '#34C759',
-        marginLeft: 4,
+        position: 'absolute',
+        top: 6,
+        right: 6,
+        backgroundColor: '#34C759',
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.2,
+        shadowRadius: 2,
+        elevation: 2,
     },
-    ratingRow: {
+    verifiedIcon: {
+        fontSize: 12,
+        color: '#fff',
+        fontWeight: '700',
+    },
+    merchantName: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#000',
+        marginBottom: 4,
+    },
+    ratingContainer: {
         flexDirection: 'row',
         alignItems: 'center',
+        gap: 3,
+    },
+    ratingStar: {
+        fontSize: 12,
+        color: '#FFB800',
     },
     ratingText: {
         fontSize: 12,
-        color: '#666',
+        color: '#8E8E93',
+        fontWeight: '500',
     },
 });

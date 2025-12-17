@@ -88,6 +88,7 @@ export const AllListings: React.FC<AllListingsProps> = ({
 const styles = StyleSheet.create({
     container: {
         padding: 16,
+        backgroundColor: '#ffffff'
     },
     sectionTitle: {
         fontSize: 20,
