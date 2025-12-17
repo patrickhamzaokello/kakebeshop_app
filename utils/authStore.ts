@@ -1,5 +1,5 @@
 import apiService from "@/utils/apiBase";
-import { AuthVerificationResponse, UserType } from "@/utils/types";
+import { AuthVerificationResponse, UserType } from "@/utils/types/models";
 import { deleteItemAsync, getItemAsync, setItemAsync } from "expo-secure-store";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";

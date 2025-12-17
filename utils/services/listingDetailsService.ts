@@ -14,4 +14,39 @@ export const listingDetailsService = {
       return null;
     }
   },
+
+  async AddListingtoCart(listingID: string, quantity: number): Promise<boolean> {
+    try {
+      const response = await apiService.post(
+        `/api/v1/cart/add/`,
+        {
+          listing_id: listingID,
+          quantity: quantity,
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error("Error adding listing to cart", error);
+      return false;
+    }
+  },
+
+  async AddListingtoWishlist(listingID: string): Promise<boolean> {
+    try {
+      const response = await apiService.post(
+        `/api/v1/wishlist/add/`,
+        {
+          listing_id: listingID,
+        }
+      );
+
+      return response.data;
+    } catch (error) {
+      console.error("Error adding listing to wishlist", error);
+      return false;
+    }
+  }
 };
+
+

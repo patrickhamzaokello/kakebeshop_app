@@ -6,14 +6,17 @@ import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
 import { GestureHandlerRootView } from "react-native-gesture-handler"; // ← already imported
 import { StyleSheet } from "react-native"; // ← add this
+import { useCartStore } from "@/utils/stores/useCartStore";
 
 const RootLayout = () => {
   const {
     isLoggedIn,
     hasCompletedOnboarding,
-    isLoading,
+    isLoading: authLoading,
     checkAuthState,
   } = useAuthStore();
+
+  const { fetchCartCount } = useCartStore();
 
   useEffect(() => {
     checkAuthState();
@@ -24,7 +27,13 @@ const RootLayout = () => {
     });
   }, [checkAuthState]);
 
-  if (isLoading) {
+  useEffect(() => {
+    if (!authLoading && isLoggedIn) {
+      fetchCartCount(); // Only fetch if user is logged in
+    }
+  }, [authLoading, isLoggedIn]);
+
+  if (authLoading) {
     return (
       <GestureHandlerRootView style={styles.container}>
         <StatusBar style="light" />

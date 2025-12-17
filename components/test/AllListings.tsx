@@ -19,8 +19,6 @@ interface AllListingsProps {
     hasMore: boolean;
     onLoadMore: () => Promise<void>;
     onListingPress: (listing: Listing) => void;
-    onAddToCart?: (listingId: string) => void;
-    onAddToWishlist?: (listingId: string) => void;
 }
 
 export const AllListings: React.FC<AllListingsProps> = ({
@@ -29,8 +27,6 @@ export const AllListings: React.FC<AllListingsProps> = ({
     hasMore,
     onLoadMore,
     onListingPress,
-    onAddToCart,
-    onAddToWishlist,
 }) => {
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
@@ -113,8 +109,6 @@ export const AllListings: React.FC<AllListingsProps> = ({
                 visible={modalVisible}
                 listing={selectedListing}
                 onClose={() => setModalVisible(false)}
-                onAddToCart={onAddToCart}
-                onAddToWishlist={onAddToWishlist}
             />
         </View>
     );

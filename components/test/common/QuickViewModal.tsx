@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -9,8 +9,8 @@ import {
     ScrollView,
     Pressable,
     ActivityIndicator,
-    FlatList,
     Dimensions,
+    Animated,
 } from 'react-native';
 import { Listing, ListingDetail } from '@/utils/types/models';
 import { listingDetailsService } from '@/utils/services/listingDetailsService';
@@ -19,31 +19,77 @@ interface QuickViewModalProps {
     visible: boolean;
     listing: Listing | null;
     onClose: () => void;
-    onAddToCart?: (listingId: string) => void;
-    onAddToWishlist?: (listingId: string) => void;
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export const QuickViewModal: React.FC<QuickViewModalProps> = ({
     visible,
     listing,
     onClose,
-    onAddToCart,
-    onAddToWishlist,
 }) => {
     const [listingDetails, setListingDetails] = useState<ListingDetail | null>(null);
     const [loading, setLoading] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [isModalVisible, setIsModalVisible] = useState(false);
+
+    // Animation values
+    const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
     useEffect(() => {
-        if (visible && listing) {
-            fetchListingDetails();
+        if (visible) {
+            setIsModalVisible(true);
+            if (listing) {
+                fetchListingDetails();
+            }
+            // Animate in
+            Animated.parallel([
+                Animated.spring(slideAnim, {
+                    toValue: 0,
+                    useNativeDriver: true,
+                    tension: 65,
+                    friction: 11,
+                }),
+                Animated.timing(fadeAnim, {
+                    toValue: 1,
+                    duration: 300,
+                    useNativeDriver: true,
+                }),
+                Animated.spring(scaleAnim, {
+                    toValue: 1,
+                    useNativeDriver: true,
+                    tension: 65,
+                    friction: 11,
+                }),
+            ]).start();
+        } else {
+            // Animate out
+            Animated.parallel([
+                Animated.spring(slideAnim, {
+                    toValue: SCREEN_HEIGHT,
+                    useNativeDriver: true,
+                    tension: 65,
+                    friction: 11,
+                }),
+                Animated.timing(fadeAnim, {
+                    toValue: 0,
+                    duration: 200,
+                    useNativeDriver: true,
+                }),
+                Animated.spring(scaleAnim, {
+                    toValue: 0.9,
+                    useNativeDriver: true,
+                    tension: 65,
+                    friction: 11,
+                }),
+            ]).start(() => {
+                setIsModalVisible(false);
+                setListingDetails(null);
+                setCurrentImageIndex(0);
+            });
         }
-        return () => {
-            setListingDetails(null);
-            setCurrentImageIndex(0);
-        };
     }, [visible, listing]);
 
     const fetchListingDetails = async () => {
@@ -60,57 +106,62 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
         }
     };
 
-    const handleAddToCart = () => {
-        if (listing && onAddToCart) {
-            onAddToCart(listing.id);
+    const handleClose = () => {
+        onClose();
+    };
+
+    const  handleAddToCart = async () => {
+        if (listing) {
+            await listingDetailsService.AddListingtoCart(listing.id, 1);
             onClose();
         }
     };
 
-    const handleAddToWishlist = () => {
-        if (listing && onAddToWishlist) {
-            onAddToWishlist(listing.id);
+    const handleAddToWishlist = async () => {
+        if (listing) {
+            await listingDetailsService.AddListingtoWishlist(listing.id);
+            onClose();
         }
     };
-
-    const renderImageItem = ({ item }: { item: any }) => (
-        <Image
-            source={{ uri: item.image }}
-            style={styles.slideImage}
-            resizeMode="cover"
-        />
-    );
-
-    const onViewableItemsChanged = React.useRef(({ viewableItems }: any) => {
-        if (viewableItems.length > 0) {
-            setCurrentImageIndex(viewableItems[0].index || 0);
-        }
-    }).current;
-
-    const viewabilityConfig = React.useRef({
-        itemVisiblePercentThreshold: 50,
-    }).current;
 
     return (
         <Modal
             animationType="none"
             transparent={true}
-            visible={visible}
-            onRequestClose={onClose}
+            visible={isModalVisible}
+            onRequestClose={handleClose}
+            statusBarTranslucent
         >
-            <Pressable
-                style={styles.modalOverlay}
-                onPress={onClose}
+            <Animated.View
+                style={[
+                    styles.modalOverlay,
+                    {
+                        opacity: fadeAnim,
+                    },
+                ]}
             >
                 <Pressable
-                    style={styles.modalContent}
-                    onPress={(e) => e.stopPropagation()}
+                    style={StyleSheet.absoluteFill}
+                    onPress={handleClose}
+                />
+                
+                <Animated.View
+                    style={[
+                        styles.modalContent,
+                        {
+                            transform: [
+                                { translateY: slideAnim },
+                                { scale: scaleAnim },
+                            ],
+                        },
+                    ]}
                 >
                     <View style={styles.modalHeader}>
                         <Text style={styles.modalTitle}>Quick View</Text>
                         <TouchableOpacity
-                            onPress={onClose}
+                            onPress={handleClose}
                             style={styles.closeButton}
+                            activeOpacity={0.7}
                         >
                             <Text style={styles.closeButtonText}>✕</Text>
                         </TouchableOpacity>
@@ -121,30 +172,31 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
                             <ActivityIndicator size="large" color="#007AFF" />
                         </View>
                     ) : (
-                        <ScrollView style={styles.modalBody}>
+                        <ScrollView 
+                            style={styles.modalBody}
+                            showsVerticalScrollIndicator={false}
+                        >
                             {listingDetails && (
                                 <>
                                     {/* Image Slider */}
-                                   
-
-                                     <ScrollView
-                                                    horizontal
-                                                    showsHorizontalScrollIndicator={false}
-                                                    contentContainerStyle={styles.imageSliderContainer}
-                                                >
-                                                    {listingDetails.images?.map((image) => {
-                                    
-                                                        return (
-                                                          
-                                                                <Image
-                                                                    source={{ uri: image.image }}
-                                                                    style={styles.slideImage}
-                                                                    resizeMode="cover"
-                                                                    key={image.id}
-                                                                />
-                                                        );
-                                                    })}
-                                                </ScrollView>
+                                    <ScrollView
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        contentContainerStyle={styles.imageSliderContainer}
+                                        decelerationRate="fast"
+                                        snapToInterval={170}
+                                    >
+                                        {listingDetails.images?.map((image) => {
+                                            return (
+                                                <Image
+                                                    source={{ uri: image.image }}
+                                                    style={styles.slideImage}
+                                                    resizeMode="cover"
+                                                    key={image.id}
+                                                />
+                                            );
+                                        })}
+                                    </ScrollView>
 
                                     <View style={styles.modalDetails}>
                                         <Text style={styles.modalProductTitle}>
@@ -220,7 +272,7 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
                             <TouchableOpacity
                                 style={styles.wishlistButton}
                                 onPress={handleAddToWishlist}
-                                activeOpacity={0.8}
+                                activeOpacity={0.7}
                             >
                                 <Text style={styles.wishlistIcon}>♡</Text>
                             </TouchableOpacity>
@@ -228,14 +280,14 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
                             <TouchableOpacity
                                 style={styles.addToCartButton}
                                 onPress={handleAddToCart}
-                                activeOpacity={0.8}
+                                activeOpacity={0.7}
                             >
                                 <Text style={styles.addToCartText}>Add to Cart</Text>
                             </TouchableOpacity>
                         </View>
                     )}
-                </Pressable>
-            </Pressable>
+                </Animated.View>
+            </Animated.View>
         </Modal>
     );
 };
@@ -251,6 +303,14 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         maxHeight: '90%',
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: -4,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        elevation: 10,
     },
     modalHeader: {
         flexDirection: 'row',
@@ -287,7 +347,6 @@ const styles = StyleSheet.create({
         maxHeight: 500,
     },
     imageSliderContainer: {
-        position: 'relative',
         paddingHorizontal: 10,
         paddingVertical: 10,
     },
@@ -295,11 +354,10 @@ const styles = StyleSheet.create({
         width: 150,
         height: 200,
         marginRight: 10,
-        borderRadius: 4,
+        borderRadius: 12,
         borderWidth: 1,
         borderColor: '#E5E5EA',
     },
-   
     modalDetails: {
         padding: 16,
     },
