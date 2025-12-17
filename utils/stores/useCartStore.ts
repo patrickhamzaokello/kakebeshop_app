@@ -3,6 +3,7 @@ import apiService from "@/utils/apiBase";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { getItemAsync, setItemAsync, deleteItemAsync } from "expo-secure-store";
+import { listingDetailsService } from "@/utils/services/listingDetailsService";
 
 type CartState = {
   cartCount: number;
@@ -15,7 +16,10 @@ type CartState = {
 
   // API operations
   fetchCartCount: () => Promise<void>;
-  addToCart: (productId: string | number, quantity?: number) => Promise<boolean>;
+  addToCart: (
+    listingID: string,
+    quantity?: number
+  ) => Promise<boolean>;
   removeFromCart: (productId: string | number) => Promise<boolean>;
   clearCart: () => Promise<void>;
 };
@@ -36,35 +40,30 @@ export const useCartStore = create<CartState>()(
       fetchCartCount: async () => {
         set({ isLoading: true });
         try {
-          const response = await apiService.get("/api/v1/cart"); // Adjust endpoint
-          if (response.success && response.data?.items_count !== undefined) {
-            set({ cartCount: response.data.items_count });
+          const response = await apiService.get("/api/v1/cart/count/"); // Adjust endpoint
+          if (response.success && response.data?.count !== undefined) {
+            set({ cartCount: response.data.count });
           }
         } catch (error) {
           console.error("Failed to fetch cart count:", error);
-          // Optionally fallback to persisted value
         } finally {
           set({ isLoading: false });
         }
       },
 
       // Add item to cart (optimistic UI update)
-      addToCart: async (productId: string | number, quantity = 1) => {
+      addToCart: async (listingID: string, quantity = 1) => {
         // Optimistic update: show +1 immediately
         get().incrementCart();
 
         try {
-          const response = await apiService.post("/cart/add/", {
-            product_id: productId,
-            quantity,
-          });
+          const response = await listingDetailsService.AddListingtoCart(
+            listingID, quantity
+          );
 
           if (response.success) {
-            // Optionally refetch exact count if backend handles duplicates/discounts/etc.
-            // await get().fetchCartCount();
             return true;
           } else {
-            // Revert optimistic update on failure
             set((state) => ({ cartCount: state.cartCount - quantity }));
             return false;
           }

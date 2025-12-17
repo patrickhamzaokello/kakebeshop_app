@@ -1,483 +1,466 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import {
-    View,
-    Text,
-    Image,
-    TouchableOpacity,
-    StyleSheet,
-    Modal,
-    ScrollView,
-    Pressable,
-    ActivityIndicator,
-    Dimensions,
-    Animated,
-} from 'react-native';
-import { Listing, ListingDetail } from '@/utils/types/models';
-import { listingDetailsService } from '@/utils/services/listingDetailsService';
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  Modal,
+  ScrollView,
+  Pressable,
+  ActivityIndicator,
+  Dimensions,
+  Animated,
+  Alert,
+} from "react-native";
+import { Listing, ListingDetail } from "@/utils/types/models";
+import { listingDetailsService } from "@/utils/services/listingDetailsService";
+import { useCartStore } from "@/utils/stores/useCartStore";
 
 interface QuickViewModalProps {
-    visible: boolean;
-    listing: Listing | null;
-    onClose: () => void;
+  visible: boolean;
+  listing: Listing | null;
+  onClose: () => void;
 }
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export const QuickViewModal: React.FC<QuickViewModalProps> = ({
-    visible,
-    listing,
-    onClose,
+  visible,
+  listing,
+  onClose,
 }) => {
-    const [listingDetails, setListingDetails] = useState<ListingDetail | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [currentImageIndex, setCurrentImageIndex] = useState(0);
-    const [isModalVisible, setIsModalVisible] = useState(false);
+  const [listingDetails, setListingDetails] = useState<ListingDetail | null>(
+    null
+  );
+  const [loading, setLoading] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
-    // Animation values
-    const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
-    const fadeAnim = useRef(new Animated.Value(0)).current;
-    const scaleAnim = useRef(new Animated.Value(0.9)).current;
+  const { addToCart } = useCartStore();
 
-    useEffect(() => {
-        if (visible) {
-            setIsModalVisible(true);
-            if (listing) {
-                fetchListingDetails();
-            }
-            // Animate in
-            Animated.parallel([
-                Animated.spring(slideAnim, {
-                    toValue: 0,
-                    useNativeDriver: true,
-                    tension: 65,
-                    friction: 11,
-                }),
-                Animated.timing(fadeAnim, {
-                    toValue: 1,
-                    duration: 300,
-                    useNativeDriver: true,
-                }),
-                Animated.spring(scaleAnim, {
-                    toValue: 1,
-                    useNativeDriver: true,
-                    tension: 65,
-                    friction: 11,
-                }),
-            ]).start();
-        } else {
-            // Animate out
-            Animated.parallel([
-                Animated.spring(slideAnim, {
-                    toValue: SCREEN_HEIGHT,
-                    useNativeDriver: true,
-                    tension: 65,
-                    friction: 11,
-                }),
-                Animated.timing(fadeAnim, {
-                    toValue: 0,
-                    duration: 200,
-                    useNativeDriver: true,
-                }),
-                Animated.spring(scaleAnim, {
-                    toValue: 0.9,
-                    useNativeDriver: true,
-                    tension: 65,
-                    friction: 11,
-                }),
-            ]).start(() => {
-                setIsModalVisible(false);
-                setListingDetails(null);
-                setCurrentImageIndex(0);
-            });
-        }
-    }, [visible, listing]);
+  // Animation values
+  const slideAnim = useRef(new Animated.Value(SCREEN_HEIGHT)).current;
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
-    const fetchListingDetails = async () => {
-        if (!listing) return;
-        
-        setLoading(true);
-        try {
-            const details = await listingDetailsService.getListingDetails(listing.id);
-            setListingDetails(details);
-        } catch (error) {
-            console.error('Error fetching listing details:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+  useEffect(() => {
+    if (visible) {
+      if (listing) {
+        fetchListingDetails();
+      }
 
-    const handleClose = () => {
-        onClose();
-    };
+      // Animate in
+      Animated.parallel([
+        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true }),
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, { toValue: 1, useNativeDriver: true }),
+      ]).start();
+    } else {
+      // Animate out
+      Animated.parallel([
+        Animated.spring(slideAnim, {
+          toValue: SCREEN_HEIGHT,
+          useNativeDriver: true,
+        }),
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.spring(scaleAnim, { toValue: 0.9, useNativeDriver: true }),
+      ]).start(() => {
+        // Only reset data AFTER animation — safe because modal is still mounted until parent closes it
+        setListingDetails(null);
+        setCurrentImageIndex(0);
+        setLoading(false);
+      });
+    }
+  }, [visible, listing]);
 
-    const  handleAddToCart = async () => {
-        if (listing) {
-            await listingDetailsService.AddListingtoCart(listing.id, 1);
-            onClose();
-        }
-    };
+  const fetchListingDetails = async () => {
+    if (!listing) return;
+    setLoading(true);
+    try {
+      const details = await listingDetailsService.getListingDetails(listing.id);
+      setListingDetails(details);
+    } catch (error) {
+      console.error("Error fetching listing details:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const handleAddToWishlist = async () => {
-        if (listing) {
-            await listingDetailsService.AddListingtoWishlist(listing.id);
-            onClose();
-        }
-    };
+  const handleClose = () => {
+    onClose(); // Let parent control visibility
+  };
 
-    return (
-        <Modal
-            animationType="none"
-            transparent={true}
-            visible={isModalVisible}
-            onRequestClose={handleClose}
-            statusBarTranslucent
+  const handleAddToCart = async () => {
+    if (listing) {
+      const success = await addToCart(listing.id);
+    if (success) {
+      // Optional: show toast "Added to cart!"
+      Alert.alert("Success", "Item added to cart!");
+      onClose();
+    } else {
+      // Optional: show error toast
+    }
+    }
+  };
+
+  const handleAddToWishlist = async () => {
+    if (listing) {
+      await listingDetailsService.AddListingtoWishlist(listing.id);
+      onClose();
+    }
+  };
+
+  return (
+    <Modal
+      animationType="none"
+      transparent={true}
+      visible={visible} 
+      onRequestClose={handleClose}
+      statusBarTranslucent
+    >
+      <Animated.View
+        style={[
+          styles.modalOverlay,
+          {
+            opacity: fadeAnim,
+          },
+        ]}
+      >
+        <Pressable style={StyleSheet.absoluteFill} onPress={handleClose} />
+
+        <Animated.View
+          style={[
+            styles.modalContent,
+            {
+              transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+            },
+          ]}
         >
-            <Animated.View
-                style={[
-                    styles.modalOverlay,
-                    {
-                        opacity: fadeAnim,
-                    },
-                ]}
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Quick View</Text>
+            <TouchableOpacity
+              onPress={handleClose}
+              style={styles.closeButton}
+              activeOpacity={0.7}
             >
-                <Pressable
-                    style={StyleSheet.absoluteFill}
-                    onPress={handleClose}
-                />
-                
-                <Animated.View
-                    style={[
-                        styles.modalContent,
-                        {
-                            transform: [
-                                { translateY: slideAnim },
-                                { scale: scaleAnim },
-                            ],
-                        },
-                    ]}
-                >
-                    <View style={styles.modalHeader}>
-                        <Text style={styles.modalTitle}>Quick View</Text>
-                        <TouchableOpacity
-                            onPress={handleClose}
-                            style={styles.closeButton}
-                            activeOpacity={0.7}
-                        >
-                            <Text style={styles.closeButtonText}>✕</Text>
-                        </TouchableOpacity>
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+          </View>
+
+          {loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#007AFF" />
+            </View>
+          ) : (
+            <ScrollView
+              style={styles.modalBody}
+              showsVerticalScrollIndicator={false}
+            >
+              {listingDetails && (
+                <>
+                  {/* Image Slider */}
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.imageSliderContainer}
+                    decelerationRate="fast"
+                    snapToInterval={170}
+                  >
+                    {listingDetails.images?.map((image) => {
+                      return (
+                        <Image
+                          source={{ uri: image.image }}
+                          style={styles.slideImage}
+                          resizeMode="cover"
+                          key={image.id}
+                        />
+                      );
+                    })}
+                  </ScrollView>
+
+                  <View style={styles.modalDetails}>
+                    <Text style={styles.modalProductTitle}>
+                      {listingDetails.title}
+                    </Text>
+
+                    <View style={styles.merchantContainer}>
+                      {listingDetails.merchant.logo && (
+                        <Image
+                          source={{ uri: listingDetails.merchant.logo }}
+                          style={styles.merchantLogo}
+                        />
+                      )}
+                      <View style={styles.merchantInfo}>
+                        <Text style={styles.modalMerchant}>
+                          by {listingDetails.merchant.business_name}
+                        </Text>
+                        {listingDetails.merchant.verified && (
+                          <Text style={styles.verifiedBadge}>✓ Verified</Text>
+                        )}
+                      </View>
                     </View>
 
-                    {loading ? (
-                        <View style={styles.loadingContainer}>
-                            <ActivityIndicator size="large" color="#007AFF" />
-                        </View>
-                    ) : (
-                        <ScrollView 
-                            style={styles.modalBody}
-                            showsVerticalScrollIndicator={false}
-                        >
-                            {listingDetails && (
-                                <>
-                                    {/* Image Slider */}
-                                    <ScrollView
-                                        horizontal
-                                        showsHorizontalScrollIndicator={false}
-                                        contentContainerStyle={styles.imageSliderContainer}
-                                        decelerationRate="fast"
-                                        snapToInterval={170}
-                                    >
-                                        {listingDetails.images?.map((image) => {
-                                            return (
-                                                <Image
-                                                    source={{ uri: image.image }}
-                                                    style={styles.slideImage}
-                                                    resizeMode="cover"
-                                                    key={image.id}
-                                                />
-                                            );
-                                        })}
-                                    </ScrollView>
+                    <Text style={styles.modalPrice}>
+                      {listingDetails.currency} {listingDetails.price}
+                    </Text>
 
-                                    <View style={styles.modalDetails}>
-                                        <Text style={styles.modalProductTitle}>
-                                            {listingDetails.title}
-                                        </Text>
-
-                                        <View style={styles.merchantContainer}>
-                                            {listingDetails.merchant.logo && (
-                                                <Image
-                                                    source={{ uri: listingDetails.merchant.logo }}
-                                                    style={styles.merchantLogo}
-                                                />
-                                            )}
-                                            <View style={styles.merchantInfo}>
-                                                <Text style={styles.modalMerchant}>
-                                                    by {listingDetails.merchant.business_name}
-                                                </Text>
-                                                {listingDetails.merchant.verified && (
-                                                    <Text style={styles.verifiedBadge}>✓ Verified</Text>
-                                                )}
-                                            </View>
-                                        </View>
-
-                                        <Text style={styles.modalPrice}>
-                                            {listingDetails.currency} {listingDetails.price}
-                                        </Text>
-
-                                        {listingDetails.category && (
-                                            <View style={styles.categoryTag}>
-                                                <Text style={styles.categoryText}>
-                                                    {listingDetails.category.name}
-                                                </Text>
-                                            </View>
-                                        )}
-
-                                        {listingDetails.description && (
-                                            <View style={styles.descriptionSection}>
-                                                <Text style={styles.descriptionLabel}>
-                                                    Description
-                                                </Text>
-                                                <Text style={styles.descriptionText}>
-                                                    {listingDetails.description}
-                                                </Text>
-                                            </View>
-                                        )}
-
-                                        {/* Additional Info */}
-                                        <View style={styles.additionalInfo}>
-                                            <View style={styles.infoRow}>
-                                                <Text style={styles.infoLabel}>Type:</Text>
-                                                <Text style={styles.infoValue}>
-                                                    {listingDetails.listing_type}
-                                                </Text>
-                                            </View>
-                                            <View style={styles.infoRow}>
-                                                <Text style={styles.infoLabel}>Status:</Text>
-                                                <Text style={[
-                                                    styles.infoValue,
-                                                    styles.statusActive
-                                                ]}>
-                                                    {listingDetails.status}
-                                                </Text>
-                                            </View>
-                                        </View>
-                                    </View>
-                                </>
-                            )}
-                        </ScrollView>
+                    {listingDetails.category && (
+                      <View style={styles.categoryTag}>
+                        <Text style={styles.categoryText}>
+                          {listingDetails.category.name}
+                        </Text>
+                      </View>
                     )}
 
-                    {!loading && listingDetails && (
-                        <View style={styles.modalFooter}>
-                            <TouchableOpacity
-                                style={styles.wishlistButton}
-                                onPress={handleAddToWishlist}
-                                activeOpacity={0.7}
-                            >
-                                <Text style={styles.wishlistIcon}>♡</Text>
-                            </TouchableOpacity>
-
-                            <TouchableOpacity
-                                style={styles.addToCartButton}
-                                onPress={handleAddToCart}
-                                activeOpacity={0.7}
-                            >
-                                <Text style={styles.addToCartText}>Add to Cart</Text>
-                            </TouchableOpacity>
-                        </View>
+                    {listingDetails.description && (
+                      <View style={styles.descriptionSection}>
+                        <Text style={styles.descriptionLabel}>Description</Text>
+                        <Text style={styles.descriptionText}>
+                          {listingDetails.description}
+                        </Text>
+                      </View>
                     )}
-                </Animated.View>
-            </Animated.View>
-        </Modal>
-    );
+
+                    {/* Additional Info */}
+                    <View style={styles.additionalInfo}>
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Type:</Text>
+                        <Text style={styles.infoValue}>
+                          {listingDetails.listing_type}
+                        </Text>
+                      </View>
+                      <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Status:</Text>
+                        <Text style={[styles.infoValue, styles.statusActive]}>
+                          {listingDetails.status}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                </>
+              )}
+            </ScrollView>
+          )}
+
+          {!loading && listingDetails && (
+            <View style={styles.modalFooter}>
+              <TouchableOpacity
+                style={styles.wishlistButton}
+                onPress={handleAddToWishlist}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.wishlistIcon}>♡</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.addToCartButton}
+                onPress={handleAddToCart}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.addToCartText}>Add to Cart</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </Animated.View>
+      </Animated.View>
+    </Modal>
+  );
 };
 
 const styles = StyleSheet.create({
-    modalOverlay: {
-        flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        justifyContent: 'flex-end',
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "90%",
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: -4,
     },
-    modalContent: {
-        backgroundColor: '#fff',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        maxHeight: '90%',
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: -4,
-        },
-        shadowOpacity: 0.25,
-        shadowRadius: 12,
-        elevation: 10,
-    },
-    modalHeader: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        padding: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: '#E5E5EA',
-    },
-    modalTitle: {
-        fontSize: 18,
-        fontWeight: '700',
-        color: '#000',
-    },
-    closeButton: {
-        width: 32,
-        height: 32,
-        borderRadius: 16,
-        backgroundColor: '#F2F2F7',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    closeButtonText: {
-        fontSize: 20,
-        color: '#666',
-        fontWeight: '300',
-    },
-    loadingContainer: {
-        height: 300,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    modalBody: {
-        maxHeight: 500,
-    },
-    imageSliderContainer: {
-        paddingHorizontal: 10,
-        paddingVertical: 10,
-    },
-    slideImage: {
-        width: 150,
-        height: 200,
-        marginRight: 10,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: '#E5E5EA',
-    },
-    modalDetails: {
-        padding: 16,
-    },
-    modalProductTitle: {
-        fontSize: 20,
-        fontWeight: '700',
-        color: '#000',
-        marginBottom: 12,
-    },
-    merchantContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 12,
-    },
-    merchantLogo: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        marginRight: 10,
-    },
-    merchantInfo: {
-        flex: 1,
-    },
-    modalMerchant: {
-        fontSize: 14,
-        color: '#666',
-        marginBottom: 2,
-    },
-    verifiedBadge: {
-        fontSize: 12,
-        color: '#007AFF',
-        fontWeight: '600',
-    },
-    modalPrice: {
-        fontSize: 24,
-        fontWeight: '700',
-        color: '#007AFF',
-        marginBottom: 12,
-    },
-    categoryTag: {
-        alignSelf: 'flex-start',
-        backgroundColor: '#F2F2F7',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 12,
-        marginBottom: 16,
-    },
-    categoryText: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#666',
-    },
-    descriptionSection: {
-        marginTop: 8,
-        marginBottom: 16,
-    },
-    descriptionLabel: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#000',
-        marginBottom: 8,
-    },
-    descriptionText: {
-        fontSize: 14,
-        color: '#666',
-        lineHeight: 20,
-    },
-    additionalInfo: {
-        borderTopWidth: 1,
-        borderTopColor: '#E5E5EA',
-        paddingTop: 16,
-        gap: 8,
-    },
-    infoRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-    },
-    infoLabel: {
-        fontSize: 14,
-        color: '#666',
-    },
-    infoValue: {
-        fontSize: 14,
-        fontWeight: '600',
-        color: '#000',
-    },
-    statusActive: {
-        color: '#34C759',
-    },
-    modalFooter: {
-        flexDirection: 'row',
-        padding: 16,
-        borderTopWidth: 1,
-        borderTopColor: '#E5E5EA',
-        gap: 12,
-    },
-    wishlistButton: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
-        backgroundColor: '#F2F2F7',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    wishlistIcon: {
-        fontSize: 24,
-        color: '#007AFF',
-    },
-    addToCartButton: {
-        flex: 1,
-        height: 50,
-        backgroundColor: '#007AFF',
-        borderRadius: 25,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    addToCartText: {
-        fontSize: 16,
-        fontWeight: '600',
-        color: '#fff',
-    },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E5EA",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#000",
+  },
+  closeButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#F2F2F7",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  closeButtonText: {
+    fontSize: 20,
+    color: "#666",
+    fontWeight: "300",
+  },
+  loadingContainer: {
+    height: 300,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalBody: {
+    maxHeight: 500,
+  },
+  imageSliderContainer: {
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+  },
+  slideImage: {
+    width: 150,
+    height: 200,
+    marginRight: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E5EA",
+  },
+  modalDetails: {
+    padding: 16,
+  },
+  modalProductTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#000",
+    marginBottom: 12,
+  },
+  merchantContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  merchantLogo: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    marginRight: 10,
+  },
+  merchantInfo: {
+    flex: 1,
+  },
+  modalMerchant: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 2,
+  },
+  verifiedBadge: {
+    fontSize: 12,
+    color: "#007AFF",
+    fontWeight: "600",
+  },
+  modalPrice: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#007AFF",
+    marginBottom: 12,
+  },
+  categoryTag: {
+    alignSelf: "flex-start",
+    backgroundColor: "#F2F2F7",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  categoryText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#666",
+  },
+  descriptionSection: {
+    marginTop: 8,
+    marginBottom: 16,
+  },
+  descriptionLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#000",
+    marginBottom: 8,
+  },
+  descriptionText: {
+    fontSize: 14,
+    color: "#666",
+    lineHeight: 20,
+  },
+  additionalInfo: {
+    borderTopWidth: 1,
+    borderTopColor: "#E5E5EA",
+    paddingTop: 16,
+    gap: 8,
+  },
+  infoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  infoLabel: {
+    fontSize: 14,
+    color: "#666",
+  },
+  infoValue: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#000",
+  },
+  statusActive: {
+    color: "#34C759",
+  },
+  modalFooter: {
+    flexDirection: "row",
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E5EA",
+    gap: 12,
+  },
+  wishlistButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#F2F2F7",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  wishlistIcon: {
+    fontSize: 24,
+    color: "#007AFF",
+  },
+  addToCartButton: {
+    flex: 1,
+    height: 50,
+    backgroundColor: "#007AFF",
+    borderRadius: 25,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addToCartText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#fff",
+  },
 });

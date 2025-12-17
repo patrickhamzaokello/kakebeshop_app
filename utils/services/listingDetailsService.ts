@@ -15,7 +15,7 @@ export const listingDetailsService = {
     }
   },
 
-  async AddListingtoCart(listingID: string, quantity: number): Promise<boolean> {
+  async AddListingtoCart(listingID: string, quantity: number): Promise<any> {
     try {
       const response = await apiService.post(
         `/api/v1/cart/add/`,
@@ -25,7 +25,7 @@ export const listingDetailsService = {
         }
       );
 
-      return response.data;
+      return response;
     } catch (error) {
       console.error("Error adding listing to cart", error);
       return false;

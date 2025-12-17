@@ -106,9 +106,9 @@ export const AllListings: React.FC<AllListingsProps> = ({
             />
 
             <QuickViewModal
-                visible={modalVisible}
-                listing={selectedListing}
-                onClose={() => setModalVisible(false)}
+             visible={modalVisible}
+             listing={selectedListing}
+             onClose={() => setModalVisible(false)}
             />
         </View>
     );
