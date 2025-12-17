@@ -85,7 +85,6 @@ export const FeaturedMerchants: React.FC<FeaturedMerchantsProps> = ({
 const styles = StyleSheet.create({
     container: {
         paddingVertical: 12,
-        backgroundColor: '#FFFFFF',
     },
     loadingContainer: {
         height: 120,

@@ -1,129 +1,238 @@
-import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { HeaderData } from '@/utils/types/models';
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  Image,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { HeaderData } from "@/utils/types/models";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 interface HeaderSectionProps {
-    data: HeaderData | null;
-    loading: boolean;
-    onSearch: () => void;
-    onNotificationPress: () => void;
+  data: HeaderData | null;
+  loading: boolean;
+  onSearch: () => void;
+  onNotificationPress: () => void;
+  onWishlistPress: () => void;
 }
 
+const SEARCH_TERMS = [
+  "Search for products...",
+  "Find great deals...",
+  "Discover new items...",
+  "What are you looking for?",
+  "Search electronics...",
+  "Browse fashion...",
+  "Explore home goods...",
+  "Speakers in Lira..",
+];
+
 export const HeaderSection: React.FC<HeaderSectionProps> = ({
-                                                                data,
-                                                                loading,
-                                                                onSearch,
-                                                                onNotificationPress,
-                                                            }) => {
-    if (loading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#007AFF" />
-            </View>
-        );
-    }
-
-
+  data,
+  loading,
+  onSearch,
+  onNotificationPress,
+  onWishlistPress,
+}) => {
+  if (loading) {
     return (
-        <View style={styles.container}>
-            <SafeAreaView style={{ flex: 1 }}>
-            <View style={styles.topRow}>
-                <View style={styles.userInfo}>
-                    <Image source={{ uri: data?.profile.name }} style={styles.avatar} />
-                    <View>
-                        <Text style={styles.welcomeText}>Welcome back,</Text>
-                        <Text style={styles.userName}>{data?.profile.name}</Text>
-                    </View>
-                </View>
-
-                <TouchableOpacity style={styles.notificationButton} onPress={onNotificationPress}>
-                    <Ionicons name="notifications-outline" size={24} color="#000" />
-                    {(data?.notificationsCount ?? 0) > 0 && (
-                        <View style={styles.badge}>
-                            <Text style={styles.badgeText}>{data?.notificationsCount}</Text>
-                        </View>
-                    )}
-                </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity style={styles.searchBar} onPress={onSearch}>
-                <Ionicons name="search" size={20} color="#666" />
-                <Text style={styles.searchPlaceholder}>Search products...</Text>
-            </TouchableOpacity>
-            </SafeAreaView>
-
-        </View>
+      <LinearGradient
+        colors={["#E3D5D5", "#FFFFFF"]}
+        style={styles.loadingContainer}
+      >
+        <ActivityIndicator size="large" color="#007AFF" />
+      </LinearGradient>
     );
+  }
+
+  const [searchPlaceholder, setSearchPlaceholder] = useState(SEARCH_TERMS[0]);
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+
+  // Auto-alternating search placeholder
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setPlaceholderIndex((prev) => {
+        const nextIndex = (prev + 1) % SEARCH_TERMS.length;
+        setSearchPlaceholder(SEARCH_TERMS[nextIndex]);
+        return nextIndex;
+      });
+    }, 3000); // Change every 3 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <LinearGradient colors={["#E3D5D5", "#FFFFFF"]} style={styles.container}>
+      <View style={{ flex: 1 }}>
+        <SafeAreaView />
+
+        <View style={styles.topRow}>
+          <View style={styles.userInfo}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>
+                {data?.profile.name
+                  ?.split(" ")
+                  .map((word) => word[0])
+                  .join("")
+                  .toUpperCase()
+                  .slice(0, 2) || "U"}
+              </Text>
+            </View>
+            <View>
+              <Text style={styles.welcomeText}>Hey, Welcome back,</Text>
+              <Text style={styles.userName}>{data?.profile.name}</Text>
+            </View>
+          </View>
+
+          <View style={styles.actionButtons}>
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={onWishlistPress}
+            >
+              <Ionicons name="heart-outline" size={22} color="#000" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.iconButton}
+              onPress={onNotificationPress}
+            >
+              <Ionicons name="notifications-outline" size={22} color="#000" />
+              {(data?.notificationsCount ?? 0) > 0 && (
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>
+                    {data?.notificationsCount}
+                  </Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <TouchableOpacity
+          style={{
+            flexDirection: "row",
+            alignItems: "center",
+            backgroundColor: "#FFFFFF",
+            borderRadius: 12,
+            paddingHorizontal: 16,
+            paddingVertical: 14,
+          }}
+          onPress={onSearch}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="search" size={20} color="#999" />
+          <Text
+            style={{
+              flex: 1,
+              marginLeft: 12,
+              fontSize: 15,
+              color: "#999",
+              fontWeight: "500",
+            }}
+            numberOfLines={1}
+          >
+            {searchPlaceholder}
+          </Text>
+          <Ionicons name="options-outline" size={18} color="#999" />
+        </TouchableOpacity>
+      </View>
+    </LinearGradient>
+  );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        padding: 16,
-        backgroundColor: '#fff',
-    },
-    loadingContainer: {
-        padding: 16,
-        backgroundColor: '#fff',
-        alignItems: 'center',
-        justifyContent: 'center',
-        height: 120,
-    },
-    topRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: 16,
-    },
-    userInfo: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    avatar: {
-        width: 48,
-        height: 48,
-        borderRadius: 24,
-        marginRight: 12,
-    },
-    welcomeText: {
-        fontSize: 14,
-        color: '#666',
-    },
-    userName: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#000',
-    },
-    notificationButton: {
-        position: 'relative',
-    },
-    badge: {
-        position: 'absolute',
-        top: -4,
-        right: -4,
-        backgroundColor: '#FF3B30',
-        borderRadius: 10,
-        width: 20,
-        height: 20,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    badgeText: {
-        color: '#fff',
-        fontSize: 12,
-        fontWeight: 'bold',
-    },
-    searchBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#F2F2F7',
-        borderRadius: 10,
-        padding: 12,
-    },
-    searchPlaceholder: {
-        marginLeft: 8,
-        fontSize: 16,
-        color: '#666',
-    },
+  container: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    paddingTop: 16,
+  },
+  loadingContainer: {
+    padding: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    height: 120,
+  },
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+  },
+  userInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    marginRight: 12,
+    backgroundColor: "#000",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  avatarText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  welcomeText: {
+    fontSize: 14,
+    color: "#666",
+  },
+  userName: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#000",
+  },
+  actionButtons: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  iconButton: {
+    position: "relative",
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fff",
+    borderRadius: 8,
+  },
+  badge: {
+    position: "absolute",
+    top: 0,
+    right: 0,
+    backgroundColor: "#FF3B30",
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F2F2F7",
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E5E5EA",
+  },
+  searchPlaceholder: {
+    marginLeft: 8,
+    fontSize: 16,
+    color: "#666",
+  },
 });

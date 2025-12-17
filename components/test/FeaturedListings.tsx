@@ -88,7 +88,6 @@ export const FeaturedListings: React.FC<FeaturedListingsProps> = ({
 const styles = StyleSheet.create({
     container: {
         paddingVertical: 16,
-        backgroundColor: '#fff',
     },
     loadingContainer: {
         height: 180,

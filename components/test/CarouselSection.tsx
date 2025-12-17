@@ -147,7 +147,7 @@ export const CarouselSection: React.FC<CarouselSectionProps> = ({ data, loading 
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: '#FFFFFF',
+        paddingTop: 8
     },
     carouselWrapper: {
         position: 'relative',
@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
         height: 180,
         backgroundColor: '#F5F5F5',
         marginHorizontal: 16,
-        borderRadius: 16,
+        borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -166,13 +166,13 @@ const styles = StyleSheet.create({
     imageWrapper: {
         position: 'relative',
         marginRight: 16,
-        borderRadius: 16,
+        borderRadius: 8,
         overflow: 'hidden',
     },
     carouselImage: {
         width: CAROUSEL_WIDTH,
         height: 180,
-        borderRadius: 16,
+        borderRadius: 8,
     },
     imageOverlay: {
         position: 'absolute',

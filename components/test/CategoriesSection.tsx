@@ -120,7 +120,6 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
 const styles = StyleSheet.create({
     container: {
         paddingVertical: 16,
-        backgroundColor: 'white',
     },
     loadingContainer: {
         height: 120,
@@ -132,7 +131,7 @@ const styles = StyleSheet.create({
     },
     categoryItem: {
         alignItems: 'center',
-        marginRight: 20,
+        marginRight: 10,
         width: 70,
     },
     iconContainer: {
