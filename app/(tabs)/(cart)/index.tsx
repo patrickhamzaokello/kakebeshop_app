@@ -19,12 +19,12 @@ export default function CartMain() {
 
   return (
     <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+      <DetailHeaderSection
+        title="Your Cart"
+        subheading="Review items and proceed to checkout"
+      />
 
-            <DetailHeaderSection title="Your Cart" subheading="Review items and proceed to checkout" />
-      
-      
       <CartScreen />
-
     </View>
   );
 }
