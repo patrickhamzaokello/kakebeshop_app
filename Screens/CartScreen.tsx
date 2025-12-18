@@ -6,6 +6,7 @@ import { RefreshControl, ScrollView, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
 import { CartItems } from "@/components/test/CartItemListing";
 import { CartSummary } from "@/components/test/CartSummary";
+import { DetailHeaderSection } from "@/components/test/DetailHeader";
 
 export const CartScreen: React.FC = () => {
   const router = useRouter();
@@ -34,7 +35,7 @@ export const CartScreen: React.FC = () => {
         onItemPress={(item) =>
           router.push({
             pathname: "/listing/[id]",
-            params: { id: item.listing.id }
+            params: { id: item.listing.id },
           })
         }
       />
@@ -42,10 +43,12 @@ export const CartScreen: React.FC = () => {
       <CartSummary
         totalItems={userCartData.data?.total_items || 0}
         totalPrice={userCartData.data?.total_price || "0"}
-        onCheckout={() =>   router.push({
+        onCheckout={() =>
+          router.push({
             pathname: "/orders/[id]",
-            params: { cartid: userCartData.data?.id }
-          })}
+            params: { cartid: userCartData.data?.id },
+          })
+        }
         loading={false}
         disabled={(userCartData.data?.total_items || 0) === 0}
       />
@@ -55,7 +58,5 @@ export const CartScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: "#FFF",
   },
 });

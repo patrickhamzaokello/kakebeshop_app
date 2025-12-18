@@ -5,8 +5,8 @@ import Typo from "@/components/Typo";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
 import { useCartStore } from "@/utils/stores/useCartStore";
-import { colors } from "@/constants/theme";
 import { CartScreen } from "@/Screens/CartScreen";
+import { DetailHeaderSection } from "@/components/test/DetailHeader";
 
 export default function CartMain() {
   const { fetchCartCount } = useCartStore();
@@ -18,8 +18,13 @@ export default function CartMain() {
   );
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.white }}>
+    <View style={{ flex: 1, backgroundColor: "#FFFFFF" }}>
+
+            <DetailHeaderSection title="Your Cart" subheading="Review items and proceed to checkout" />
+      
+      
       <CartScreen />
+
     </View>
   );
 }

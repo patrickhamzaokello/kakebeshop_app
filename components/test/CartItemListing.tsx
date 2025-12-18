@@ -9,7 +9,6 @@ import {
 } from 'react-native';
 
 import { CartItem } from '@/utils/types/models';
-import { SectionHeader } from '@/components/test/common/SectionHeader';
 import { ListingImage } from '@/components/test/common/ListingImage';
 
 interface CartItemsProps {
@@ -64,7 +63,6 @@ export const CartItems: React.FC<CartItemsProps> = ({
   if (loading) {
     return (
       <View style={styles.container}>
-        <SectionHeader title="Your Cart" />
 
         {[1, 2, 3].map((key) => (
           <View key={key} style={styles.cartCard}>
@@ -83,7 +81,6 @@ export const CartItems: React.FC<CartItemsProps> = ({
   if (!items || items.length === 0) {
     return (
       <View style={styles.container}>
-        <SectionHeader title="Your Cart" />
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>Your cart is empty</Text>
         </View>
@@ -93,7 +90,6 @@ export const CartItems: React.FC<CartItemsProps> = ({
 
   return (
     <View style={styles.container}>
-      <SectionHeader title="Your Cart" />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -138,10 +134,12 @@ export const CartItems: React.FC<CartItemsProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 16,
+    backgroundColor: '#F5F5F5',
   },
   scrollContent: {
     paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
   },
   emptyContainer: {
     paddingVertical: 40,
@@ -158,7 +156,6 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 8,
     padding: 8,
-    marginBottom: 12,
   },
 
   /* Image */
