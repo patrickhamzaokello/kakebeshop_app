@@ -185,6 +185,45 @@ export interface ListingDetail extends Listing   {
     business_hours: any[];
 }
 
+
+// Cart Listing Image
+export interface CartListingImage {
+    image: string;
+    thumbnail: string;
+  }
+  
+  // Cart Listing type
+  export interface CartListing {
+    id: string;
+    title: string;
+    price: string; // kept as string to match API
+    primary_image: CartListingImage;
+    status: "ACTIVE" | "INACTIVE";
+    is_active: boolean;
+  }
+
+
+
+// Cart item
+export interface CartItem {
+    id: string;
+    listing: CartListing;
+    quantity: number;
+    subtotal: string; 
+    created_at: string;
+    updated_at: string;
+  }
+  
+  // Cart
+  export interface Cart {
+    id: string;
+    items: CartItem[];
+    total_items: number;
+    total_price: string;
+    created_at: string;
+    updated_at: string;
+  }
+
 export interface HeaderData {
     profile: User;
     notificationsCount: number;

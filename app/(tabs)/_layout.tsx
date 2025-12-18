@@ -1,5 +1,4 @@
 // TabsLayout.tsx
-import Header from "@/components/header/Header";
 import { useCartStore } from "@/utils/stores/useCartStore";
 import {
   AntDesign,
@@ -49,8 +48,7 @@ export default function TabsLayout() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: "#fff",
-        tabBarStyle: { backgroundColor: "#000", borderTopWidth: 0 },
-        header: () => <Header />,
+        tabBarStyle: { backgroundColor: "#000", borderTopWidth: 0, paddingTop: 8 },
       }}
     >
       <Tabs.Screen
