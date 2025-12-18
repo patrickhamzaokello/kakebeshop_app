@@ -1,12 +1,12 @@
 import ScreenWrapper from "@/components/ScreenWrapper";
 import { StatusBar } from "expo-status-bar";
-import {
-  StyleSheet,
-} from "react-native";
+import { StyleSheet, View } from "react-native";
 import Typo from "@/components/Typo";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
 import { useCartStore } from "@/utils/stores/useCartStore";
+import { colors } from "@/constants/theme";
+import { CartScreen } from "@/Screens/CartScreen";
 
 export default function CartMain() {
   const { fetchCartCount } = useCartStore();
@@ -18,18 +18,8 @@ export default function CartMain() {
   );
 
   return (
-      <ScreenWrapper style={styles.container}>
-        <StatusBar style="dark" />
-
-        <Typo>Cart List</Typo>
-      </ScreenWrapper>
+    <View style={{ flex: 1, backgroundColor: colors.white }}>
+      <CartScreen />
+    </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-
-});

@@ -1,8 +1,8 @@
 import apiService from "@/utils/apiBase";
 import { Cart } from "@/utils/types/models";
 
-export const listingDetailsService = {
-  async getUserCartItems(listingID: string): Promise<Cart | null> {
+export const cartService = {
+  async getUserCart(): Promise<Cart | null> {
     try {
       const response = await apiService.get<Cart>(
         `/api/v1/cart/`

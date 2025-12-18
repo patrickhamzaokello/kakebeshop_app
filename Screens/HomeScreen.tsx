@@ -1,9 +1,9 @@
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useSectionData } from '@/hooks/useSectionData';
 import { homeService } from '@/utils/services/homeService';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useCallback, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
+import { useRouter } from "expo-router";
 
 import { AllListings } from "@/components/test/AllListings";
 import { CarouselSection } from "@/components/test/CarouselSection";
@@ -11,13 +11,9 @@ import { CategoriesSection } from "@/components/test/CategoriesSection";
 import { FeaturedListings } from "@/components/test/FeaturedListings";
 import { FeaturedMerchants } from "@/components/test/FeaturedMerchants";
 import { HeaderSection } from "@/components/test/HeaderSection";
-import { RootStackParamList } from '@/utils/types/navigation';
-import { useNavigation } from "expo-router";
-
-type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 export const HomeScreen: React.FC = () => {
-    const navigation = useNavigation<HomeScreenNavigationProp>();
+    const router = useRouter();
 
     // Section data hooks - inline functions are now safe
     const headerData = useSectionData(() => homeService.getHeaderData());
@@ -66,9 +62,9 @@ export const HomeScreen: React.FC = () => {
             <HeaderSection
                 data={headerData.data}
                 loading={headerData.loading}
-                onSearch={() => navigation.navigate('Search')}
-                onWishlistPress={() => navigation.navigate('Wishlist')}
-                onNotificationPress={() => navigation.navigate('Notifications')}
+                onSearch={() => router.push('/search')}
+                onWishlistPress={() => router.push('/wishlist')}
+                onNotificationPress={() => router.push('/notifications')}
             />
 
             <CarouselSection data={carouselData.data} loading={carouselData.loading} />
@@ -76,20 +72,33 @@ export const HomeScreen: React.FC = () => {
             <CategoriesSection
                 data={categoriesData.data}
                 loading={categoriesData.loading}
-                onCategoryPress={(category) => navigation.navigate('Category', { categoryId: category.id })}
+                onCategoryPress={(category) => 
+                    router.push({
+                        pathname: '/category/[id]',
+                        params: { id: category.id }
+                    })
+                }
             />
 
             <FeaturedMerchants
                 data={merchantsData.data}
                 loading={merchantsData.loading}
-                onMerchantPress={(merchant) => navigation.navigate('Merchant', { merchantId: merchant.id })}
+                onMerchantPress={(merchant) => 
+                    router.push({
+                        pathname: '/merchant/[id]',
+                        params: { id: merchant.id }
+                    })
+                }
             />
 
             <FeaturedListings
                 data={featuredData.data}
                 loading={featuredData.loading}
                 onListingPress={(listing) =>
-                    navigation.navigate('ProductDetail', { listingId: listing.id })
+                    router.push({
+                        pathname: '/listing/[id]',
+                        params: { id: listing.id }
+                    })
                 }
             />
 
@@ -99,7 +108,10 @@ export const HomeScreen: React.FC = () => {
                 hasMore={hasMore}
                 onLoadMore={loadMore}
                 onListingPress={(listing) =>
-                    navigation.navigate('ProductDetail', { listingId: listing.id })
+                    router.push({
+                        pathname: '/listing/[id]',
+                        params: { id: listing.id }
+                    })
                 }
             />
         </ScrollView>
