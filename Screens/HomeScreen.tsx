@@ -1,36 +1,31 @@
-import React, { useCallback, useState } from 'react';
-import { ScrollView, RefreshControl, StyleSheet, View } from 'react-native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useSectionData } from '@/hooks/useSectionData';
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
+import { useSectionData } from '@/hooks/useSectionData';
 import { homeService } from '@/utils/services/homeService';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import React, { useCallback, useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 
+import { AllListings } from "@/components/test/AllListings";
+import { CarouselSection } from "@/components/test/CarouselSection";
+import { CategoriesSection } from "@/components/test/CategoriesSection";
+import { FeaturedListings } from "@/components/test/FeaturedListings";
+import { FeaturedMerchants } from "@/components/test/FeaturedMerchants";
+import { HeaderSection } from "@/components/test/HeaderSection";
 import { RootStackParamList } from '@/utils/types/navigation';
-import {HeaderSection} from "@/components/test/HeaderSection";
-import {CarouselSection} from "@/components/test/CarouselSection";
-import {AllListings} from "@/components/test/AllListings";
-import {ApiResponse} from "@/utils/types";
-import {Category, Listing, Merchant} from "@/utils/types/models";
-import {useNavigation} from "expo-router";
-import {CategoriesSection} from "@/components/test/CategoriesSection";
-import {FeaturedMerchants} from "@/components/test/FeaturedMerchants";
-import {FeaturedListings} from "@/components/test/FeaturedListings";
-
-
+import { useNavigation } from "expo-router";
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 export const HomeScreen: React.FC = () => {
     const navigation = useNavigation<HomeScreenNavigationProp>();
 
-    // Section data hooks
+    // Section data hooks - inline functions are now safe
     const headerData = useSectionData(() => homeService.getHeaderData());
     const carouselData = useSectionData(() => homeService.getCarouselImages());
     const categoriesData = useSectionData(() => homeService.getCategories());
     const merchantsData = useSectionData(() => homeService.getFeaturedMerchants(10));
     const featuredData = useSectionData(() => homeService.getFeaturedListings(10));
 
-    // Infinite scroll for all listings
     // Infinite scroll for all listings
     const {
         data: listings,
@@ -55,11 +50,11 @@ export const HomeScreen: React.FC = () => {
         ]);
         setRefreshing(false);
     }, [
-        headerData,
-        carouselData,
-        categoriesData,
-        merchantsData,
-        featuredData,
+        headerData.refetch,
+        carouselData.refetch,
+        categoriesData.refetch,
+        merchantsData.refetch,
+        featuredData.refetch,
         refreshListings,
     ]);
 
@@ -117,5 +112,3 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFF',
     },
 });
-
-

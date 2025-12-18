@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  Image,
   TouchableOpacity,
   StyleSheet,
   ActivityIndicator,
@@ -38,17 +37,6 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
   onNotificationPress,
   onWishlistPress,
 }) => {
-  if (loading) {
-    return (
-      <LinearGradient
-        colors={["#E3D5D5", "#FFFFFF"]}
-        style={styles.loadingContainer}
-      >
-        <ActivityIndicator size="large" color="#007AFF" />
-      </LinearGradient>
-    );
-  }
-
   const [searchPlaceholder, setSearchPlaceholder] = useState(SEARCH_TERMS[0]);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
@@ -64,6 +52,17 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
 
     return () => clearInterval(interval);
   }, []);
+
+  if (loading) {
+    return (
+      <LinearGradient
+        colors={["#E3D5D5", "#FFFFFF"]}
+        style={styles.loadingContainer}
+      >
+        <ActivityIndicator size="large" color="#007AFF" />
+      </LinearGradient>
+    );
+  }
 
   return (
     <LinearGradient colors={["#BFDAD3", "#FFFFFF"]} style={styles.container}>
@@ -224,6 +223,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "bold",
   },
- 
-
 });
