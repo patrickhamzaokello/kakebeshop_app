@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
     View,
     Text,
@@ -6,7 +6,7 @@ import {
     Image,
     TouchableOpacity,
     StyleSheet,
-    ActivityIndicator,
+    Animated,
 } from 'react-native';
 import { Merchant } from '@/utils/types/models';
 import { SectionHeader } from '@/components/test/common/SectionHeader';
@@ -18,6 +18,44 @@ interface FeaturedMerchantsProps {
     onSeeAll?: () => void;
 }
 
+const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
+    const animatedValue = new Animated.Value(0);
+
+    useEffect(() => {
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(animatedValue, {
+                    toValue: 1,
+                    duration: 1000,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(animatedValue, {
+                    toValue: 0,
+                    duration: 1000,
+                    useNativeDriver: true,
+                }),
+            ])
+        ).start();
+    }, []);
+
+    const opacity = animatedValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.3, 0.7],
+    });
+
+    return (
+        <Animated.View
+            style={[
+                {
+                    backgroundColor: '#E0E0E0',
+                    opacity,
+                },
+                style,
+            ]}
+        />
+    );
+};
+
 export const FeaturedMerchants: React.FC<FeaturedMerchantsProps> = ({
     data,
     loading,
@@ -27,8 +65,49 @@ export const FeaturedMerchants: React.FC<FeaturedMerchantsProps> = ({
 
     if (loading) {
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#007AFF" />
+            <View style={styles.container}>
+                <SectionHeader
+                    title="Top Brands"
+                    onSeeAll={onSeeAll}
+                    showSeeAll={!!onSeeAll}
+                />
+
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContent}
+                    scrollEnabled={false}
+                >
+                    {[1, 2, 3, 4].map((item) => (
+                        <View key={item} style={styles.merchantCard}>
+                            {/* Merchant image shimmer */}
+                            <ShimmerPlaceholder
+                                style={[styles.merchantImage, { borderRadius: 8 }]}
+                            />
+
+                            {/* Merchant name shimmer */}
+                            <ShimmerPlaceholder
+                                style={{
+                                    width: '80%',
+                                    height: 13,
+                                    borderRadius: 4,
+                                    marginBottom: 4,
+                                }}
+                            />
+
+                            {/* Rating container shimmer */}
+                            <View style={styles.ratingContainer}>
+                                <ShimmerPlaceholder
+                                    style={{
+                                        width: 60,
+                                        height: 12,
+                                        borderRadius: 4,
+                                    }}
+                                />
+                            </View>
+                        </View>
+                    ))}
+                </ScrollView>
             </View>
         );
     }
@@ -85,11 +164,6 @@ export const FeaturedMerchants: React.FC<FeaturedMerchantsProps> = ({
 const styles = StyleSheet.create({
     container: {
         paddingVertical: 12,
-    },
-    loadingContainer: {
-        height: 120,
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     scrollContent: {
         paddingHorizontal: 16,

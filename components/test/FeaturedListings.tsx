@@ -1,15 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
     View,
     Text,
     ScrollView,
     TouchableOpacity,
     StyleSheet,
-    ActivityIndicator,
+    Animated,
 } from 'react-native';
 import { Listing } from '@/utils/types/models';
 import { SectionHeader } from '@/components/test/common/SectionHeader';
-import { ListingImage } from '@/components/test/common/ListingImage'; // Import the new component
+import { ListingImage } from '@/components/test/common/ListingImage';
 
 interface FeaturedListingsProps {
     data: Listing[] | null;
@@ -18,16 +18,87 @@ interface FeaturedListingsProps {
     onSeeAll?: () => void;
 }
 
+const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
+    const animatedValue = new Animated.Value(0);
+
+    useEffect(() => {
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(animatedValue, {
+                    toValue: 1,
+                    duration: 1000,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(animatedValue, {
+                    toValue: 0,
+                    duration: 1000,
+                    useNativeDriver: true,
+                }),
+            ])
+        ).start();
+    }, []);
+
+    const opacity = animatedValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.3, 0.7],
+    });
+
+    return (
+        <Animated.View
+            style={[
+                {
+                    backgroundColor: '#E0E0E0',
+                    opacity,
+                },
+                style,
+            ]}
+        />
+    );
+};
+
 export const FeaturedListings: React.FC<FeaturedListingsProps> = ({
-                                                                      data,
-                                                                      loading,
-                                                                      onListingPress,
-                                                                      onSeeAll,
-                                                                  }) => {
+    data,
+    loading,
+    onListingPress,
+    onSeeAll,
+}) => {
     if (loading) {
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#007AFF" />
+            <View style={styles.container}>
+                <SectionHeader
+                    title="Trending Listings"
+                    onSeeAll={onSeeAll}
+                    showSeeAll={!!onSeeAll}
+                />
+
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContent}
+                    scrollEnabled={false}
+                >
+                    {[1, 2, 3, 4, 5].map((item) => (
+                        <View key={item} style={styles.listingCard}>
+                            {/* Image shimmer */}
+                            <ShimmerPlaceholder
+                                style={{
+                                    width: '100%',
+                                    height: 180,
+                                    borderRadius: 4,
+                                    marginBottom: 8,
+                                }}
+                            />
+                            {/* Price shimmer */}
+                            <ShimmerPlaceholder
+                                style={{
+                                    width: '70%',
+                                    height: 10,
+                                    borderRadius: 4,
+                                }}
+                            />
+                        </View>
+                    ))}
+                </ScrollView>
             </View>
         );
     }
@@ -68,7 +139,6 @@ export const FeaturedListings: React.FC<FeaturedListingsProps> = ({
                         onPress={() => onListingPress(listing)}
                         activeOpacity={0.7}
                     >
-                        {/* Use ListingImage component */}
                         <ListingImage
                             primaryImage={listing.primary_image}
                             style={styles.listingImage}
@@ -88,11 +158,6 @@ export const FeaturedListings: React.FC<FeaturedListingsProps> = ({
 const styles = StyleSheet.create({
     container: {
         paddingVertical: 16,
-    },
-    loadingContainer: {
-        height: 180,
-        alignItems: 'center',
-        justifyContent: 'center',
     },
     emptyContainer: {
         height: 150,
@@ -114,7 +179,7 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         marginRight: 8,
         position: 'relative',
-        overflow: 'hidden', // Important for image border radius
+        overflow: 'hidden',
     },
     listingImage: {
         width: '100%',
@@ -122,8 +187,6 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         marginBottom: 8,
     },
-
-
     listingPrice: {
         fontSize: 10,
         fontWeight: 'bold',

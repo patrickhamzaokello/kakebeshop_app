@@ -4,7 +4,7 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  ActivityIndicator,
+  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -29,6 +29,44 @@ const SEARCH_TERMS = [
   "Explore home goods...",
   "Speakers in Lira..",
 ];
+
+const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
+  const animatedValue = new Animated.Value(0);
+
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(animatedValue, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(animatedValue, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
+
+  const opacity = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.7],
+  });
+
+  return (
+    <Animated.View
+      style={[
+        {
+          backgroundColor: "#E0E0E0",
+          opacity,
+        },
+        style,
+      ]}
+    />
+  );
+};
 
 export const HeaderSection: React.FC<HeaderSectionProps> = ({
   data,
@@ -55,11 +93,58 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
 
   if (loading) {
     return (
-      <LinearGradient
-        colors={["#E3D5D5", "#FFFFFF"]}
-        style={styles.loadingContainer}
-      >
-        <ActivityIndicator size="large" color="#007AFF" />
+      <LinearGradient colors={["#BFDAD3", "#FFFFFF"]} style={styles.container}>
+        <View style={{ flex: 1 }}>
+          <SafeAreaView />
+
+          <View style={styles.topRow}>
+            <View style={styles.userInfo}>
+              {/* Avatar shimmer */}
+              <ShimmerPlaceholder
+                style={[styles.avatar, { borderRadius: 24 }]}
+              />
+              <View style={{ flex: 1 }}>
+                {/* Welcome text shimmer */}
+                <ShimmerPlaceholder
+                  style={{
+                    width: 140,
+                    height: 14,
+                    borderRadius: 4,
+                    marginBottom: 6,
+                  }}
+                />
+                {/* User name shimmer */}
+                <ShimmerPlaceholder
+                  style={{
+                    width: 180,
+                    height: 20,
+                    borderRadius: 4,
+                  }}
+                />
+              </View>
+            </View>
+
+            <View style={styles.actionButtons}>
+              {/* Wishlist button shimmer */}
+              <ShimmerPlaceholder
+                style={[styles.iconButton, { borderRadius: 4 }]}
+              />
+              {/* Notification button shimmer */}
+              <ShimmerPlaceholder
+                style={[styles.iconButton, { borderRadius: 4 }]}
+              />
+            </View>
+          </View>
+
+          {/* Search bar shimmer */}
+          <ShimmerPlaceholder
+            style={{
+              height: 50,
+              borderRadius: 4,
+              width: "100%",
+            }}
+          />
+        </View>
       </LinearGradient>
     );
   }
@@ -149,12 +234,6 @@ const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
     paddingBottom: 8,
-  },
-  loadingContainer: {
-    padding: 16,
-    alignItems: "center",
-    justifyContent: "center",
-    height: 120,
   },
   topRow: {
     flexDirection: "row",

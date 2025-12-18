@@ -5,10 +5,10 @@ import {
     Image,
     Dimensions,
     StyleSheet,
-    ActivityIndicator,
     NativeScrollEvent,
     NativeSyntheticEvent,
     TouchableOpacity,
+    Animated,
 } from 'react-native';
 import { CarouselImage } from '@/utils/types/models';
 
@@ -20,6 +20,44 @@ interface CarouselSectionProps {
     data: CarouselImage[] | null;
     loading: boolean;
 }
+
+const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
+    const animatedValue = new Animated.Value(0);
+
+    useEffect(() => {
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(animatedValue, {
+                    toValue: 1,
+                    duration: 1000,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(animatedValue, {
+                    toValue: 0,
+                    duration: 1000,
+                    useNativeDriver: true,
+                }),
+            ])
+        ).start();
+    }, []);
+
+    const opacity = animatedValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.3, 0.7],
+    });
+
+    return (
+        <Animated.View
+            style={[
+                {
+                    backgroundColor: '#E0E0E0',
+                    opacity,
+                },
+                style,
+            ]}
+        />
+    );
+};
 
 export const CarouselSection: React.FC<CarouselSectionProps> = ({ data, loading }) => {
     const [activeIndex, setActiveIndex] = useState<number>(0);
@@ -73,8 +111,33 @@ export const CarouselSection: React.FC<CarouselSectionProps> = ({ data, loading 
 
     if (loading) {
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#007AFF" />
+            <View style={styles.container}>
+                <View style={styles.carouselWrapper}>
+                    <View style={styles.loadingContainer}>
+                        {/* Carousel image shimmer */}
+                        <ShimmerPlaceholder
+                            style={{
+                                width: CAROUSEL_WIDTH,
+                                height: 180,
+                                borderRadius: 8,
+                            }}
+                        />
+                        
+                        {/* Pagination dots shimmer */}
+                        <View style={styles.pagination}>
+                            {[1, 2, 3].map((_, index) => (
+                                <ShimmerPlaceholder
+                                    key={index}
+                                    style={{
+                                        width: index === 0 ? 20 : 6,
+                                        height: 6,
+                                        borderRadius: 3,
+                                    }}
+                                />
+                            ))}
+                        </View>
+                    </View>
+                </View>
             </View>
         );
     }
@@ -154,11 +217,11 @@ const styles = StyleSheet.create({
     },
     loadingContainer: {
         height: 180,
-        backgroundColor: '#F5F5F5',
         marginHorizontal: 16,
         borderRadius: 8,
         alignItems: 'center',
         justifyContent: 'center',
+        position: 'relative',
     },
     scrollContent: {
         paddingHorizontal: 16,
@@ -198,7 +261,6 @@ const styles = StyleSheet.create({
         height: 6,
         borderRadius: 3,
         backgroundColor: 'rgba(255, 255, 255, 0.5)',
-        // Removed unsupported transition property
     },
     activeDot: {
         backgroundColor: '#fff',

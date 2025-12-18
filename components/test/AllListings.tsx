@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -7,6 +7,7 @@ import {
     StyleSheet,
     ActivityIndicator,
     ListRenderItem,
+    Animated,
 } from 'react-native';
 import { Listing } from '@/utils/types/models';
 import { ListingImage } from '@/components/test/common/ListingImage';
@@ -20,6 +21,103 @@ interface AllListingsProps {
     onLoadMore: () => Promise<void>;
     onListingPress: (listing: Listing) => void;
 }
+
+const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
+    const animatedValue = new Animated.Value(0);
+
+    useEffect(() => {
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(animatedValue, {
+                    toValue: 1,
+                    duration: 1000,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(animatedValue, {
+                    toValue: 0,
+                    duration: 1000,
+                    useNativeDriver: true,
+                }),
+            ])
+        ).start();
+    }, []);
+
+    const opacity = animatedValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.3, 0.7],
+    });
+
+    return (
+        <Animated.View
+            style={[
+                {
+                    backgroundColor: '#E0E0E0',
+                    opacity,
+                },
+                style,
+            ]}
+        />
+    );
+};
+
+const ListingShimmerCard = () => (
+    <View style={styles.listingCard}>
+        <View style={styles.imageContainer}>
+            {/* Image shimmer */}
+            <ShimmerPlaceholder
+                style={{
+                    width: '100%',
+                    height: 245,
+                    borderTopLeftRadius: 8,
+                    borderTopRightRadius: 8,
+                }}
+            />
+            {/* Quick view button shimmer */}
+            <View
+                style={[
+                    styles.quickViewButton,
+                    { backgroundColor: 'rgba(224, 224, 224, 0.8)' },
+                ]}
+            />
+        </View>
+        <View style={styles.listingDescription}>
+            {/* Title shimmer - 2 lines */}
+            <ShimmerPlaceholder
+                style={{
+                    width: '90%',
+                    height: 14,
+                    borderRadius: 4,
+                    marginBottom: 4,
+                }}
+            />
+            <ShimmerPlaceholder
+                style={{
+                    width: '70%',
+                    height: 14,
+                    borderRadius: 4,
+                    marginBottom: 8,
+                }}
+            />
+            {/* Merchant name shimmer */}
+            <ShimmerPlaceholder
+                style={{
+                    width: '60%',
+                    height: 12,
+                    borderRadius: 4,
+                    marginBottom: 8,
+                }}
+            />
+            {/* Price shimmer */}
+            <ShimmerPlaceholder
+                style={{
+                    width: '50%',
+                    height: 16,
+                    borderRadius: 4,
+                }}
+            />
+        </View>
+    </View>
+);
 
 export const AllListings: React.FC<AllListingsProps> = ({
     data,
@@ -78,13 +176,36 @@ export const AllListings: React.FC<AllListingsProps> = ({
     );
 
     const renderFooter = () => {
-        if (!loading) return null;
+        if (!loading || data.length === 0) return null;
         return (
             <View style={styles.footerLoader}>
                 <ActivityIndicator size="small" color="#007AFF" />
             </View>
         );
     };
+
+    // Show shimmer when initially loading with no data
+    if (loading && data.length === 0) {
+        return (
+            <View style={styles.container}>
+                <Text style={styles.sectionTitle}>All Listings</Text>
+                <View style={styles.shimmerContainer}>
+                    <View style={styles.row}>
+                        <ListingShimmerCard />
+                        <ListingShimmerCard />
+                    </View>
+                    <View style={styles.row}>
+                        <ListingShimmerCard />
+                        <ListingShimmerCard />
+                    </View>
+                    <View style={styles.row}>
+                        <ListingShimmerCard />
+                        <ListingShimmerCard />
+                    </View>
+                </View>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -123,14 +244,17 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         marginBottom: 12,
     },
+    shimmerContainer: {
+        gap: 6,
+    },
     row: {
         justifyContent: 'space-between',
+        marginBottom: 6,
     },
     listingCard: {
         width: '49%',
         backgroundColor: '#fff',
         borderRadius: 8,
-        marginBottom: 6,
         borderWidth: 1,
         borderColor: '#f2f2f2',
     },

@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
     View,
     Text,
     ScrollView,
     TouchableOpacity,
     StyleSheet,
-    ActivityIndicator,
+    Animated,
 } from 'react-native';
 import {
     MaterialIcons,
@@ -26,16 +26,92 @@ interface CategoriesSectionProps {
     onSeeAll?: () => void;
 }
 
+const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
+    const animatedValue = new Animated.Value(0);
+
+    useEffect(() => {
+        Animated.loop(
+            Animated.sequence([
+                Animated.timing(animatedValue, {
+                    toValue: 1,
+                    duration: 1000,
+                    useNativeDriver: true,
+                }),
+                Animated.timing(animatedValue, {
+                    toValue: 0,
+                    duration: 1000,
+                    useNativeDriver: true,
+                }),
+            ])
+        ).start();
+    }, []);
+
+    const opacity = animatedValue.interpolate({
+        inputRange: [0, 1],
+        outputRange: [0.3, 0.7],
+    });
+
+    return (
+        <Animated.View
+            style={[
+                {
+                    backgroundColor: '#E0E0E0',
+                    opacity,
+                },
+                style,
+            ]}
+        />
+    );
+};
+
 export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
-                                                                        data,
-                                                                        loading,
-                                                                        onCategoryPress,
-                                                                        onSeeAll,
-                                                                    }) => {
+    data,
+    loading,
+    onCategoryPress,
+    onSeeAll,
+}) => {
     if (loading) {
         return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size="small" color="#007AFF" />
+            <View style={styles.container}>
+                <SectionHeader
+                    title="Categories"
+                    onSeeAll={onSeeAll}
+                    showSeeAll={!!onSeeAll}
+                />
+
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.scrollContent}
+                    scrollEnabled={false}
+                >
+                    {[1, 2, 3, 4, 5, 6].map((item) => (
+                        <View key={item} style={styles.categoryItem}>
+                            {/* Icon container shimmer */}
+                            <ShimmerPlaceholder
+                                style={[styles.iconContainer, { borderRadius: 32 }]}
+                            />
+                            {/* Category name shimmer */}
+                            <ShimmerPlaceholder
+                                style={{
+                                    width: 60,
+                                    height: 10,
+                                    borderRadius: 4,
+                                    marginTop: 8,
+                                }}
+                            />
+                            {/* Second line of text (optional) */}
+                            <ShimmerPlaceholder
+                                style={{
+                                    width: 45,
+                                    height: 10,
+                                    borderRadius: 4,
+                                    marginTop: 4,
+                                }}
+                            />
+                        </View>
+                    ))}
+                </ScrollView>
             </View>
         );
     }
@@ -121,11 +197,6 @@ const styles = StyleSheet.create({
     container: {
         paddingVertical: 16,
     },
-    loadingContainer: {
-        height: 120,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
     scrollContent: {
         paddingHorizontal: 16,
     },
@@ -138,7 +209,7 @@ const styles = StyleSheet.create({
         width: 64,
         height: 64,
         borderRadius: 32,
-        backgroundColor: '#E0E8ED', // Light blue background for better contrast
+        backgroundColor: '#E0E8ED',
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: 8,
