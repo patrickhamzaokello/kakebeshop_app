@@ -1,45 +1,43 @@
-import { useSectionData } from "@/hooks/useSectionData";
-import { cartService } from "@/utils/services/cartService";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
 import { CartItems } from "@/components/test/CartItemListing";
 import { CartSummary } from "@/components/test/CartSummary";
+import { useCartStore } from "@/utils/stores/useCartStore";
 
 export const CartScreen: React.FC = () => {
   const router = useRouter();
 
-  const userCartData = useSectionData(() => cartService.getUserCart());
+  const {
+    cart,
+    isLoading,
+    isUpdating,
+    fetchCart,
+    updateCartItemQuantity,
+    removeCartItem,
+  } = useCartStore();
 
-  const [refreshing, setRefreshing] = useState<boolean>(false);
+  // Fetch cart on mount
+  useEffect(() => {
+    fetchCart();
+  }, []);
 
-  // Pull to refresh all sections
+  // Pull to refresh
   const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await Promise.all([userCartData.refetch()]);
-    setRefreshing(false);
-  }, [userCartData.refetch]);
+    await fetchCart();
+  }, [fetchCart]);
 
   // Handle quantity change
-  const handleQuantityChange = async (itemId: string, newQuantity: number) => {
-    try {
-      await cartService.updateCartItemQuantity(itemId, newQuantity);
-      // Refetch cart data to get updated totals
-      await userCartData.refetch();
-    } catch (error) {
-      throw error; // Let the component handle the error
-    }
+  const handleQuantityChange = async (
+    itemId: string,
+    newQuantity: number
+  ): Promise<boolean> => {
+    return await updateCartItemQuantity(itemId, newQuantity);
   };
 
   // Handle item removal
-  const handleRemoveItem = async (itemId: string) => {
-    try {
-      await cartService.removeCartItem(itemId);
-      // Refetch cart data to update the list
-      await userCartData.refetch();
-    } catch (error) {
-      throw error; // Let the component handle the error
-    }
+  const handleRemoveItem = async (itemId: string): Promise<boolean> => {
+    return await removeCartItem(itemId);
   };
 
   return (
@@ -47,13 +45,13 @@ export const CartScreen: React.FC = () => {
       <ScrollView
         style={styles.scrollView}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />
         }
         showsVerticalScrollIndicator={false}
       >
         <CartItems
-          items={userCartData.data?.items || null}
-          loading={false}
+          items={cart?.items || null}
+          loading={isLoading && !cart}
           onItemPress={(item) =>
             router.push({
               pathname: "/listing/[id]",
@@ -66,16 +64,16 @@ export const CartScreen: React.FC = () => {
       </ScrollView>
 
       <CartSummary
-        totalItems={userCartData.data?.total_items || 0}
-        totalPrice={userCartData.data?.total_price || "0"}
+        totalItems={cart?.total_items || 0}
+        totalPrice={cart?.total_price || "0"}
         onCheckout={() =>
           router.push({
             pathname: "/orders/[id]",
-            params: { id: userCartData.data?.id ?? "" },
+            params: { id: cart?.id ?? "" },
           })
         }
-        loading={false}
-        disabled={(userCartData.data?.total_items || 0) === 0}
+        loading={isUpdating}
+        disabled={(cart?.total_items || 0) === 0}
       />
     </View>
   );

@@ -10,15 +10,15 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { CartItem } from '@/utils/types/models';
+import { CartItem } from '@/utils/stores/useCartStore';
 import { ListingImage } from '@/components/test/common/ListingImage';
 
 interface CartItemsProps {
   items: CartItem[] | null;
   loading: boolean;
   onItemPress?: (item: CartItem) => void;
-  onQuantityChange?: (itemId: string, newQuantity: number) => Promise<void>;
-  onRemoveItem?: (itemId: string) => Promise<void>;
+  onQuantityChange?: (itemId: string, newQuantity: number) => Promise<boolean>;
+  onRemoveItem?: (itemId: string) => Promise<boolean>;
 }
 
 const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
@@ -62,23 +62,32 @@ const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
 const CartItemCard: React.FC<{
   item: CartItem;
   onPress?: (item: CartItem) => void;
-  onQuantityChange?: (itemId: string, newQuantity: number) => Promise<void>;
-  onRemove?: (itemId: string) => Promise<void>;
+  onQuantityChange?: (itemId: string, newQuantity: number) => Promise<boolean>;
+  onRemove?: (itemId: string) => Promise<boolean>;
 }> = ({ item, onPress, onQuantityChange, onRemove }) => {
   const [updating, setUpdating] = useState(false);
   const [localQuantity, setLocalQuantity] = useState(item.quantity);
+
+  // Sync local quantity with prop changes
+  useEffect(() => {
+    setLocalQuantity(item.quantity);
+  }, [item.quantity]);
 
   const handleQuantityChange = async (newQuantity: number) => {
     if (newQuantity < 1 || !onQuantityChange) return;
 
     setUpdating(true);
+    const previousQuantity = localQuantity;
     setLocalQuantity(newQuantity);
 
     try {
-      await onQuantityChange(item.id, newQuantity);
+      const success = await onQuantityChange(item.id, newQuantity);
+      if (!success) {
+        setLocalQuantity(previousQuantity);
+        Alert.alert('Error', 'Failed to update quantity');
+      }
     } catch (error) {
-      // Revert on error
-      setLocalQuantity(item.quantity);
+      setLocalQuantity(previousQuantity);
       Alert.alert('Error', 'Failed to update quantity');
     } finally {
       setUpdating(false);
@@ -99,7 +108,11 @@ const CartItemCard: React.FC<{
           onPress: async () => {
             setUpdating(true);
             try {
-              await onRemove(item.id);
+              const success = await onRemove(item.id);
+              if (!success) {
+                Alert.alert('Error', 'Failed to remove item');
+                setUpdating(false);
+              }
             } catch (error) {
               Alert.alert('Error', 'Failed to remove item');
               setUpdating(false);
