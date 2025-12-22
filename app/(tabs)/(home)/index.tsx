@@ -1,4 +1,4 @@
-// app/index.tsx or app/(tabs)/index.tsx
+// app/cart.tsx or app/(tabs)/cart.tsx
 import { colors } from "@/constants/theme";
 import { View } from "react-native";
 import {HomeScreen} from "@/Screens/HomeScreen";

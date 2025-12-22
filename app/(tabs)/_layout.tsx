@@ -95,6 +95,13 @@ export default function TabsLayout() {
           ),
         }}
       />
+        {/* Hide the shared routes group from tab bar */}
+        <Tabs.Screen
+            name="(home,category,sell,cart,settings)"
+            options={{
+                href: null, // This hides it from the tab bar
+            }}
+        />
     </Tabs>
   );
 }
