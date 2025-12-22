@@ -1,19 +1,77 @@
+// services/cartService.ts
 import apiService from "@/utils/apiBase";
 import { Cart } from "@/utils/types/models";
 
 export const cartService = {
-  async getUserCart(): Promise<Cart | null> {
+  // Fetch full cart data
+  async getCart(): Promise<Cart | null> {
     try {
-      const response = await apiService.get<Cart>(`/api/v1/cart/`);
-
-      return response.data;
+      const response = await apiService.get("/api/v1/cart/");
+      if (response.success && response.data) {
+        return response.data;
+      }
+      return null;
     } catch (error) {
-      console.error("Error fetching listing details", error);
+      console.error("Error fetching cart:", error);
       return null;
     }
   },
 
-  
+  // Fetch cart count only
+  async getCartCount(): Promise<number> {
+    try {
+      const response = await apiService.get("/api/v1/cart/count/");
+      if (response.success && response.data?.count !== undefined) {
+        return response.data.count;
+      }
+      return 0;
+    } catch (error) {
+      console.error("Error fetching cart count:", error);
+      return 0;
+    }
+  },
 
- 
+  // Update cart item quantity
+  async updateCartItemQuantity(itemId: string, quantity: number): Promise<boolean> {
+    try {
+      const response = await apiService.patch(`/api/v1/cart/update/${itemId}/`, {
+        quantity,
+      });
+      return !!response.success;
+    } catch (error) {
+      console.error("Error updating cart item quantity:", error);
+      return false;
+    }
+  },
+
+  // Remove cart item
+  async removeCartItem(itemId: string): Promise<boolean> {
+    try {
+      const response = await apiService.delete(`/api/v1/cart/remove/${itemId}/`);
+      return !!response.success;
+    } catch (error) {
+      console.error("Error removing cart item:", error);
+      return false;
+    }
+  },
+
+  // Clear entire cart
+  async clearCart(): Promise<void> {
+    try {
+      await apiService.post("/api/v1/cart/clear/");
+    } catch (error) {
+      console.error("Error clearing cart:", error);
+    }
+  },
+
+  // Optional: Add to cart (if you want to move this logic from listingDetailsService)
+  // async addToCart(listingID: string, quantity: number = 1): Promise<boolean> {
+  //   try {
+  //     const response = await apiService.post("/api/v1/cart/add/", { listing: listingID, quantity });
+  //     return !!response.success;
+  //   } catch (error) {
+  //     console.error("Error adding to cart:", error);
+  //     return false;
+  //   }
+  // },
 };

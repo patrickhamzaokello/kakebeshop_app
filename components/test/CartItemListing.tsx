@@ -10,8 +10,8 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-import { CartItem } from '@/utils/stores/useCartStore';
 import { ListingImage } from '@/components/test/common/ListingImage';
+import { CartItem } from '@/utils/types/models';
 
 interface CartItemsProps {
   items: CartItem[] | null;
@@ -273,7 +273,6 @@ export const CartItems: React.FC<CartItemsProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#F5F5F5',
     flex: 1,
   },
 

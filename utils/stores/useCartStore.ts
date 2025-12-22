@@ -5,6 +5,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { getItemAsync, setItemAsync, deleteItemAsync } from "expo-secure-store";
 import { listingDetailsService } from "@/utils/services/listingDetailsService";
 import { Cart } from "@/utils/types/models";
+import { cartService } from "../services/cartService";
 
 
 type CartState = {
@@ -49,9 +50,9 @@ export const useCartStore = create<CartState>()(
       fetchCartCount: async () => {
         set({ isLoading: true });
         try {
-          const response = await apiService.get("/api/v1/cart/count/");
-          if (response.success && response.data?.count !== undefined) {
-            set({ cartCount: response.data.count });
+          const cartcount = await cartService.getCartCount();
+          if (cartcount) {
+            set({ cartCount: cartcount });
           }
         } catch (error) {
           console.error("Failed to fetch cart count:", error);
@@ -64,11 +65,11 @@ export const useCartStore = create<CartState>()(
       fetchCart: async () => {
         set({ isLoading: true });
         try {
-          const response = await apiService.get("/api/v1/cart/");
-          if (response.success && response.data) {
+          const cart = await cartService.getCart();
+          if (cart) {
             set({ 
-              cart: response.data,
-              cartCount: response.data.total_items || 0,
+              cart,
+              cartCount: cart.total_items || 0,
             });
           }
         } catch (error) {
@@ -139,11 +140,11 @@ export const useCartStore = create<CartState>()(
         set({ isUpdating: true });
         
         try {
-          const response = await apiService.patch(`/api/v1/cart/update/${itemId}/`, {
-            quantity,
-          });
+       
 
-          if (response.success) {
+          const updateCartItemQuantity = await cartService.updateCartItemQuantity(itemId, quantity);
+
+          if (updateCartItemQuantity) {
             // Refresh to get accurate server state
             await get().fetchCart();
             return true;
@@ -191,9 +192,8 @@ export const useCartStore = create<CartState>()(
         set({ isUpdating: true });
 
         try {
-          const response = await apiService.delete(`/api/v1/cart/remove/${itemId}/`);
-
-          if (response.success) {
+          const removeItem = await cartService.removeCartItem(itemId);
+          if (removeItem) {
             // Refresh to ensure accuracy
             await get().fetchCart();
             return true;
