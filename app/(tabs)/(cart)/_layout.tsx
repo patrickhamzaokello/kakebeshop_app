@@ -10,9 +10,7 @@ export default function CartLayout() {
           animation: pathname.startsWith("/cart") ? "default" : "none",
         }}
       >
-          <StatusBar style="dark" />
 
-          <Stack.Screen name="cart" /> {/* Changed from index */}
       </Stack>
       
   );
