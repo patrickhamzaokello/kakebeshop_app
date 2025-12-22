@@ -46,7 +46,7 @@ export const CartScreen: React.FC = () => {
         onCheckout={() =>
           router.push({
             pathname: "/orders/[id]",
-            params: { cartid: userCartData.data?.id },
+            params: { id: userCartData.data?.id ?? "" },
           })
         }
         loading={false}

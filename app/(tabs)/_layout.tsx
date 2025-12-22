@@ -22,8 +22,8 @@ const CartTabIcon = ({ color, size }: { color: string; size: number }) => {
         <View
           style={{
             position: "absolute",
-            right: -6,
-            top: -3,
+            right: -12,
+            top: -6,
             backgroundColor: "red",
             borderRadius: 12,
             minWidth: 20,
@@ -50,6 +50,7 @@ export default function TabsLayout() {
         tabBarActiveTintColor: "#fff",
         tabBarStyle: { backgroundColor: "#000", borderTopWidth: 0, paddingTop: 8 },
       }}
+      initialRouteName="(home)"
     >
       <Tabs.Screen
         name="(home)"
