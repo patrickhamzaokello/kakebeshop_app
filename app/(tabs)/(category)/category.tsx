@@ -2,18 +2,23 @@ import ScreenWrapper from "@/components/ScreenWrapper";
 import { StatusBar } from "expo-status-bar";
 import {
   StyleSheet,
+  View,
 } from "react-native";
 import Typo from "@/components/Typo";
+import { DetailHeaderSection } from "@/components/test/DetailHeader";
 
 export default function Category() {
 
 
   return (
-      <ScreenWrapper style={styles.container}>
-        <StatusBar style="dark" />
+         <View style={styles.container}>
+            <DetailHeaderSection
+              title="Categories"
+              subheading="Browse from list of categories range"
+            />
+      
 
-        <Typo>Category List</Typo>
-      </ScreenWrapper>
+      </View>
   );
 }
 

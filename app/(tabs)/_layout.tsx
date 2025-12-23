@@ -47,8 +47,9 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#fff",
-        tabBarStyle: { backgroundColor: "#000", borderTopWidth: 0, paddingTop: 8 },
+        tabBarActiveTintColor: "#E60549",
+        tabBarInactiveTintColor: "#000",
+        tabBarStyle: { backgroundColor: "#fff", paddingTop: 8 },
       }}
       initialRouteName="(home)"
     >
@@ -87,21 +88,15 @@ export default function TabsLayout() {
         }}
       />
       <Tabs.Screen
-        name="(settings)"
+        name="(accounts)"
         options={{
-          title: "Account",
+          title: "accounts",
           tabBarIcon: ({ color, size }) => (
             <Octicons name="person" size={size} color={color} />
           ),
         }}
       />
-        {/* Hide the shared routes group from tab bar */}
-        <Tabs.Screen
-            name="(home,category,sell,cart,settings)"
-            options={{
-                href: null, // This hides it from the tab bar
-            }}
-        />
+       
     </Tabs>
   );
 }
