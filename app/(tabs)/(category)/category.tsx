@@ -6,6 +6,8 @@ import {
 } from "react-native";
 import Typo from "@/components/Typo";
 import { DetailHeaderSection } from "@/components/test/DetailHeader";
+import { CategoriesScreen } from "@/Screens/CategoriesScreen";
+import { SubcategoriesScreen } from "@/Screens/SubcategoriesScreen";
 
 export default function Category() {
 
@@ -16,6 +18,10 @@ export default function Category() {
               title="Categories"
               subheading="Browse from list of categories range"
             />
+
+            <CategoriesScreen />
+
+            {/* <SubcategoriesScreen /> */}
       
 
       </View>

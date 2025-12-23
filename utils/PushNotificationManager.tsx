@@ -37,8 +37,6 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
 }) => {
   // Handle notification tap navigation
   const handleNotificationTap = (metadata: NotificationMetadata | any) => {
-    console.log("Notification tapped with metadata:", metadata);
-
     if (onNotificationTap) {
       // Use callback if provided
       onNotificationTap(metadata);
@@ -50,15 +48,13 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
       case "breaking_news":
         // Navigate to single listing
         if (metadata.articleId) {
-          console.log(`Navigating to article: ${metadata.articleId}`);
-
-          router.push(`/article/${metadata.articleId}`);
+          router.push(`/listing/${metadata.articleId}`);
         }
         break;
 
       case "scheduled_digest":
         router.push({
-          pathname: "/(tabs)/(home)/notification/DailyDigestScreen",
+          pathname: "/notifications",
           params: {
             articleIds: JSON.stringify(metadata.articleIds || []),
             articleCount: metadata.articleCount,
@@ -69,8 +65,6 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
         break;
 
       default:
-        console.warn("Unknown notification type, navigating to default screen");
-
         break;
     }
   };
@@ -103,7 +97,6 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
 
       // check if permission are granted
       if (finalStatus !== "granted") {
-        console.warn("Failed to get push token for push notification!");
         return;
       }
 
@@ -113,7 +106,6 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
           Constants.expoConfig?.extra?.eas?.projectId ??
           Constants?.easConfig?.projectId;
         if (!projectId) {
-          console.error("No project ID found. Please configure in app.json");
           return;
         }
 
@@ -123,25 +115,16 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
           })
         ).data;
 
-        console.log("Project ID:", projectId);
-
         await postNotificationToken(token, "device", Platform.OS);
-        // console.log('Push Notification Token:', token);
 
         return token;
       } catch (error) {
-        console.error("Detail Error getting push token:", error);
-
         if (error instanceof Error) {
-          console.error("Error name:", error.name);
-          console.error("Error message:", error.message);
-          console.error("Error stack:", error.stack);
         }
 
         return;
       }
     } else {
-      console.warn("Must use physical device for Push Notifications");
     }
 
     return token;
@@ -150,37 +133,24 @@ const PushNotificationManager: React.FC<PushNotificationManagerProps> = ({
   useEffect(() => {
     registerForPushNotificationsAsync().then((token) => {
       if (token) {
-
-        console.log("Push notification token:", token);
       }
     });
 
     //Notification received listener
     const receivedSubscription = Notifications.addNotificationReceivedListener(
-      (notification) => {
-        console.log(
-          "Notification Received:",
-          notification.request.content.data
-        );
-      }
+      (notification) => {}
     );
 
     //Notification tap listener - ENHANCED
     const responseSubscription =
       Notifications.addNotificationResponseReceivedListener((response) => {
-        console.log("Notification Response:", response);
-
         const metadata = response.notification.request.content.data;
-        console.log("Notification metadata:", metadata);
 
         // Extract metadata from notification data
 
         if (metadata) {
           handleNotificationTap(metadata);
         } else {
-          console.warn(
-            "No metadata found in notification, navigating to default screen"
-          );
         }
       });
 

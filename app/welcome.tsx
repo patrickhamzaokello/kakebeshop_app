@@ -47,11 +47,11 @@ const carouselData = [
   
 ];
 
-export function WelcomeScreen() {
+export default function WelcomeScreen() {
   const translateX = useSharedValue(0);
   const currentIndex = useSharedValue(0);
   const contextX = useSharedValue(0); // Store context for gesture
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<number | null>(null);
 
   const startAutoSlide = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);

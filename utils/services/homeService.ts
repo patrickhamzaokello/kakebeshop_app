@@ -23,7 +23,6 @@ export const homeService = {
                 notificationsCount: notificationsResponse.data.count || 0,
             };
         } catch (error) {
-            console.error('Error fetching header data:', error);
             throw error;
         }
     },
@@ -43,8 +42,8 @@ export const homeService = {
     // Categories
     async getCategories(): Promise<Category[]> {
         try {
-            const response = await apiService.get<PaginatedResponse<Category>>('/api/v1/categories/');
-            return response.data.results;
+            const response = await apiService.get<Category[]>('/api/v1/categories/featured/');
+            return response.data;
         } catch (error) {
             console.error('Error fetching categories:', error);
             return [];
