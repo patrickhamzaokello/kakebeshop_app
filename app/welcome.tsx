@@ -22,25 +22,25 @@ const { width, height } = Dimensions.get("window");
 const carouselData = [
   {
     id: 1,
-    image: require("@/assets/images/welcomefour.png"),
+    image: require("@/assets/images/grocery_collection.jpg"),
     heading: "Everything in One Place",
     description: "Discover products, services, and offers from trusted sellers — all in one convenient marketplace."
   },
   {
     id: 2,
-    image: require("@/assets/images/welcomefour.png"),
+    image: require("@/assets/images/shoes_collection.jpg"),
     heading: "Connect with Local Sellers",
     description: "Find and interact with merchants near you, from shops and restaurants to service providers."
   },
   {
     id: 3,
-    image: require("@/assets/images/welcomefour.png"),
+    image: require("@/assets/images/shopping_collection.jpg"),
     heading: "Order with Ease",
     description: "Browse, add to cart, and place orders seamlessly for food, products, or services anytime."
   },
   {
     id: 4,
-    image: require("@/assets/images/welcomefour.png"),
+    image: require("@/assets/images/fashion_collection.jpg"),
     heading: "Deals You’ll Love",
     description: "Stay updated with new listings, promotions, and featured offers as soon as they go live."
   },
