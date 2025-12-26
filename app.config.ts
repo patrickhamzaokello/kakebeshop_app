@@ -38,13 +38,15 @@ export default ({config}: ConfigContext): ExpoConfig => ({
       "supportsTablet": true,
       bundleIdentifier: getUniqueIdentifier(),
       usesAppleSignIn: true,
-      infoPlist: {
-        ITSAppUsesNonExemptEncryption: false,
-      },
       icon: {
         dark: "./assets/icons/ios-dark.png",
         light: "./assets/icons/ios-light.png",
         tinted: "./assets/icons/ios-tinted.png",
+      },
+      infoPlist: {
+        ITSAppUsesNonExemptEncryption: false,
+        "NSLocationWhenInUseUsageDescription": "We need your location to help you set delivery addresses.",
+        "NSLocationAlwaysUsageDescription": "We need your location to help you set delivery addresses."
       }
     },
     android: {
@@ -56,12 +58,22 @@ export default ({config}: ConfigContext): ExpoConfig => ({
       edgeToEdgeEnabled: true,
       predictiveBackGestureEnabled: false,
       package: getUniqueIdentifier(),
+      permissions: [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ]
     },
     web: {
       output: "static",
       favicon: "./assets/images/favicon.png",
     },
     plugins: [
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to set delivery addresses."
+        }
+      ],
       "expo-router",
       "expo-apple-authentication",
       [

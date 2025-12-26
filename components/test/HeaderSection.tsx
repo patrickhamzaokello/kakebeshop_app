@@ -93,7 +93,7 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
 
   if (loading) {
     return (
-      <LinearGradient colors={["#BFDAD3", "#FFFFFF"]} style={styles.container}>
+      <LinearGradient colors={["#F5B3BC", "#FFFFFF"]} style={styles.container}>
         <View style={{ flex: 1 }}>
           <SafeAreaView />
 
@@ -150,7 +150,7 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
   }
 
   return (
-    <LinearGradient colors={["#BFDAD3", "#FFFFFF"]} style={styles.container}>
+    <LinearGradient colors={["#F5B3BC", "#FFFFFF"]} style={styles.container}>
       <View style={{ flex: 1 }}>
         <SafeAreaView />
 

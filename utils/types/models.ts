@@ -224,6 +224,17 @@ export interface CartItem {
     updated_at: string;
   }
 
+  export interface CreateAddress {
+    label: string;
+    region: string;
+    district: string;
+    area: string;
+    landmark: string;
+    latitude: string;
+    longitude: string;
+    is_default: boolean;
+  }
+
 export interface HeaderData {
     profile: User;
     notificationsCount: number;

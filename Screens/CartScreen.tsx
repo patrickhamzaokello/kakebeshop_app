@@ -66,12 +66,7 @@ export const CartScreen: React.FC = () => {
       <CartSummary
         totalItems={cart?.total_items || 0}
         totalPrice={cart?.total_price || "0"}
-        onCheckout={() =>
-          router.push({
-            pathname: "/orders/[id]",
-            params: { id: cart?.id ?? "" },
-          })
-        }
+        onCheckout={() => router.push("/checkout/address")}
         loading={isUpdating}
         disabled={(cart?.total_items || 0) === 0}
       />

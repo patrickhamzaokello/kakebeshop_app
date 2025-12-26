@@ -1,6 +1,6 @@
 // services/cartService.ts
 import apiService from "@/utils/apiBase";
-import { Cart } from "@/utils/types/models";
+import { Cart, CreateAddress } from "@/utils/types/models";
 
 export const cartService = {
   // Fetch full cart data
@@ -64,14 +64,54 @@ export const cartService = {
     }
   },
 
-  // Optional: Add to cart (if you want to move this logic from listingDetailsService)
-  // async addToCart(listingID: string, quantity: number = 1): Promise<boolean> {
-  //   try {
-  //     const response = await apiService.post("/api/v1/cart/add/", { listing: listingID, quantity });
-  //     return !!response.success;
-  //   } catch (error) {
-  //     console.error("Error adding to cart:", error);
-  //     return false;
-  //   }
-  // },
+
+  // get addresses
+  async getAddresses(): Promise<any[]> {
+    try {
+      const response = await apiService.get("/api/v1/addresses/");
+      if (response.success && response.data) {
+        return response.data.results;
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching addresses:", error);
+      return [];
+    }
+  },
+
+  async createAddress(addressData: CreateAddress): Promise<boolean> { 
+    try {
+      const response = await apiService.post("/api/v1/addresses/", addressData);
+      return !!response.success;
+    } catch (error) {
+      console.error("Error saving address:", error);
+      return false;
+    }
+  },
+
+  async getAddressById(addressId: string): Promise<any | null> {
+    try {
+      const response = await apiService.get(`/api/v1/addresses/${addressId}/`);
+      if (response.success && response.data) {
+        return response.data;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching address by ID:", error);
+      return null;
+    }
+  },
+
+
+  async deleteAddressbyId(addressId: string): Promise<boolean> {
+    try {
+      const response = await apiService.delete(`/api/v1/addresses/${addressId}/`);
+      return !!response.success;
+    } catch (error) {
+      console.error("Error deleting address:", error);
+      return false;
+    }
+  }
+
+
 };

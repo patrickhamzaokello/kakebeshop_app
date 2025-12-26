@@ -21,7 +21,7 @@ export const DetailHeaderSection: React.FC<HeaderSectionProps> = ({
   subheading,
 }) => {
   return (
-    <LinearGradient colors={["#BFDAD3", "#FFFFFF"]} style={styles.container}>
+    <LinearGradient colors={["#F5B3BC", "#FFFFFF"]} style={styles.container}>
       <View>
         <SafeAreaView />
 
