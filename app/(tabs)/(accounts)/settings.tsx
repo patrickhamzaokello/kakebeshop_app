@@ -31,66 +31,9 @@ export default function ProfileScreen() {
     lastReadDate: ""
   });
 
-  useEffect(() => {
-    loadStreakData();
-  }, []);
+ 
 
-  const loadStreakData = async () => {
-    try {
-      const storedStreak = await getItemAsync("streakData");
-      if (storedStreak) {
-        setStreakData(JSON.parse(storedStreak));
-      }
-    } catch (error) {
-    }
-  };
 
-  const updateStreak = async () => {
-    const today = new Date().toDateString();
-    const yesterday = new Date(Date.now() - 86400000).toDateString();
-    
-    let newStreakData = { ...streakData };
-
-    if (streakData.lastReadDate === today) {
-      Alert.alert("Already counted!", "You've already read today. Keep it up!");
-      return;
-    }
-
-    if (streakData.lastReadDate === yesterday) {
-      newStreakData.currentStreak += 1;
-    } else if (streakData.lastReadDate === "") {
-      newStreakData.currentStreak = 1;
-    } else {
-      newStreakData.currentStreak = 1;
-    }
-
-    if (newStreakData.currentStreak > newStreakData.longestStreak) {
-      newStreakData.longestStreak = newStreakData.currentStreak;
-    }
-
-    newStreakData.lastReadDate = today;
-    
-    try {
-      await setItemAsync("streakData", JSON.stringify(newStreakData));
-      setStreakData(newStreakData);
-      Alert.alert("Streak updated!", `Current streak: ${newStreakData.currentStreak} days`);
-    } catch (error) {
-    }
-  };
-
-  const getStreakEmoji = () => {
-    if (streakData.currentStreak === 0) return "📚";
-    if (streakData.currentStreak < 7) return "🔥";
-    if (streakData.currentStreak < 30) return "💪";
-    return "🏆";
-  };
-
-  const getStreakMessage = () => {
-    if (streakData.currentStreak === 0) return "Start your reading journey!";
-    if (streakData.currentStreak < 7) return "Great start! Keep going!";
-    if (streakData.currentStreak < 30) return "You're on fire! Amazing consistency!";
-    return "Legend! You're a reading champion!";
-  };
 
   const handleLogout = () => {
     Alert.alert(
@@ -111,104 +54,10 @@ export default function ProfileScreen() {
   ];
 
   return (
-    <ScreenWrapper style={styles.container} statusBarStyle="light-content">
-      <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
-        <View style={styles.header}>
-          <Typo color={colors.white} fontWeight="700" size={28}>
-            Profile
-          </Typo>
-
-          {/* User Profile Section */}
-          {user && (
-            <View style={styles.profileSection}>
-              <View style={styles.avatarWrapper}>
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>
-                    {user.username?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || "U"}
-                  </Text>
-                </View>
-                <View style={styles.onlineIndicator} />
-              </View>
-              
-              <Typo color={colors.white} fontWeight="700" size={24} style={styles.username}>
-                {user.username || "User"}
-              </Typo>
-              
-              <Text style={styles.email}>{user.email}</Text>
-              
-              <View style={styles.userStats}>
-                <View style={styles.userStatItem}>
-                  <MaterialIcons name="auto-stories" size={20} color={colors.white} />
-                  <Text style={styles.userStatText}>Reader</Text>
-                </View>
-                <View style={styles.statDivider} />
-                <View style={styles.userStatItem}>
-                  <MaterialIcons name="schedule" size={20} color={colors.white} />
-                  <Text style={styles.userStatText}>Daily</Text>
-                </View>
-              </View>
-            </View>
-          )}
-        </View>
+        
 
         <View style={styles.content}>
-          {/* Streak Card with Enhanced Design */}
-          <View style={styles.streakCard}>
-            <View style={styles.streakCardHeader}>
-              <View style={styles.streakIconContainer}>
-                <Text style={styles.streakEmoji}>{getStreakEmoji()}</Text>
-              </View>
-              <View style={styles.streakHeaderText}>
-                <Typo color={colors.black} fontWeight="700" size={18}>
-                  Reading Streak
-                </Typo>
-                <Text style={styles.streakMessage}>{getStreakMessage()}</Text>
-              </View>
-            </View>
-            
-            <View style={styles.streakStatsContainer}>
-              <View style={styles.streakStats}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>{streakData.currentStreak}</Text>
-                  <Text style={styles.statLabel}>Current Streak</Text>
-                  <Text style={styles.statUnit}>days</Text>
-                </View>
-                
-                <View style={styles.verticalDivider} />
-                
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>{streakData.longestStreak}</Text>
-                  <Text style={styles.statLabel}>Personal Best</Text>
-                  <Text style={styles.statUnit}>days</Text>
-                </View>
-              </View>
-
-              <TouchableOpacity style={styles.streakButton} onPress={updateStreak}>
-                <MaterialIcons name="check-circle" size={20} color={colors.white} />
-                <Text style={styles.streakButtonText}>Mark Today as Read</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Menu Items */}
-          <View style={styles.menuSection}>
-            <Typo color={colors.white} fontWeight="600" size={16} style={styles.sectionTitle}>
-              Quick Actions
-            </Typo>
-            
-            {menuItems.map((item, index) => (
-              <TouchableOpacity key={index} style={styles.menuItem}>
-                <View style={styles.menuIconContainer}>
-                  <Feather name={item.icon as any} size={20} color={colors.white} />
-                </View>
-                <View style={styles.menuContent}>
-                  <Text style={styles.menuTitle}>{item.title}</Text>
-                  <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
-                </View>
-                <Feather name="chevron-right" size={20} color="rgba(255, 255, 255, 0.4)" />
-              </TouchableOpacity>
-            ))}
-          </View>
+         
 
           {/* Logout Button */}
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -216,11 +65,8 @@ export default function ProfileScreen() {
             <Text style={styles.logoutText}>Sign Out</Text>
           </TouchableOpacity>
         </View>
-      </ScrollView>
-    </ScreenWrapper>
   );
 }
-
 
 
 const styles = StyleSheet.create({
