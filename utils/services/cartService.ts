@@ -32,11 +32,17 @@ export const cartService = {
   },
 
   // Update cart item quantity
-  async updateCartItemQuantity(itemId: string, quantity: number): Promise<boolean> {
+  async updateCartItemQuantity(
+    itemId: string,
+    quantity: number
+  ): Promise<boolean> {
     try {
-      const response = await apiService.patch(`/api/v1/cart/update/${itemId}/`, {
-        quantity,
-      });
+      const response = await apiService.patch(
+        `/api/v1/cart/update/${itemId}/`,
+        {
+          quantity,
+        }
+      );
       return !!response.success;
     } catch (error) {
       console.error("Error updating cart item quantity:", error);
@@ -47,7 +53,9 @@ export const cartService = {
   // Remove cart item
   async removeCartItem(itemId: string): Promise<boolean> {
     try {
-      const response = await apiService.delete(`/api/v1/cart/remove/${itemId}/`);
+      const response = await apiService.delete(
+        `/api/v1/cart/remove/${itemId}/`
+      );
       return !!response.success;
     } catch (error) {
       console.error("Error removing cart item:", error);
@@ -64,7 +72,6 @@ export const cartService = {
     }
   },
 
-
   // get addresses
   async getAddresses(): Promise<any[]> {
     try {
@@ -79,7 +86,7 @@ export const cartService = {
     }
   },
 
-  async createAddress(addressData: CreateAddress): Promise<boolean> { 
+  async createAddress(addressData: CreateAddress): Promise<boolean> {
     try {
       const response = await apiService.post("/api/v1/addresses/", addressData);
       return !!response.success;
@@ -102,16 +109,72 @@ export const cartService = {
     }
   },
 
-
   async deleteAddressbyId(addressId: string): Promise<boolean> {
     try {
-      const response = await apiService.delete(`/api/v1/addresses/${addressId}/`);
+      const response = await apiService.delete(
+        `/api/v1/addresses/${addressId}/`
+      );
       return !!response.success;
     } catch (error) {
       console.error("Error deleting address:", error);
       return false;
     }
-  }
+  },
 
+  /**
+   * Checkout - Create order from cart
+   * Backend will:
+   * 1. Validate cart items are still available
+   * 2. Group items by merchant
+   * 3. Create OrderIntent(s) - one per merchant
+   * 4. Create OrderIntentItems from cart items automatically
+   * 5. Clear the cart
+   */
+  checkout: async (data: {
+    address_id: string;
+    notes?: string;
+    delivery_fee?: number;
+    expected_delivery_date?: string;
+  }) => {
+    try {
+      const response = await apiService.post("/api/v1/orders/checkout/", data); // Returns: { message: "Order(s) placed successfully", orders: [...] }
+      if (response.success && response.data) {
+        return response.data;
+      }
+      return null;
+    } catch (error) {
+      console.error("Checkout error:", error);
+      throw error;
+    }
+  },
 
+  getOrdersByGroupID: async (groupID: string) => {
+    try {
+      const response = await apiService.get(
+        `/api/v1/order-groups/${groupID}/`
+      );
+      if (response.success && response.data) {
+        return response.data;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching order by group ID:", error);
+      return null;
+    }
+  },
+
+  getOrderbyID: async (orderID: string) => {
+    try {
+      const response = await apiService.get(
+        `/api/v1/orders/${orderID}/`
+      );
+      if (response.success && response.data) {
+        return response.data;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching order by ID:", error);
+      return null;
+    }
+  },
 };
