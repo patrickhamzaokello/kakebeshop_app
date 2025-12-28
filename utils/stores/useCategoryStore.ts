@@ -104,11 +104,13 @@ export const useCategoryStore = create<CategoryState>()(
 
         try {
           const response = await apiService.get(
-            `/api/v1/categories/${parentId}/subcategories/`
+            `/api/v1/categories/subcategories/${parentId}/`
           );
+
+          console.log("Subcategories response:", response);
           
-          if (response.success && response.data) {
-            const subcategories = Array.isArray(response.data) ? response.data : [];
+          if (response.success && response.data.results) {
+            const subcategories = Array.isArray(response.data.results) ? response.data.results : [];
             set((state) => ({
               subcategoriesCache: {
                 ...state.subcategoriesCache,

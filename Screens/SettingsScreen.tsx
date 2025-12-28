@@ -322,7 +322,7 @@ export default function AccountScreen() {
 
         <TouchableOpacity
           style={styles.editButton}
-          onPress={() => router.push("/(tabs)/accounts/edit-profile" as any)}
+          onPress={() => router.push("/editprofile/edit-profile" as any)}
           activeOpacity={0.7}
         >
           <Ionicons name="create-outline" size={20} color="#E60549" />

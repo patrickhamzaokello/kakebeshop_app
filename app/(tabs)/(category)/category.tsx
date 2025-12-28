@@ -7,7 +7,7 @@ import {
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
-import { CategoriesScreen } from "@/Screens/CategoriesScreen";
+import { TwoColumnCategoriesScreen } from "@/Screens/CategoriesScreen";
 
 export default function Category() {
   return (
@@ -27,8 +27,8 @@ export default function Category() {
         </View>
       </View>
 
-      {/* Categories List */}
-      <CategoriesScreen />
+      {/* Two-Column Categories View */}
+      <TwoColumnCategoriesScreen />
     </SafeAreaView>
   );
 }
