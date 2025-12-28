@@ -15,7 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useCategoryStore, Category } from "@/utils/stores/useCategoryStore";
 
 const { width } = Dimensions.get("window");
-const ITEM_WIDTH = (width - 48) / 2; // 2 columns with padding
+const ITEM_WIDTH = (width - 52) / 2; // 2 columns with 20px padding + 12px gap
 const NUM_COLUMNS = 2;
 
 export const SubcategoriesScreen: React.FC = () => {
@@ -85,12 +85,9 @@ export const SubcategoriesScreen: React.FC = () => {
           />
         ) : (
           <View style={[styles.subcategoryImage, styles.placeholderImage]}>
-            <Ionicons name="albums-outline" size={40} color="#999" />
+            <Ionicons name="albums-outline" size={32} color="#CCC" />
           </View>
         )}
-        
-        {/* Overlay gradient for better text visibility */}
-        <View style={styles.imageOverlay} />
       </View>
 
       <View style={styles.subcategoryInfo}>
@@ -99,9 +96,12 @@ export const SubcategoriesScreen: React.FC = () => {
         </Text>
         
         {item.listings_count > 0 && (
-          <Text style={styles.listingsCount}>
-            {item.listings_count} items
-          </Text>
+          <View style={styles.listingsCount}>
+            <Ionicons name="pricetag-outline" size={12} color="#999" />
+            <Text style={styles.countText}>
+              {item.listings_count}
+            </Text>
+          </View>
         )}
       </View>
     </TouchableOpacity>
@@ -109,13 +109,23 @@ export const SubcategoriesScreen: React.FC = () => {
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
-      <Text style={styles.headerTitle}>Browse by Subcategory</Text>
+      <View style={styles.headerTop}>
+        <Text style={styles.headerTitle}>Subcategories</Text>
+        {subcategories.length > 0 && (
+          <Text style={styles.headerCount}>
+            {subcategories.length} {subcategories.length === 1 ? 'category' : 'categories'}
+          </Text>
+        )}
+      </View>
+      
       <TouchableOpacity 
         style={styles.viewAllButton}
         onPress={handleViewAllPress}
+        activeOpacity={0.7}
       >
+        <Ionicons name="apps-outline" size={16} color="#E60549" />
         <Text style={styles.viewAllText}>View All in {parentName}</Text>
-        <Ionicons name="arrow-forward" size={16} color="#000" />
+        <Ionicons name="arrow-forward" size={16} color="#E60549" />
       </TouchableOpacity>
     </View>
   );
@@ -124,22 +134,27 @@ export const SubcategoriesScreen: React.FC = () => {
     if (isLoading) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#000" />
+          <ActivityIndicator size="large" color="#E60549" />
         </View>
       );
     }
 
     return (
       <View style={styles.centerContainer}>
-        <Ionicons name="grid-outline" size={64} color="#ccc" />
-        <Text style={styles.emptyText}>No subcategories found</Text>
+        <Ionicons name="grid-outline" size={64} color="#CCC" />
+        <Text style={styles.emptyTitle}>No subcategories found</Text>
+        <Text style={styles.emptyText}>
+          Browse all items in this category
+        </Text>
         <TouchableOpacity 
           style={styles.viewAllButtonLarge}
           onPress={handleViewAllPress}
+          activeOpacity={0.7}
         >
           <Text style={styles.viewAllButtonText}>
-            View All Items in {parentName}
+            View All in {parentName}
           </Text>
+          <Ionicons name="arrow-forward" size={16} color="white" />
         </TouchableOpacity>
       </View>
     );
@@ -158,13 +173,15 @@ export const SubcategoriesScreen: React.FC = () => {
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            tintColor="#E60549"
+          />
         }
-        // Performance optimizations
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={10}
-        removeClippedSubviews={true}
       />
     </View>
   );
@@ -173,128 +190,129 @@ export const SubcategoriesScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#FAFAFA",
   },
 
+  // Header
   headerContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingHorizontal: 20,
+    paddingTop: 20,
     paddingBottom: 16,
   },
-
+  headerTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
   headerTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#000",
-    marginBottom: 12,
+    color: "#1A1A1A",
   },
-
+  headerCount: {
+    fontSize: 14,
+    color: "#999",
+  },
   viewAllButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F0F0F0",
-    paddingVertical: 12,
+    backgroundColor: "#FFF5F8",
+    paddingVertical: 10,
     paddingHorizontal: 16,
-    borderRadius: 8,
+    borderRadius: 10,
     alignSelf: "flex-start",
+    gap: 6,
   },
-
   viewAllText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#000",
-    marginRight: 6,
+    color: "#E60549",
   },
 
+  // List
   listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
-
   columnWrapper: {
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: 12,
   },
 
+  // Subcategory Card
   subcategoryCard: {
     width: ITEM_WIDTH,
-    backgroundColor: "#fff",
+    backgroundColor: "white",
     borderRadius: 12,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 3,
   },
-
   imageContainer: {
-    position: "relative",
     width: "100%",
-    height: ITEM_WIDTH * 0.75,
+    height: ITEM_WIDTH * 0.8,
+    backgroundColor: "#F5F5F5",
   },
-
   subcategoryImage: {
     width: "100%",
     height: "100%",
   },
-
   placeholderImage: {
-    backgroundColor: "#F0F0F0",
+    backgroundColor: "#F5F5F5",
     alignItems: "center",
     justifyContent: "center",
   },
-
-  imageOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: "40%",
-    backgroundColor: "rgba(0,0,0,0.1)",
-  },
-
   subcategoryInfo: {
     padding: 12,
   },
-
   subcategoryName: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#000",
-    marginBottom: 4,
+    color: "#1A1A1A",
+    marginBottom: 6,
   },
-
   listingsCount: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  countText: {
     fontSize: 12,
-    color: "#666",
+    color: "#999",
   },
 
+  // Empty State
   centerContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 60,
-    paddingHorizontal: 32,
+    paddingHorizontal: 40,
   },
-
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1A1A1A",
+    marginTop: 16,
+    marginBottom: 8,
+  },
   emptyText: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#999",
-    marginTop: 12,
-    marginBottom: 20,
+    textAlign: "center",
+    marginBottom: 24,
   },
-
   viewAllButtonLarge: {
-    backgroundColor: "#000",
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E60549",
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 8,
+    borderRadius: 10,
+    gap: 8,
   },
-
   viewAllButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
-    color: "#fff",
+    color: "white",
   },
 });

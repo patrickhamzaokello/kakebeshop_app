@@ -37,8 +37,11 @@ export const CategoriesScreen: React.FC = () => {
     setRefreshing(false);
   }, []);
 
+  // Safely handle parentCategories - ensure it's always an array
+  const categories = Array.isArray(parentCategories) ? parentCategories : [];
+
   // Filter categories based on search
-  const filteredCategories = parentCategories.filter((category) =>
+  const filteredCategories = categories.filter((category) =>
     category.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -49,7 +52,7 @@ export const CategoriesScreen: React.FC = () => {
         id: category.id,
         name: category.name,
       },
-    });
+    } as any);
   };
 
   const renderCategoryCard = ({ item }: { item: Category }) => (
@@ -67,33 +70,42 @@ export const CategoriesScreen: React.FC = () => {
           />
         ) : (
           <View style={[styles.categoryImage, styles.placeholderImage]}>
-            <Ionicons name="albums-outline" size={32} color="#999" />
+            <Ionicons name="albums-outline" size={28} color="#CCC" />
           </View>
         )}
       </View>
 
-      <View style={styles.categoryInfo}>
-        <Text style={styles.categoryName} numberOfLines={2}>
-          {item.name}
-        </Text>
-        
-        {item.subcategories_count > 0 && (
-          <View style={styles.subcategoryBadge}>
-            <Ionicons name="grid-outline" size={12} color="#666" />
-            <Text style={styles.subcategoryCount}>
-              {item.subcategories_count} subcategories
-            </Text>
-          </View>
-        )}
-
-        {item.listings_count > 0 && (
-          <Text style={styles.listingsCount}>
-            {item.listings_count} items
+      <View style={styles.categoryContent}>
+        <View style={styles.categoryInfo}>
+          <Text style={styles.categoryName} numberOfLines={2}>
+            {item.name}
           </Text>
-        )}
-      </View>
+          
+          <View style={styles.categoryMeta}>
+            {item.subcategories_count > 0 && (
+              <View style={styles.metaItem}>
+                <Ionicons name="grid-outline" size={12} color="#999" />
+                <Text style={styles.metaText}>
+                  {item.subcategories_count}
+                </Text>
+              </View>
+            )}
 
-      <Ionicons name="chevron-forward" size={20} color="#ccc" />
+            {item.listings_count > 0 && (
+              <View style={styles.metaItem}>
+                <Ionicons name="pricetag-outline" size={12} color="#999" />
+                <Text style={styles.metaText}>
+                  {item.listings_count}
+                </Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.arrowContainer}>
+          <Ionicons name="chevron-forward" size={20} color="#CCC" />
+        </View>
+      </View>
     </TouchableOpacity>
   );
 
@@ -101,16 +113,19 @@ export const CategoriesScreen: React.FC = () => {
     if (isLoadingParents) {
       return (
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#000" />
+          <ActivityIndicator size="large" color="#E60549" />
         </View>
       );
     }
 
     return (
       <View style={styles.centerContainer}>
-        <Ionicons name="search-outline" size={64} color="#ccc" />
-        <Text style={styles.emptyText}>
+        <Ionicons name="search-outline" size={64} color="#CCC" />
+        <Text style={styles.emptyTitle}>
           {searchQuery ? "No categories found" : "No categories available"}
+        </Text>
+        <Text style={styles.emptyText}>
+          {searchQuery ? "Try a different search term" : "Check back later"}
         </Text>
       </View>
     );
@@ -120,19 +135,24 @@ export const CategoriesScreen: React.FC = () => {
     <View style={styles.container}>
       {/* Search Bar */}
       <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search categories..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor="#999"
-        />
-        {searchQuery.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchQuery("")}>
-            <Ionicons name="close-circle" size={20} color="#999" />
-          </TouchableOpacity>
-        )}
+        <View style={styles.searchBar}>
+          <Ionicons name="search-outline" size={20} color="#999" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search categories..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor="#999"
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity 
+              onPress={() => setSearchQuery("")}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close-circle" size={20} color="#999" />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* Categories List */}
@@ -144,18 +164,15 @@ export const CategoriesScreen: React.FC = () => {
         showsVerticalScrollIndicator={false}
         ListEmptyComponent={renderEmpty}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl 
+            refreshing={refreshing} 
+            onRefresh={onRefresh}
+            tintColor="#E60549"
+          />
         }
-        // Performance optimizations for large lists
         initialNumToRender={10}
         maxToRenderPerBatch={10}
         windowSize={10}
-        removeClippedSubviews={true}
-        getItemLayout={(data, index) => ({
-          length: 88, // Fixed height for better performance
-          offset: 88 * index,
-          index,
-        })}
       />
     </View>
   );
@@ -164,108 +181,110 @@ export const CategoriesScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: "#FAFAFA",
   },
 
+  // Search
   searchContainer: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    backgroundColor: "white",
+  },
+  searchBar: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    marginHorizontal: 16,
-    marginVertical: 12,
+    backgroundColor: "#F5F5F5",
     paddingHorizontal: 12,
     borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
+    height: 44,
+    gap: 10,
   },
-
-  searchIcon: {
-    marginRight: 8,
-  },
-
   searchInput: {
     flex: 1,
-    height: 44,
     fontSize: 15,
-    color: "#000",
+    color: "#1A1A1A",
   },
 
+  // List
   listContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    padding: 20,
+    paddingTop: 0,
   },
 
+  // Category Card
   categoryCard: {
+    backgroundColor: "white",
+    borderRadius: 12,
+    marginBottom: 12,
+    overflow: "hidden",
+    flexDirection: "row",
+  },
+  categoryImageContainer: {
+    width: 80,
+    height: 80,
+  },
+  categoryImage: {
+    width: "100%",
+    height: "100%",
+  },
+  placeholderImage: {
+    backgroundColor: "#F5F5F5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  categoryContent: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-    height: 88, // Fixed height for getItemLayout
+    paddingVertical: 12,
+    paddingLeft: 12,
+    paddingRight: 8,
   },
-
-  categoryImageContainer: {
-    marginRight: 12,
-  },
-
-  categoryImage: {
-    width: 64,
-    height: 64,
-    borderRadius: 8,
-  },
-
-  placeholderImage: {
-    backgroundColor: "#F0F0F0",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
   categoryInfo: {
     flex: 1,
-    justifyContent: "center",
   },
-
   categoryName: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#000",
-    marginBottom: 4,
+    color: "#1A1A1A",
+    marginBottom: 6,
   },
-
-  subcategoryBadge: {
+  categoryMeta: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  metaItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 2,
+    gap: 4,
   },
-
-  subcategoryCount: {
-    fontSize: 12,
-    color: "#666",
-    marginLeft: 4,
-  },
-
-  listingsCount: {
+  metaText: {
     fontSize: 12,
     color: "#999",
-    marginTop: 2,
+  },
+  arrowContainer: {
+    justifyContent: "center",
+    paddingLeft: 8,
   },
 
+  // Empty State
   centerContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 60,
+    paddingVertical: 80,
+    paddingHorizontal: 40,
   },
-
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1A1A1A",
+    marginTop: 16,
+    marginBottom: 8,
+  },
   emptyText: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#999",
-    marginTop: 12,
+    textAlign: "center",
   },
 });

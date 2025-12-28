@@ -45,6 +45,7 @@ interface CategoryState {
 export const useCategoryStore = create<CategoryState>()(
   persist(
     (set, get) => ({
+      // Initial state with default values
       parentCategories: [],
       subcategoriesCache: {},
       selectedParentId: null,
@@ -62,7 +63,7 @@ export const useCategoryStore = create<CategoryState>()(
         const state = get();
         
         // Return cached data if available and not forcing refresh
-        if (!forceRefresh && state.parentCategories.length > 0) {
+        if (!forceRefresh && state.parentCategories && state.parentCategories.length > 0) {
           return;
         }
 
@@ -72,10 +73,14 @@ export const useCategoryStore = create<CategoryState>()(
           const response = await apiService.get("/api/v1/categories/parents/");
           
           if (response.success && response.data) {
-            set({ parentCategories: response.data.results });
+            // Handle both paginated and non-paginated responses
+            const categories = response.data.results || response.data;
+            set({ parentCategories: Array.isArray(categories) ? categories : [] });
           }
         } catch (error) {
           console.error("Failed to fetch parent categories:", error);
+          // Set empty array on error to prevent undefined
+          set({ parentCategories: [] });
         } finally {
           set({ isLoadingParents: false });
         }
@@ -103,15 +108,23 @@ export const useCategoryStore = create<CategoryState>()(
           );
           
           if (response.success && response.data) {
+            const subcategories = Array.isArray(response.data) ? response.data : [];
             set((state) => ({
               subcategoriesCache: {
                 ...state.subcategoriesCache,
-                [parentId]: response.data,
+                [parentId]: subcategories,
               },
             }));
           }
         } catch (error) {
           console.error(`Failed to fetch subcategories for ${parentId}:`, error);
+          // Set empty array on error
+          set((state) => ({
+            subcategoriesCache: {
+              ...state.subcategoriesCache,
+              [parentId]: [],
+            },
+          }));
         } finally {
           set((state) => ({
             isLoadingSubcategories: {
@@ -128,6 +141,7 @@ export const useCategoryStore = create<CategoryState>()(
           parentCategories: [], 
           subcategoriesCache: {},
           selectedParentId: null,
+          searchQuery: "",
         }),
     }),
     {
