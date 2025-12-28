@@ -2,7 +2,7 @@ import { colors } from "@/constants/theme";
 import { postUserIntent } from "@/utils/apiEndpoints";
 import React, { useState } from "react";
 import {
-  Pressable,
+  TouchableOpacity,
   StyleSheet,
   View,
   ActivityIndicator,
@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { useAuthStore } from "@/utils/authStore";
 import Typo from "@/components/Typo";
+import { Ionicons } from "@expo/vector-icons";
 
 type UserIntent = "buy" | "sell" | "both" | null;
 
@@ -17,82 +18,85 @@ interface IntentOption {
   id: UserIntent;
   title: string;
   description: string;
-  icon: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
 }
 
 const intentOptions: IntentOption[] = [
   {
     id: "buy",
     title: "I want to Buy",
-    description: "Browse and purchase items from sellers",
-    icon: "🛍️",
+    description: "Browse and purchase items",
+    icon: "cart-outline",
+    color: "#E60549",
   },
   {
     id: "sell",
     title: "I want to Sell",
-    description: "List your items and reach buyers",
-    icon: "💰",
+    description: "List and sell your items",
+    icon: "pricetag-outline",
+    color: "#4CAF50",
   },
   {
     id: "both",
-    title: "Both Buy & Sell",
-    description: "Get the full marketplace experience",
-    icon: "🔄",
+    title: "Buy & Sell",
+    description: "Full marketplace access",
+    icon: "swap-horizontal-outline",
+    color: "#2196F3",
   },
 ];
 
-const IntentCard = React.memo(
-    ({
-       option,
-       isSelected,
-       onSelect,
-     }: {
-      option: IntentOption;
-      isSelected: boolean;
-      onSelect: (id: UserIntent) => void;
-    }) => {
-      return (
-          <Pressable
-              style={[styles.card, isSelected && styles.selectedCard]}
-              onPress={() => onSelect(option.id)}
-          >
-            <View style={styles.cardContent}>
-              <View style={styles.iconContainer}>
-                <Typo size={40}>{option.icon}</Typo>
-              </View>
+const IntentCard = ({
+  option,
+  isSelected,
+  onSelect,
+}: {
+  option: IntentOption;
+  isSelected: boolean;
+  onSelect: (id: UserIntent) => void;
+}) => {
+  return (
+    <TouchableOpacity
+      style={[
+        styles.card,
+        isSelected && { ...styles.selectedCard, borderColor: option.color },
+      ]}
+      onPress={() => onSelect(option.id)}
+      activeOpacity={0.7}
+    >
+      <View
+        style={[
+          styles.iconContainer,
+          isSelected && { backgroundColor: option.color },
+        ]}
+      >
+        <Ionicons
+          name={option.icon}
+          size={28}
+          color={isSelected ? "white" : option.color}
+        />
+      </View>
 
-              <View style={styles.textContainer}>
-                <Typo
-                    size={20}
-                    fontWeight="700"
-                    color={isSelected ? colors.black : colors.matteBlack}
-                >
-                  {option.title}
-                </Typo>
-                <Typo
-                    size={14}
-                    fontWeight="400"
-                    color={isSelected ? colors.black : colors.matteBlack}
-                    style={styles.description}
-                >
-                  {option.description}
-                </Typo>
-              </View>
+      <View style={styles.textContainer}>
+        <Typo size={17} fontWeight="600" color="#1A1A1A">
+          {option.title}
+        </Typo>
+        <Typo size={14} fontWeight="400" color="#666" style={styles.description}>
+          {option.description}
+        </Typo>
+      </View>
 
-              <View style={styles.radioContainer}>
-                {isSelected ? (
-                    <View style={styles.radioSelected}>
-                      <View style={styles.radioInner} />
-                    </View>
-                ) : (
-                    <View style={styles.radioUnselected} />
-                )}
-              </View>
-            </View>
-          </Pressable>
-      );
-    }
-);
+      <View style={styles.checkContainer}>
+        {isSelected && (
+          <View style={[styles.checkmark, { backgroundColor: option.color }]}>
+            <Ionicons name="checkmark" size={18} color="white" />
+          </View>
+        )}
+        {!isSelected && <View style={styles.emptyCircle} />}
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 const SelectIntent = () => {
   const [selectedIntent, setSelectedIntent] = useState<UserIntent>(null);
@@ -104,22 +108,18 @@ const SelectIntent = () => {
   };
 
   const handleContinue = async () => {
-    if (!selectedIntent) return;
+    console.log("Selected Intent:", selectedIntent);
+    if (!selectedIntent || isLoading) return;
 
     try {
       setIsLoading(true);
-      // Post user intent to backend
       const response = await postUserIntent(selectedIntent);
 
       if (response.success) {
-        // Complete onboarding step
         completeOnboarding();
         console.log("User intent saved successfully!");
       } else {
-        console.error(
-            "Failed to save user intent:",
-            response?.message || "Unknown error"
-        );
+        console.error("Failed to save user intent:", response?.message || "Unknown error");
       }
     } catch (error) {
       console.error("Error saving user intent:", error);
@@ -128,198 +128,218 @@ const SelectIntent = () => {
     }
   };
 
-  const isContinueDisabled = !selectedIntent || isLoading;
+  const selectedOption = intentOptions.find((opt) => opt.id === selectedIntent);
 
   return (
-      <View style={styles.container}>
-        <ScrollView
-            style={styles.scrollView}
-            contentContainerStyle={styles.contentContainer}
-            showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.header}>
-            <Typo size={32} fontWeight="800" color={colors.matteBlack}>
-              Welcome! 👋
-            </Typo>
-            <Typo
-                size={16}
-                fontWeight="400"
-                color={colors.matteBlack}
-                style={styles.subtitle}
-            >
-              Let&#39;s personalize your experience. What brings you to our
-              marketplace?
-            </Typo>
+    <View style={styles.container}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.logoCircle}>
+            <Ionicons name="storefront" size={36} color="#E60549" />
           </View>
 
-          <View style={styles.cardsContainer}>
-            {intentOptions.map((option) => (
-                <IntentCard
-                    key={option.id}
-                    option={option}
-                    isSelected={selectedIntent === option.id}
-                    onSelect={handleSelectIntent}
-                />
-            ))}
-          </View>
+          <Typo size={28} fontWeight="700" color="#1A1A1A" style={styles.title}>
+            Welcome to Kakebe!
+          </Typo>
 
-          <View style={styles.infoBox}>
-            <Typo size={14} fontWeight="500" color={colors.matteBlack}>
-              Don&#39;t worry, you can always change this later in your settings.
-            </Typo>
-          </View>
-        </ScrollView>
-
-        <View style={styles.footer}>
-          <Pressable
-              style={[
-                styles.continueButton,
-                isContinueDisabled && styles.continueButtonDisabled,
-              ]}
-              onPress={handleContinue}
-              disabled={isContinueDisabled}
-          >
-            {isLoading ? (
-                <>
-                  <ActivityIndicator size="small" color={colors.white} />
-                  <Typo size={18} fontWeight="600" color={colors.white}>
-                    Saving...
-                  </Typo>
-                </>
-            ) : (
-                <>
-                  <Typo size={18} fontWeight="600" color={colors.white}>
-                    Continue
-                  </Typo>
-                  <Typo size={18} fontWeight="600" color={colors.white}>
-                    →
-                  </Typo>
-                </>
-            )}
-          </Pressable>
+          <Typo size={15} fontWeight="400" color="#666" style={styles.subtitle}>
+            How would you like to use our marketplace?
+          </Typo>
         </View>
+
+        {/* Intent Cards */}
+        <View style={styles.cardsContainer}>
+          {intentOptions.map((option) => (
+            <IntentCard
+              key={option.id}
+              option={option}
+              isSelected={selectedIntent === option.id}
+              onSelect={handleSelectIntent}
+            />
+          ))}
+        </View>
+
+        {/* Info Note */}
+        <View style={styles.infoNote}>
+          <Ionicons name="information-circle" size={20} color="#666" />
+          <Typo size={13} fontWeight="400" color="#666">
+            You can change this anytime in settings
+          </Typo>
+        </View>
+
+        <View style={{ height: 120 }} />
+      </ScrollView>
+
+      
+
+      {/* Continue Button */}
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={[
+            styles.continueButton,
+          ]}
+          onPress={handleContinue}
+          // disabled={!selectedIntent || isLoading}
+          // activeOpacity={0.8}
+        >
+          {isLoading ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Typo size={17} fontWeight="600" color="white">
+              Continue
+            </Typo>
+          )}
+        </TouchableOpacity>
       </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: "#FAFAFA",
   },
   scrollView: {
     flex: 1,
   },
   contentContainer: {
     paddingHorizontal: 20,
-    paddingBottom: 20,
   },
+
+  // Header
   header: {
-    paddingTop: 100,
+    paddingTop: 60,
     paddingBottom: 32,
+    alignItems: "center",
+  },
+  logoCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "white",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  title: {
+    marginBottom: 8,
+    textAlign: "center",
   },
   subtitle: {
-    marginTop: 12,
-    lineHeight: 24,
+    textAlign: "center",
+    lineHeight: 22,
+    paddingHorizontal: 20,
   },
+
+  // Cards
   cardsContainer: {
-    gap: 16,
+    gap: 12,
   },
   card: {
-    backgroundColor: colors.white,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "white",
     borderRadius: 16,
+    padding: 18,
+    gap: 14,
     borderWidth: 2,
-    borderColor: "#E5E7EB",
-    padding: 20,
+    borderColor: "#E5E5E5",
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
+    shadowRadius: 4,
     elevation: 2,
   },
   selectedCard: {
-    backgroundColor: "#C8FF42",
-    borderColor: "#C8FF42",
+    backgroundColor: "#FAFAFA",
     shadowOpacity: 0.1,
-    shadowRadius: 12,
+    shadowRadius: 8,
     elevation: 4,
   },
-  cardContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
   iconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: colors.white,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#F5F5F5",
     justifyContent: "center",
     alignItems: "center",
   },
   textContainer: {
     flex: 1,
+    gap: 4,
   },
   description: {
-    marginTop: 4,
     lineHeight: 20,
-    opacity: 0.8,
   },
-  radioContainer: {
+  checkContainer: {
+    width: 28,
+    height: 28,
     justifyContent: "center",
     alignItems: "center",
   },
-  radioUnselected: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+  checkmark: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     borderWidth: 2,
-    borderColor: "#D1D5DB",
-    backgroundColor: colors.white,
+    borderColor: "#D0D0D0",
   },
-  radioSelected: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: colors.black,
-    justifyContent: "center",
+
+  // Info Note
+  infoNote: {
+    flexDirection: "row",
     alignItems: "center",
-  },
-  radioInner: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: colors.white,
-  },
-  infoBox: {
-    marginTop: 24,
-    backgroundColor: "#F3F4F6",
+    justifyContent: "center",
+    backgroundColor: "white",
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
+    marginTop: 20,
+    gap: 8,
   },
+
+  // Footer
   footer: {
     paddingHorizontal: 20,
-    paddingBottom: 40,
-    paddingTop: 20,
-    backgroundColor: colors.white,
+    paddingBottom: 34,
+    paddingTop: 16,
+    backgroundColor: "white",
     borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
+    borderTopColor: "#E5E5E5",
   },
   continueButton: {
-    backgroundColor: colors.black,
-    borderRadius: 25,
+    backgroundColor: "#E60549",
+    borderRadius: 12,
     paddingVertical: 16,
-    paddingHorizontal: 24,
-    flexDirection: "row",
-    justifyContent: "center",
     alignItems: "center",
-    gap: 12,
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  continueButtonDisabled: {
-    backgroundColor: "#9CA3AF",
+  disabledButton: {
+    backgroundColor: "#CCC",
+    shadowOpacity: 0,
+    elevation: 0,
   },
 });
 

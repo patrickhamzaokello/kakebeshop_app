@@ -80,20 +80,11 @@ export default function EditAddressScreen() {
     setSaving(true);
 
     try {
-      const response = await fetch(`/api/v1/addresses/${id}/`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${yourAuthToken}`,
-        },
-        body: JSON.stringify({
-          label,
-          landmark,
-          is_default: isDefault,
-        }),
-      });
+    
 
-      if (response.ok) {
+      const data = await cartService.patchAddressDetails(id as string, isDefault, label, landmark);
+
+      if (data) {
         Alert.alert("Success", "Address updated successfully", [
           {
             text: "OK",
@@ -101,8 +92,7 @@ export default function EditAddressScreen() {
           },
         ]);
       } else {
-        const error = await response.json();
-        Alert.alert("Error", error.detail || "Failed to update address");
+        Alert.alert("Error", "Failed to update address");
       }
     } catch (error) {
       console.error("Error updating address:", error);
@@ -150,14 +140,8 @@ export default function EditAddressScreen() {
 
   const handleSetDefault = async () => {
     try {
-      const response = await fetch(`/api/v1/addresses/${id}/set-default/`, {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${yourAuthToken}`,
-        },
-      });
-
-      if (response.ok) {
+      const response = await cartService.setAddressAsDefault(id as string, true);
+      if (response) {
         setIsDefault(true);
         Alert.alert("Success", "Default address updated");
       } else {

@@ -479,8 +479,8 @@ export const useAuthStore = create<AuthState>()(
             return { success: false, msg: "No access token found" };
           }
 
-          const response = await apiService.get("/auth/user/");
-          const data = response.data;
+          const response = await apiService.get("/auth/profile/");
+          const data = response.data.user;
 
           if (response.success) {
             const userData: UserType = {

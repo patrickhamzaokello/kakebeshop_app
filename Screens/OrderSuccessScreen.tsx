@@ -7,6 +7,9 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Animated,
+  Platform,
+  Dimensions,
+  StatusBar,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -35,19 +38,20 @@ interface OrderSuccessScreenProps {
   orderGroupId?: string | string[];
 }
 
-export default function OrderSuccessScreen({ 
-  orderIds, 
-  orderGroupId 
+export default function OrderSuccessScreen({
+  orderIds,
+  orderGroupId,
 }: OrderSuccessScreenProps) {
   const router = useRouter();
-  
+
   const [orders, setOrders] = useState<Order[]>([]);
   const [orderGroup, setOrderGroup] = useState<OrderGroup | null>(null);
   const [loading, setLoading] = useState(true);
-  
+
   // Animations
   const [scaleAnim] = useState(new Animated.Value(0));
   const [fadeAnim] = useState(new Animated.Value(0));
+
 
   useEffect(() => {
     fetchOrders();
@@ -55,7 +59,6 @@ export default function OrderSuccessScreen({
   }, []);
 
   const animateSuccess = () => {
-    // Animate checkmark
     Animated.spring(scaleAnim, {
       toValue: 1,
       tension: 50,
@@ -63,7 +66,6 @@ export default function OrderSuccessScreen({
       useNativeDriver: true,
     }).start();
 
-    // Fade in content
     Animated.timing(fadeAnim, {
       toValue: 1,
       duration: 800,
@@ -74,22 +76,22 @@ export default function OrderSuccessScreen({
 
   const fetchOrders = async () => {
     try {
-      // If we have orderGroupId, fetch the entire group
       if (orderGroupId) {
-        const groupIdStr = Array.isArray(orderGroupId) ? orderGroupId[0] : orderGroupId;
-        
-        const data =  await cartService.getOrdersByGroupID(groupIdStr);
+        const groupIdStr = Array.isArray(orderGroupId)
+          ? orderGroupId[0]
+          : orderGroupId;
+        const data = await cartService.getOrdersByGroupID(groupIdStr);
         if (data) {
           setOrderGroup(data);
           setOrders(data.orders || []);
         }
       } else {
-        // Fetch individual orders
         const idsArray = Array.isArray(orderIds) ? orderIds : [orderIds];
-        const ids = typeof idsArray[0] === 'string' && idsArray[0].includes(',') 
-          ? idsArray[0].split(',') 
-          : idsArray;
-        
+        const ids =
+          typeof idsArray[0] === "string" && idsArray[0].includes(",")
+            ? idsArray[0].split(",")
+            : idsArray;
+
         const orderPromises = ids.map(async (id) => {
           const data = await cartService.getOrderbyID(id);
           return data;
@@ -97,23 +99,20 @@ export default function OrderSuccessScreen({
 
         const fetchedOrders = await Promise.all(orderPromises);
         setOrders(fetchedOrders);
-        
-        // Check if orders are part of a group
+
         if (fetchedOrders.length > 0 && fetchedOrders[0].order_group_number) {
           setOrderGroup({
-            id: '',
+            id: "",
             group_number: fetchedOrders[0].order_group_number,
             total_orders: fetchedOrders.length,
-            total_amount: fetchedOrders.reduce(
-              (sum, order) => sum + parseFloat(order.total_amount), 
-              0
-            ).toString(),
+            total_amount: fetchedOrders
+              .reduce((sum, order) => sum + parseFloat(order.total_amount), 0)
+              .toString(),
           });
         }
       }
     } catch (error) {
       console.error("Error fetching orders:", error);
-      
     } finally {
       setLoading(false);
     }
@@ -147,36 +146,35 @@ export default function OrderSuccessScreen({
 
   return (
     <View style={styles.container}>
-      <ScrollView 
+      <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Success Header */}
         <View style={styles.successContainer}>
-          <Animated.View 
+          <Animated.View
             style={[
               styles.successIconContainer,
-              { transform: [{ scale: scaleAnim }] }
+              { transform: [{ scale: scaleAnim }] },
             ]}
           >
             <View style={styles.successIconCircle}>
-              <Ionicons name="checkmark" size={60} color="white" />
+              <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
             </View>
           </Animated.View>
 
-          <Animated.View style={{ opacity: fadeAnim }}>
-            <Text style={styles.successTitle}>Order Placed!</Text>
+          <Animated.View style={{ opacity: fadeAnim, alignItems: "center" }}>
+            <Text style={styles.successTitle}>Order Placed Successfully!</Text>
             <Text style={styles.successSubtitle}>
-              {orders.length === 1 
+              {orders.length === 1
                 ? "Your order has been confirmed"
                 : `${orders.length} orders have been confirmed`}
             </Text>
-            
-            {/* Order Group Badge */}
+
             {orderGroup && orderGroup.group_number && (
-              <View style={styles.groupBadgeContainer}>
-                <Ionicons name="layers" size={16} color="#E60549" />
+              <View style={styles.groupBadge}>
+                <Ionicons name="layers-outline" size={14} color="#666" />
                 <Text style={styles.groupBadgeText}>
                   Group: {orderGroup.group_number}
                 </Text>
@@ -187,108 +185,130 @@ export default function OrderSuccessScreen({
 
         <Animated.View style={{ opacity: fadeAnim }}>
           {/* Order Summary */}
-          <View style={styles.summaryCard}>
-            <View style={styles.summaryHeader}>
-              <Ionicons name="receipt" size={22} color="#E60549" />
-              <Text style={styles.summaryTitle}>
-                {orderGroup && orders.length > 1 
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="receipt-outline" size={20} color="#E60549" />
+              <Text style={styles.sectionTitle}>
+                {orderGroup && orders.length > 1
                   ? `${orders.length} Orders from Checkout`
-                  : 'Order Summary'}
-              </Text>
-            </View>
-            
-            <View style={styles.totalAmountRow}>
-              <Text style={styles.totalLabel}>Total Amount</Text>
-              <Text style={styles.totalAmount}>
-                UGX {totalAmount.toLocaleString()}
+                  : "Order Summary"}
               </Text>
             </View>
 
-            <View style={styles.divider} />
+            <View style={styles.summaryCard}>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Total Amount</Text>
+                <Text style={styles.totalAmount}>
+                  UGX {totalAmount.toLocaleString()}
+                </Text>
+              </View>
+            </View>
 
             {/* Individual Orders */}
             {orders.map((order, index) => (
-              <View key={order.id} style={styles.orderItem}>
+              <View key={order.id} style={styles.orderCard}>
                 <View style={styles.orderHeader}>
-                  <View style={styles.orderInfo}>
-                    <Text style={styles.orderLabel}>
-                      {orders.length > 1 ? `Order #${index + 1}` : 'Order Details'}
+                  <View style={styles.orderBadge}>
+                    <Text style={styles.orderBadgeText}>
+                      {orders.length > 1 ? `#${index + 1}` : "ORDER"}
                     </Text>
-                    <Text style={styles.orderNumber}>{order.order_number}</Text>
-                    <Text style={styles.merchantName}>{order.merchant_name}</Text>
                   </View>
-                  <View style={styles.orderAmountContainer}>
-                    <Text style={styles.orderAmount}>
+                  <Text style={styles.orderNumber}>{order.order_number}</Text>
+                </View>
+
+                <View style={styles.orderBody}>
+                  <View style={styles.merchantRow}>
+                    <Ionicons
+                      name="storefront-outline"
+                      size={16}
+                      color="#666"
+                    />
+                    <Text style={styles.merchantName}>
+                      {order.merchant_name}
+                    </Text>
+                  </View>
+
+                  <View style={styles.amountRow}>
+                    <Text style={styles.amountLabel}>Amount</Text>
+                    <Text style={styles.amountValue}>
                       UGX {parseFloat(order.total_amount).toLocaleString()}
                     </Text>
                   </View>
                 </View>
-                
+
                 <TouchableOpacity
-                  style={styles.viewDetailsButton}
+                  style={styles.viewButton}
                   onPress={() => handleViewOrder(order.id)}
                   activeOpacity={0.7}
                 >
-                  <Text style={styles.viewDetailsText}>View Details</Text>
-                  <Ionicons name="chevron-forward" size={18} color="#E60549" />
+                  <Text style={styles.viewButtonText}>View Details</Text>
+                  <Ionicons name="arrow-forward" size={16} color="#E60549" />
                 </TouchableOpacity>
               </View>
             ))}
           </View>
 
           {/* What's Next */}
-          <View style={styles.nextStepsCard}>
-            <Text style={styles.nextStepsTitle}>What Happens Next?</Text>
-            
-            <View style={styles.timelineContainer}>
-              <View style={styles.stepItem}>
-                <View style={[styles.stepIcon, styles.stepIconActive]}>
-                  <Ionicons name="checkmark-circle" size={24} color="#4CAF50" />
-                </View>
-                <View style={styles.stepLine} />
-                <View style={styles.stepContent}>
-                  <Text style={styles.stepTitle}>Order Confirmed</Text>
-                  <Text style={styles.stepDescription}>
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Ionicons name="time-outline" size={20} color="#E60549" />
+              <Text style={styles.sectionTitle}>What Happens Next?</Text>
+            </View>
+
+            <View style={styles.timelineCard}>
+              <View style={styles.timelineItem}>
+                <View style={[styles.timelineDot, styles.timelineDotActive]} />
+                <View style={styles.timelineContent}>
+                  <View style={styles.timelineHeader}>
+                    <Ionicons
+                      name="checkmark-circle"
+                      size={20}
+                      color="#4CAF50"
+                    />
+                    <Text style={styles.timelineTitle}>Order Confirmed</Text>
+                  </View>
+                  <Text style={styles.timelineDescription}>
                     Confirmation sent to your email
                   </Text>
                 </View>
               </View>
 
-              <View style={styles.stepItem}>
-                <View style={styles.stepIcon}>
-                  <Ionicons name="cube" size={24} color="#FF9800" />
-                </View>
-                <View style={styles.stepLine} />
-                <View style={styles.stepContent}>
-                  <Text style={styles.stepTitle}>Merchant Processing</Text>
-                  <Text style={styles.stepDescription}>
-                    {orders.length > 1 
-                      ? 'Merchants are preparing your items'
-                      : 'Preparing your items'}
+              <View style={styles.timelineItem}>
+                <View style={styles.timelineDot} />
+                <View style={styles.timelineContent}>
+                  <View style={styles.timelineHeader}>
+                    <Ionicons name="cube-outline" size={20} color="#666" />
+                    <Text style={styles.timelineTitle}>Processing</Text>
+                  </View>
+                  <Text style={styles.timelineDescription}>
+                    {orders.length > 1
+                      ? "Merchants are preparing your items"
+                      : "Preparing your items"}
                   </Text>
                 </View>
               </View>
 
-              <View style={styles.stepItem}>
-                <View style={styles.stepIcon}>
-                  <Ionicons name="car" size={24} color="#2196F3" />
-                </View>
-                <View style={styles.stepLine} />
-                <View style={styles.stepContent}>
-                  <Text style={styles.stepTitle}>Out for Delivery</Text>
-                  <Text style={styles.stepDescription}>
+              <View style={styles.timelineItem}>
+                <View style={styles.timelineDot} />
+                <View style={styles.timelineContent}>
+                  <View style={styles.timelineHeader}>
+                    <Ionicons name="bicycle-outline" size={20} color="#666" />
+                    <Text style={styles.timelineTitle}>Out for Delivery</Text>
+                  </View>
+                  <Text style={styles.timelineDescription}>
                     You'll receive tracking updates
                   </Text>
                 </View>
               </View>
 
-              <View style={styles.stepItem}>
-                <View style={styles.stepIcon}>
-                  <Ionicons name="home" size={24} color="#E60549" />
-                </View>
-                <View style={styles.stepContent}>
-                  <Text style={styles.stepTitle}>Delivered</Text>
-                  <Text style={styles.stepDescription}>
+              <View style={[styles.timelineItem, styles.timelineItemLast]}>
+                <View style={styles.timelineDot} />
+                <View style={styles.timelineContent}>
+                  <View style={styles.timelineHeader}>
+                    <Ionicons name="home-outline" size={20} color="#666" />
+                    <Text style={styles.timelineTitle}>Delivered</Text>
+                  </View>
+                  <Text style={styles.timelineDescription}>
                     Enjoy your purchase!
                   </Text>
                 </View>
@@ -297,43 +317,52 @@ export default function OrderSuccessScreen({
           </View>
 
           {/* Quick Actions */}
-          <View style={styles.actionsContainer}>
-            <TouchableOpacity
-              style={styles.actionCard}
-              onPress={handleViewAllOrders}
-              activeOpacity={0.7}
-            >
-              <View style={styles.actionIconCircle}>
-                <Ionicons name="list" size={24} color="#E60549" />
-              </View>
-              <Text style={styles.actionTitle}>My Orders</Text>
-              <Text style={styles.actionSubtitle}>Track all orders</Text>
-            </TouchableOpacity>
+          <View style={styles.section}>
+            <View style={styles.actionsRow}>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={handleViewAllOrders}
+                activeOpacity={0.7}
+              >
+                <View style={styles.actionIcon}>
+                  <Ionicons name="list-outline" size={24} color="#E60549" />
+                </View>
+                <Text style={styles.actionText}>My Orders</Text>
+              </TouchableOpacity>
 
-            <TouchableOpacity
-              style={styles.actionCard}
-              onPress={() => router.push("/(tabs)/accounts/support" as any)}
-              activeOpacity={0.7}
-            >
-              <View style={styles.actionIconCircle}>
-                <Ionicons name="help-circle" size={24} color="#E60549" />
-              </View>
-              <Text style={styles.actionTitle}>Help & Support</Text>
-              <Text style={styles.actionSubtitle}>Get assistance</Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.actionButton}
+                onPress={() => router.push("/(tabs)/accounts/support" as any)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.actionIcon}>
+                  <Ionicons
+                    name="help-circle-outline"
+                    size={24}
+                    color="#E60549"
+                  />
+                </View>
+                <Text style={styles.actionText}>Help & Support</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* Info Banner */}
-          <View style={styles.infoBanner}>
-            <Ionicons name="information-circle" size={20} color="#2196F3" />
-            <Text style={styles.infoBannerText}>
-              You will receive order updates via email and notifications
-            </Text>
+          {/* Info Note */}
+          <View style={styles.section}>
+            <View style={styles.infoNote}>
+              <Ionicons
+                name="information-circle-outline"
+                size={18}
+                color="#666"
+              />
+              <Text style={styles.infoNoteText}>
+                You will receive order updates via email and notifications
+              </Text>
+            </View>
           </View>
         </Animated.View>
 
-        {/* Bottom padding */}
-        <View style={{ height: 40 }} />
+        <View style={{ height: 100 }} />
       </ScrollView>
 
       {/* Footer */}
@@ -343,8 +372,8 @@ export default function OrderSuccessScreen({
           onPress={handleViewAllOrders}
           activeOpacity={0.7}
         >
-          <Ionicons name="receipt-outline" size={20} color="#E60549" />
-          <Text style={styles.secondaryButtonText}>My Orders</Text>
+          <Ionicons name="receipt-outline" size={18} color="#666" />
+          <Text style={styles.secondaryButtonText}>Track Orders</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -352,8 +381,8 @@ export default function OrderSuccessScreen({
           onPress={handleContinueShopping}
           activeOpacity={0.7}
         >
-          <Ionicons name="storefront" size={20} color="white" />
-          <Text style={styles.primaryButtonText}>Keep Shopping</Text>
+          <Ionicons name="storefront-outline" size={18} color="white" />
+          <Text style={styles.primaryButtonText}>Continue Shopping</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -363,16 +392,17 @@ export default function OrderSuccessScreen({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: "#FAFAFA",
   },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#FAFAFA",
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 16,
+    fontSize: 15,
     color: "#666",
     fontWeight: "500",
   },
@@ -386,272 +416,254 @@ const styles = StyleSheet.create({
   // Success Header
   successContainer: {
     alignItems: "center",
-    paddingVertical: 40,
-    paddingHorizontal: 20,
-    backgroundColor: "#FFF5F8",
+    paddingVertical: 48,
+    paddingTop: 80,
+    paddingHorizontal: 24,
+    backgroundColor: "white",
   },
   successIconContainer: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   successIconCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "#4CAF50",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#4CAF50",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 8,
+    width: 80,
+    height: 80,
   },
   successTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "700",
-    color: "#333",
+    color: "#1A1A1A",
     marginBottom: 8,
     textAlign: "center",
   },
   successSubtitle: {
-    fontSize: 16,
+    fontSize: 15,
     color: "#666",
     textAlign: "center",
-    marginBottom: 12,
+    lineHeight: 22,
   },
-  groupBadgeContainer: {
+  groupBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFE5ED",
+    backgroundColor: "#F5F5F5",
     paddingVertical: 6,
     paddingHorizontal: 12,
-    borderRadius: 20,
-    marginTop: 8,
+    borderRadius: 16,
+    marginTop: 12,
+    gap: 6,
   },
   groupBadgeText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "600",
-    color: "#E60549",
-    marginLeft: 4,
+    color: "#666",
+  },
+
+  // Section
+  section: {
+    marginTop: 16,
+    paddingHorizontal: 20,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1A1A1A",
   },
 
   // Summary Card
   summaryCard: {
-    margin: 20,
     backgroundColor: "white",
-    borderRadius: 16,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: "#E5E5E5",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
   },
-  summaryHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  summaryTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-    marginLeft: 8,
-    flex: 1,
-  },
-  totalAmountRow: {
+  totalRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
   },
   totalLabel: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#666",
     fontWeight: "500",
   },
   totalAmount: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "700",
     color: "#E60549",
   },
-  divider: {
-    height: 1,
-    backgroundColor: "#E5E5E5",
-    marginBottom: 16,
-  },
 
-  // Order Items
-  orderItem: {
-    backgroundColor: "#F8F8F8",
+  // Order Card
+  orderCard: {
+    backgroundColor: "white",
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
   },
   orderHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
     marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
   },
-  orderInfo: {
-    flex: 1,
+  orderBadge: {
+    backgroundColor: "#F5F5F5",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 6,
   },
-  orderLabel: {
-    fontSize: 12,
-    color: "#999",
-    marginBottom: 4,
-    textTransform: "uppercase",
+  orderBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#666",
     letterSpacing: 0.5,
   },
   orderNumber: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: "600",
-    color: "#333",
-    marginBottom: 4,
+    color: "#1A1A1A",
+    flex: 1,
+  },
+  orderBody: {
+    gap: 10,
+    marginBottom: 12,
+  },
+  merchantRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
   },
   merchantName: {
-    fontSize: 13,
+    fontSize: 14,
     color: "#666",
+    fontWeight: "500",
   },
-  orderAmountContainer: {
-    justifyContent: "center",
+  amountRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  orderAmount: {
+  amountLabel: {
+    fontSize: 13,
+    color: "#999",
+  },
+  amountValue: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#E60549",
+    color: "#1A1A1A",
   },
-  viewDetailsButton: {
+  viewButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 10,
-    backgroundColor: "white",
+    backgroundColor: "#FFF5F8",
     borderRadius: 8,
-    borderWidth: 1.5,
-    borderColor: "#E60549",
+    gap: 6,
   },
-  viewDetailsText: {
+  viewButtonText: {
     fontSize: 14,
     fontWeight: "600",
     color: "#E60549",
-    marginRight: 4,
   },
 
   // Timeline
-  nextStepsCard: {
-    marginHorizontal: 20,
-    marginBottom: 20,
+  timelineCard: {
     backgroundColor: "white",
-    borderRadius: 16,
+    borderRadius: 12,
     padding: 20,
-    borderWidth: 1,
-    borderColor: "#E5E5E5",
   },
-  nextStepsTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 20,
-  },
-  timelineContainer: {
-    paddingLeft: 8,
-  },
-  stepItem: {
+  timelineItem: {
     flexDirection: "row",
     position: "relative",
   },
-  stepIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#F8F8F8",
-    justifyContent: "center",
-    alignItems: "center",
+  timelineItemLast: {
+    // Remove connecting line for last item
   },
-  stepIconActive: {
-    backgroundColor: "#E8F5E9",
+  timelineDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: "#E0E0E0",
+    marginTop: 4,
+    marginRight: 12,
   },
-  stepLine: {
-    position: "absolute",
-    left: 20,
-    top: 40,
-    width: 2,
-    height: 40,
-    backgroundColor: "#E5E5E5",
+  timelineDotActive: {
+    backgroundColor: "#4CAF50",
   },
-  stepContent: {
+  timelineContent: {
     flex: 1,
-    marginLeft: 12,
-    paddingBottom: 24,
+    paddingBottom: 20,
+    borderLeftWidth: 2,
+    borderLeftColor: "#F0F0F0",
+    marginLeft: -6,
+    paddingLeft: 18,
   },
-  stepTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#333",
+  timelineHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
     marginBottom: 4,
   },
-  stepDescription: {
+  timelineTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#1A1A1A",
+  },
+  timelineDescription: {
     fontSize: 13,
     color: "#666",
-    lineHeight: 18,
+    lineHeight: 20,
   },
 
   // Actions
-  actionsContainer: {
+  actionsRow: {
     flexDirection: "row",
-    paddingHorizontal: 20,
     gap: 12,
-    marginBottom: 20,
   },
-  actionCard: {
+  actionButton: {
     flex: 1,
-    backgroundColor: "#F8F8F8",
+    backgroundColor: "white",
     borderRadius: 12,
     padding: 16,
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E5E5E5",
+    gap: 8,
   },
-  actionIconCircle: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+  actionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: "#FFF5F8",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 8,
   },
-  actionTitle: {
-    fontSize: 14,
+  actionText: {
+    fontSize: 13,
     fontWeight: "600",
-    color: "#333",
-    marginBottom: 4,
-    textAlign: "center",
-  },
-  actionSubtitle: {
-    fontSize: 12,
-    color: "#666",
-    textAlign: "center",
+    color: "#1A1A1A",
   },
 
-  // Info Banner
-  infoBanner: {
+  // Info Note
+  infoNote: {
     flexDirection: "row",
-    marginHorizontal: 20,
-    backgroundColor: "#E3F2FD",
+    backgroundColor: "#F5F5F5",
     borderRadius: 12,
-    padding: 16,
+    padding: 14,
+    gap: 10,
     alignItems: "flex-start",
   },
-  infoBannerText: {
+  infoNoteText: {
     flex: 1,
-    marginLeft: 12,
     fontSize: 13,
-    color: "#1976D2",
-    lineHeight: 18,
+    color: "#666",
+    lineHeight: 20,
   },
 
   // Footer
@@ -664,11 +676,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: "#F0F0F0",
     gap: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 8,
   },
   secondaryButton: {
     flex: 1,
@@ -676,16 +683,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 14,
-    backgroundColor: "white",
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#E60549",
+    backgroundColor: "#F5F5F5",
+    borderRadius: 10,
     gap: 6,
   },
   secondaryButtonText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#E60549",
+    color: "#666",
   },
   primaryButton: {
     flex: 1,
@@ -694,13 +699,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingVertical: 14,
     backgroundColor: "#E60549",
-    borderRadius: 12,
+    borderRadius: 10,
     gap: 6,
-    shadowColor: "#E60549",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
   },
   primaryButtonText: {
     fontSize: 14,

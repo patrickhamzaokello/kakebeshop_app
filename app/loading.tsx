@@ -1,3 +1,9 @@
+import { Text } from 'react-native';
+
 export default function Loading() {
-    return null;
+    return (
+        <>
+        <Text>Hello</Text>
+        </>
+    );
     }

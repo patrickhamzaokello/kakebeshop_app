@@ -6,21 +6,21 @@ import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import ScreenWrapper from "@/components/ScreenWrapper";
 import { useCallback } from "react";
 import { StatusBar } from "react-native";
-import AccountScreen from "@/Screens/SettingsScreen";
+import OrdersListScreen from "@/Screens/OrderListScreen";
 
-export default function SettingsMainScreen() {
-  const { orderIds, orderGroupId } = useLocalSearchParams();
 
-  useFocusEffect(
-    useCallback(() => {
-      StatusBar.setBarStyle("dark-content");
-    }, [])
-  );
+export default function OrderSuccessMain() {
+
+   useFocusEffect(
+      useCallback(() => {
+        StatusBar.setBarStyle("dark-content");
+      }, [])
+    );
 
   return (
     <View style={{ flex: 1 }}>
-      <DetailHeaderSection title="Settings" subheading="Manage your profile, and track orders" />
-      <AccountScreen />
+         <DetailHeaderSection title="My Orders" subheading="Track and manage all orders you placed" />
+      <OrdersListScreen />
     </View>
   );
 }

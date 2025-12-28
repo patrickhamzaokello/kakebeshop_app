@@ -1,3 +1,5 @@
+// api endpoinst list
+
 import apiService from "@/utils/apiBase";
 
 export const postUserIntent = async (

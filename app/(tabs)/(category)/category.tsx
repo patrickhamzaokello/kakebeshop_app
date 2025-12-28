@@ -19,9 +19,7 @@ export default function Category() {
               subheading="Browse from list of categories range"
             />
 
-            <CategoriesScreen />
 
-            {/* <SubcategoriesScreen /> */}
       
 
       </View>

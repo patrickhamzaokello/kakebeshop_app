@@ -5,16 +5,16 @@ import {
 } from "react-native";
 import Typo from "@/components/Typo";
 
-export default function WishlistHome() {
+export default function HelpMain() {
 
 
-  return (
+    return (
       <ScreenWrapper style={styles.container}>
         <StatusBar style="dark" />
 
-        <Typo>Wishlists home</Typo>
+        <Typo>Help page</Typo>
       </ScreenWrapper>
-  );
+    );
 }
 
 const styles = StyleSheet.create({

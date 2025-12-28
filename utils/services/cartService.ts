@@ -96,6 +96,31 @@ export const cartService = {
     }
   },
 
+  async setAddressAsDefault(addressId: string, is_default: boolean): Promise<boolean> {
+    try {
+      const response = await apiService.post(
+        `api/v1/addresses/${addressId}/set-default/`, is_default
+      );
+      return !!response.success;
+    } catch (error) {
+      console.error("Error setting address as default:", error);
+      return false;
+    }
+  },
+
+  
+  async patchAddressDetails(addressId: string, is_default: boolean,label:string, landmark: string): Promise<boolean> {
+    try {
+      const response = await apiService.post(
+        `/api/v1/addresses/${addressId}/`, {is_default, label, landmark}
+      );
+      return !!response.success;
+    } catch (error) {
+      console.error("Error setting address as default:", error);
+      return false;
+    }
+  },
+
   async getAddressById(addressId: string): Promise<any | null> {
     try {
       const response = await apiService.get(`/api/v1/addresses/${addressId}/`);
@@ -163,7 +188,39 @@ export const cartService = {
     }
   },
 
+  getOrders: async () => {
+    try {
+      const response = await apiService.get(
+        `/api/v1/orders/`
+      );
+      if (response.success && response.data) {
+        return response.data.results;
+      }
+      return [];
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      return [];
+    }
+  },
+  
   getOrderbyID: async (orderID: string) => {
+    try {
+      const response = await apiService.get(
+        `/api/v1/orders/${orderID}/`
+      );
+      if (response.success && response.data) {
+        return response.data;
+      }
+      return null;
+    } catch (error) {
+      console.error("Error fetching order by ID:", error);
+      return null;
+    }
+  },
+
+  // allow the user to cancel the order in 5 minutes
+
+  cancelOrder: async (orderID: string) => {
     try {
       const response = await apiService.get(
         `/api/v1/orders/${orderID}/`

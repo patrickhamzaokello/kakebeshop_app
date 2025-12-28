@@ -1,9 +1,11 @@
-import { StyleSheet, View } from "react-native";
+import { Dimensions, Platform, StyleSheet, View } from "react-native";
 import { DetailHeaderSection } from "@/components/test/DetailHeader";
 import NewAddressScreen from "@/Screens/NewAddressScreen";
 import OrderSuccessScreen from "@/Screens/OrderSuccessScreen";
-import { useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import ScreenWrapper from "@/components/ScreenWrapper";
+import { useCallback } from "react";
+import { StatusBar } from "react-native";
 
 interface OrderGroup {
   id: string;
@@ -21,12 +23,19 @@ interface Order {
   is_grouped: boolean;
 }
 
+
 export default function OrderSuccessMain() {
   const { orderIds, orderGroupId } = useLocalSearchParams();
 
+   useFocusEffect(
+      useCallback(() => {
+        StatusBar.setBarStyle("dark-content");
+      }, [])
+    );
+
   return (
-    <ScreenWrapper>
+    <View style={{ flex: 1 }}>
       <OrderSuccessScreen orderIds={orderIds} orderGroupId={orderGroupId}  />
-    </ScreenWrapper>
+    </View>
   );
 }

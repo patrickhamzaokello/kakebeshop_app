@@ -21,7 +21,7 @@ export const DetailHeaderSection: React.FC<HeaderSectionProps> = ({
   subheading,
 }) => {
   return (
-    <LinearGradient colors={["#F5B3BC", "#FFFFFF"]} style={styles.container}>
+    <LinearGradient colors={["#DCF3FF", "#FFFFFF"]} style={styles.container}>
       <View>
         <SafeAreaView />
 
@@ -37,7 +37,7 @@ export const DetailHeaderSection: React.FC<HeaderSectionProps> = ({
 const styles = StyleSheet.create({
   container: {
     paddingHorizontal: 16,
-    paddingBottom: 8,
+    paddingBottom: 20,
   },
   topRow: {
     justifyContent: "space-between",
