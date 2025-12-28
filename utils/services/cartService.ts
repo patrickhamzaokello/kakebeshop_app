@@ -222,15 +222,15 @@ export const cartService = {
 
   cancelOrder: async (orderID: string) => {
     try {
-      const response = await apiService.get(
-        `/api/v1/orders/${orderID}/`
+      const response = await apiService.post(
+        `/api/v1/orders/${orderID}/cancel/`
       );
       if (response.success && response.data) {
         return response.data;
       }
       return null;
     } catch (error) {
-      console.error("Error fetching order by ID:", error);
+      console.error("Error canceling order", error);
       return null;
     }
   },
