@@ -62,9 +62,9 @@ export const HomeScreen: React.FC = () => {
             <HeaderSection
                 data={headerData.data}
                 loading={headerData.loading}
-                onSearch={() => router.push('/search')}
-                onWishlistPress={() => router.push('/wishlist')}
-                onNotificationPress={() => router.push('/notifications')}
+                onSearch={() => router.push('/category')}
+                onWishlistPress={() => router.push('/wishlist/wishlist')}
+                onNotificationPress={() => router.push('/notification/notifications')}
             />
 
             <CarouselSection data={carouselData.data} loading={carouselData.loading} />

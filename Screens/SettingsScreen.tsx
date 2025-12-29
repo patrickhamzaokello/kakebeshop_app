@@ -179,6 +179,13 @@ export default function AccountScreen() {
       color: "#666",
     },
     {
+      id: "notifications-pref",
+      title: "Notification Preferences",
+      icon: "notifications-outline",
+      route: "/notification_preference/notificationpreference",
+      color: "#666",
+    },
+    {
       id: "privacy",
       title: "Privacy & Security",
       icon: "shield-outline",

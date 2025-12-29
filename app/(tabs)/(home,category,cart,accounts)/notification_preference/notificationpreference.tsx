@@ -8,9 +8,9 @@ import Typo from "@/components/Typo";
 import { useFocusEffect } from "expo-router";
 import { useCallback } from "react";
 import { DetailHeaderSection } from "@/components/test/DetailHeader";
-import NotificationsScreen from "@/Screens/NotificationScreen";
+import NotificationPreferencesScreen from "@/Screens/NotificationPreferenceScreen";
 
-export default function NotificationMain() {
+export default function WishlistMain() {
 
 
     useFocusEffect(
@@ -21,9 +21,8 @@ export default function NotificationMain() {
    
      return (
        <View style={{ flex: 1 }}>
-            <DetailHeaderSection title="Notification" subheading="Catch up on the latest updates" />
-
-            <NotificationsScreen />
+            <DetailHeaderSection title="Preferences" subheading="Choose the notifications you would like to receive" />
+            <NotificationPreferencesScreen />
        </View>
      );
 }

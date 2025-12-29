@@ -164,7 +164,7 @@ export const cartService = {
     try {
       const response = await apiService.post("/api/v1/orders/checkout/", data); // Returns: { message: "Order(s) placed successfully", orders: [...] }
       if (response.success && response.data) {
-        return response.data;
+        return response.data.data;
       }
       return null;
     } catch (error) {

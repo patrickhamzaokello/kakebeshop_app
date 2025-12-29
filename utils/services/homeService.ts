@@ -15,12 +15,12 @@ export const homeService = {
         try {
             const [userResponse, notificationsResponse] = await Promise.all([
                 apiService.get('/auth/profile/'),
-                apiService.get('/api/v1/notifications/'),
+                apiService.get('/api/v1/notifications/unread_count/'),
             ]);
 
             return {
                 profile: userResponse.data.user,
-                notificationsCount: notificationsResponse.data.count || 0,
+                notificationsCount: notificationsResponse.data.unread_count || 0,
             };
         } catch (error) {
             throw error;
