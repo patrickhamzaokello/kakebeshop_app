@@ -108,6 +108,7 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({
       });
 
       const { identityToken } = credential;
+      console.log("Apple Credential:", credential);
 
       if (identityToken) {
         const res = await loginWithSocial(identityToken, "apple");

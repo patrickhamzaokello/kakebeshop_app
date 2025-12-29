@@ -23,7 +23,7 @@ const RootLayout = () => {
     checkAuthState();
     GoogleSignin.configure({
       iosClientId:
-        "1031020224121-trmppfnusv7kp4690idkku75jbh0os1h.apps.googleusercontent.com",
+        "587787462511-lqie16rbc77p418sfpodcdffse0o8o3b.apps.googleusercontent.com",
       profileImageSize: 120,
     });
   }, [checkAuthState]);
