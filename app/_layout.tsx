@@ -17,6 +17,7 @@ const RootLayout = () => {
   } = useAuthStore();
 
   const { fetchCartCount } = useCartStore();
+  
 
   useEffect(() => {
     checkAuthState();
