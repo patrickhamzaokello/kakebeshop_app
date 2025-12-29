@@ -75,13 +75,11 @@ const Login = () => {
       return;
     }
 
-   
-
     setIsLoading(true);
     try {
       const res = await loginUser(trimmedEmail, trimmedPassword);
       if (!res.success) {
-        if(res.msg?.includes("Email is not verified")){
+        if (res.msg?.includes("Email is not verified")) {
           router.replace({
             pathname: "/(auth)/start_email_verification",
             params: { email },
@@ -237,7 +235,7 @@ const Login = () => {
               isAppleLoading={isAppleLoading}
               setIsGoogleLoading={setIsGoogleLoading}
               setIsAppleLoading={setIsAppleLoading}
-              showSocialAuth={false}
+              showSocialAuth={true}
             />
 
             {/* Footer */}
@@ -292,6 +290,7 @@ const styles = StyleSheet.create({
   },
   form: {
     gap: spacingY._20,
+    paddingBottom: spacingY._16,
   },
   inputContainer: {
     gap: spacingY._8,

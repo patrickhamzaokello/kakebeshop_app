@@ -134,7 +134,7 @@ const SocialAuthScreen = () => {
   };
 
   return (
-    <ScreenWrapper  statusBarStyle = "dark-content" style={{ backgroundColor: "#C8FF42"}}>
+    <ScreenWrapper  statusBarStyle = "dark-content" style={{ backgroundColor: "#FAFAFA"}}>
       <View style={styles.container}>
         
         <View style={styles.contentView}>
@@ -155,7 +155,7 @@ const SocialAuthScreen = () => {
               color={colors.black}
               style={{ textAlign: "center", marginBottom: spacingY._40 }}
             >
-              Your World. Your News. TND NEWS.
+              #1 Marketplace For Uganda
             </Typo>
 
             <Button
@@ -217,7 +217,7 @@ const SocialAuthScreen = () => {
           {/* Terms and Privacy */}
           <View style={styles.termsContainer}>
             <Text style={styles.termsText}>
-              By continuing, you agree to TND News'{" "}
+              By continuing, you agree to Kakebe Shop'{" "}
               <Text style={styles.linkText} onPress={handleTermsPress}>
                 Consumer Terms
               </Text>{" "}
@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
   },
   termsText: {
     fontSize: 14,
-    color: "rgba(101, 101, 101, 0.8)",
+    color: "rgba(255, 255, 255, 0.8)",
     textAlign: "center",
     lineHeight: 20,
   },

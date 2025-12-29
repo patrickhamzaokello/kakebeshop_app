@@ -3,316 +3,318 @@ import Typo from "@/components/Typo";
 import { colors, spacingX, spacingY } from "@/constants/theme";
 import { ImageBackground } from "expo-image";
 import { router } from "expo-router";
-import { StyleSheet, View, Dimensions } from "react-native";
+import { StyleSheet, View, Dimensions, ScrollView } from "react-native";
 import Animated, {
-  FadeInDown,
   useSharedValue,
   useAnimatedStyle,
-  withSpring,
   withTiming,
-  runOnJS,
-  interpolate,
-  Extrapolation,
+  withRepeat,
+  Easing,
 } from "react-native-reanimated";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { useEffect, useRef } from "react";
+import { useEffect, useState } from "react";
+import SocialAuthButtons from "@/components/SocialAuthButtons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 const { width, height } = Dimensions.get("window");
 
-const carouselData = [
+const carouselDataRow1 = [
   {
     id: 1,
     image: require("@/assets/images/grocery_collection.jpg"),
-    heading: "Everything in One Place",
-    description: "Discover products, services, and offers from trusted sellers — all in one convenient marketplace."
   },
   {
     id: 2,
     image: require("@/assets/images/shoes_collection.jpg"),
-    heading: "Connect with Local Sellers",
-    description: "Find and interact with merchants near you, from shops and restaurants to service providers."
   },
   {
     id: 3,
     image: require("@/assets/images/shopping_collection.jpg"),
-    heading: "Order with Ease",
-    description: "Browse, add to cart, and place orders seamlessly for food, products, or services anytime."
   },
   {
     id: 4,
     image: require("@/assets/images/fashion_collection.jpg"),
-    heading: "Deals You’ll Love",
-    description: "Stay updated with new listings, promotions, and featured offers as soon as they go live."
   },
-  
+  {
+    id: 5,
+    image: require("@/assets/images/grocery_collection.jpg"),
+  },
+  {
+    id: 6,
+    image: require("@/assets/images/shoes_collection.jpg"),
+  },
+];
+
+// Shuffled version for second row
+const carouselDataRow2 = [
+  {
+    id: 3,
+    image: require("@/assets/images/shopping_collection.jpg"),
+  },
+  {
+    id: 1,
+    image: require("@/assets/images/grocery_collection.jpg"),
+  },
+  {
+    id: 4,
+    image: require("@/assets/images/fashion_collection.jpg"),
+  },
+  {
+    id: 6,
+    image: require("@/assets/images/shoes_collection.jpg"),
+  },
+  {
+    id: 2,
+    image: require("@/assets/images/shoes_collection.jpg"),
+  },
+  {
+    id: 5,
+    image: require("@/assets/images/grocery_collection.jpg"),
+  },
 ];
 
 export default function WelcomeScreen() {
   const translateX = useSharedValue(0);
-  const currentIndex = useSharedValue(0);
-  const contextX = useSharedValue(0); // Store context for gesture
-  const intervalRef = useRef<number | null>(null);
-
-  const startAutoSlide = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
-
-    intervalRef.current = setInterval(() => {
-      currentIndex.value = (currentIndex.value + 1) % carouselData.length;
-      translateX.value = withTiming(-currentIndex.value * width, {
-        duration: 500
-      });
-    }, 4000);
-  };
-
-  const stopAutoSlide = () => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  };
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isAppleLoading, setIsAppleLoading] = useState(false);
 
   useEffect(() => {
-    startAutoSlide();
-    return () => stopAutoSlide();
+    // Continuous horizontal scroll animation
+    translateX.value = withRepeat(
+      withTiming(-width * 0.5, {
+        duration: 15000,
+        easing: Easing.linear,
+      }),
+      -1, // infinite repeat
+      false
+    );
   }, []);
 
-  const panGesture = Gesture.Pan()
-      .onStart(() => {
-        contextX.value = translateX.value;
-        runOnJS(stopAutoSlide)();
-      })
-      .onUpdate((event) => {
-        // Allow free dragging with boundaries
-        const newTranslateX = contextX.value + event.translationX;
-        const maxTranslate = 0;
-        const minTranslate = -(carouselData.length - 1) * width;
-
-        // Add resistance at boundaries
-        if (newTranslateX > maxTranslate) {
-          translateX.value = maxTranslate + event.translationX * 0.3;
-        } else if (newTranslateX < minTranslate) {
-          translateX.value = minTranslate + (newTranslateX - minTranslate) * 0.3;
-        } else {
-          translateX.value = newTranslateX;
-        }
-      })
-      .onEnd((event) => {
-        const SWIPE_VELOCITY = 500;
-        const SWIPE_DISTANCE = width * 0.2;
-
-        let targetIndex = currentIndex.value;
-
-        // Determine swipe direction
-        if (
-            event.translationX < -SWIPE_DISTANCE ||
-            event.velocityX < -SWIPE_VELOCITY
-        ) {
-          // Swipe left - go to next
-          targetIndex = Math.min(currentIndex.value + 1, carouselData.length - 1);
-        } else if (
-            event.translationX > SWIPE_DISTANCE ||
-            event.velocityX > SWIPE_VELOCITY
-        ) {
-          // Swipe right - go to previous
-          targetIndex = Math.max(currentIndex.value - 1, 0);
-        }
-
-        // Update index and animate to target position
-        currentIndex.value = targetIndex;
-        translateX.value = withSpring(-targetIndex * width, {
-          damping: 20,
-          stiffness: 90,
-          velocity: event.velocityX,
-        });
-
-        // Restart auto-slide after gesture ends
-        runOnJS(startAutoSlide)();
-      });
-
   const animatedCarouselStyle = useAnimatedStyle(() => ({
-    transform: [{translateX: translateX.value}],
+    transform: [{ translateX: translateX.value }],
   }));
 
-  const CarouselIndicators = () => {
-    return (
-        <View style={styles.indicatorContainer}>
-          {carouselData.map((_, index) => {
-            const animatedDotStyle = useAnimatedStyle(() => {
-              const activeIndex = Math.round(-translateX.value / width);
-              const isActive = activeIndex === index;
-
-              // Smooth scale animation for dots
-              const scale = interpolate(
-                  -translateX.value,
-                  [(index - 1) * width, index * width, (index + 1) * width],
-                  [0.8, 1, 0.8],
-                  Extrapolation.CLAMP
-              );
-
-              return {
-                width: withSpring(isActive ? 24 : 8, {damping: 15}),
-                opacity: withSpring(isActive ? 1 : 0.5, {damping: 15}),
-                transform: [{scale}],
-                backgroundColor: isActive ? colors.white : colors.neutral400,
-              };
-            });
-
-            return (
-                <Animated.View
-                    key={index}
-                    style={[styles.indicator, animatedDotStyle]}
-                />
-            );
-          })}
-        </View>
-    );
-  };
-
   return (
-      <View style={styles.container}>
-        <GestureDetector gesture={panGesture}>
-          <View style={{flex: 1}}>
-            {/* Image Section */}
-            <View style={styles.imageContainer}>
-              <Animated.View style={[styles.imageCarousel, animatedCarouselStyle]}>
-                {carouselData.map((item, index) => (
-                    <View key={item.id} style={styles.imageSlide}>
-                      <ImageBackground
-                          source={item.image}
-                          style={styles.backgroundImage}
-                          contentFit="cover"
-                      />
-                    </View>
-                ))}
-              </Animated.View>
-            </View>
-
-            {/* Content Section */}
-            <View style={styles.contentSection}>
-              <View style={styles.contentContainer}>
-                <Animated.View style={[styles.textCarousel, animatedCarouselStyle]}>
-                  {carouselData.map((item, index) => (
-                      <View key={item.id} style={styles.textSlide}>
-                        <View style={styles.textContent}>
-                          <Animated.View
-                              entering={FadeInDown.duration(800).springify().damping(12)}
-                          >
-                            <Typo size={28} fontWeight="800" style={styles.heading}>
-                              {item.heading}
-                            </Typo>
-                          </Animated.View>
-
-                          <Animated.View
-                              entering={FadeInDown.duration(800).delay(100).springify().damping(12)}
-                          >
-                            <Typo size={16} color={colors.white} style={styles.description}>
-                              {item.description}
-                            </Typo>
-                          </Animated.View>
-                        </View>
-                      </View>
-                  ))}
-                </Animated.View>
-
-                <Animated.View
-                    entering={FadeInDown.duration(800).delay(200).springify().damping(12)}
+    <ScrollView 
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+    >
+      {/* Grid-based Carousel Section */}
+      <View style={styles.carouselContainer}>
+        <Animated.View style={styles.carouselWrapper}>
+          {/* First Row */}
+          <Animated.View 
+            style={[styles.carouselRow, animatedCarouselStyle]}
+          >
+            {[...carouselDataRow1, ...carouselDataRow1].map((item, index) => (
+              <View key={`row1-${index}`} style={styles.imageCard}>
+                <ImageBackground
+                  source={item.image}
+                  style={styles.cardImage}
+                  contentFit="cover"
                 >
-                  <CarouselIndicators/>
-                </Animated.View>
+                  <View style={styles.imageOverlay} />
+                </ImageBackground>
               </View>
+            ))}
+          </Animated.View>
 
-              <Animated.View
-                  entering={FadeInDown.duration(800).delay(300).springify().damping(12)}
-                  style={styles.buttonContainer}
-              >
-                <CustomButton
-                    onPress={() => router.push("/(auth)/login")}
-                    style={styles.button}
+          {/* Second Row - Reversed direction */}
+          <Animated.View 
+            style={[
+              styles.carouselRow, 
+              useAnimatedStyle(() => ({
+                transform: [{ translateX: -translateX.value }],
+              }))
+            ]}
+          >
+            {[...carouselDataRow2, ...carouselDataRow2].map((item, index) => (
+              <View key={`row2-${index}`} style={styles.imageCard}>
+                <ImageBackground
+                  source={item.image}
+                  style={styles.cardImage}
+                  contentFit="cover"
                 >
-                  <Typo size={18} color={colors.black} fontWeight="600">
-                    Get Started
-                  </Typo>
-                </CustomButton>
-              </Animated.View>
-            </View>
-          </View>
-        </GestureDetector>
+                  <View style={styles.imageOverlay} />
+                </ImageBackground>
+              </View>
+            ))}
+          </Animated.View>
+        </Animated.View>
+
+        {/* Gradient Overlay at Bottom */}
+        <View style={styles.gradientOverlay} />
       </View>
+
+      {/* Content Section */}
+      <View style={styles.contentSection}>
+        {/* Welcome Text */}
+        <View style={styles.welcomeContainer}>
+          <Typo size={32} fontWeight="700" style={styles.welcomeTitle}>
+            Welcome to Cookly 👋
+          </Typo>
+          <Typo size={15} color={colors.neutral600} style={styles.welcomeSubtitle}>
+            The best cooking and food recipes app of the century.
+          </Typo>
+        </View>
+
+        {/* Social Auth Buttons */}
+        <View style={styles.authContainer}>
+          <SocialAuthButtons 
+            isGoogleLoading={isGoogleLoading}
+            isAppleLoading={isAppleLoading}
+            setIsGoogleLoading={setIsGoogleLoading}
+            setIsAppleLoading={setIsAppleLoading}
+            showSocialAuth={true}
+          />
+
+          {/* Divider */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Typo size={14} color={colors.neutral500} style={styles.dividerText}>
+              Or sign up with
+            </Typo>
+            <View style={styles.dividerLine} />
+          </View>
+
+          {/* Email Signup Button */}
+          <CustomButton
+            onPress={() => router.push("/(auth)/login")}
+            style={styles.emailButton}
+          >
+          <MaterialCommunityIcons name="email" color={"#FFF"} size={20} />
+            <Typo size={16} color={colors.white} fontWeight="600">
+              Sign Up with email
+            </Typo>
+          </CustomButton>
+
+          {/* Login Link */}
+          <View style={styles.loginContainer}>
+            <Typo size={14} color={colors.neutral600}>
+              Already have an account?{" "}
+            </Typo>
+            <CustomButton
+              onPress={() => router.push("/(auth)/login")}
+              style={styles.loginButton}
+            >
+              <Typo size={14} color={colors.primary} fontWeight="600">
+                Log In
+              </Typo>
+            </CustomButton>
+          </View>
+        </View>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.black,
+    backgroundColor: colors.white,
   },
-  imageContainer: {
-    height: height * 0.6,
+  scrollContent: {
+    flexGrow: 1,
+  },
+  carouselContainer: {
+    height: height * 0.45,
+    position: "relative",
     overflow: "hidden",
   },
-  imageCarousel: {
+  carouselWrapper: {
+    flex: 1,
+    gap: 12,
+    paddingTop: spacingY._20,
+  },
+  carouselRow: {
     flexDirection: "row",
-    width: width * carouselData.length,
-    height: "100%",
+    gap: 12,
+    paddingHorizontal: spacingX._16,
   },
-  imageSlide: {
-    width: width,
-    height: "100%",
+  imageCard: {
+    width: width * 0.42,
+    height: (height * 0.45 - 40) / 2,
+    borderRadius: 16,
+    overflow: "hidden",
   },
-  backgroundImage: {
+  cardImage: {
     width: "100%",
     height: "100%",
   },
+  imageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "rgba(0, 0, 0, 0.15)",
+  },
+  gradientOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+    backgroundColor: "transparent",
+    borderTopWidth: 0,
+    shadowColor: "#fff",
+    shadowOffset: { width: 0, height: -20 },
+    shadowOpacity: 1,
+    shadowRadius: 30,
+  },
   contentSection: {
     flex: 1,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.white,
+    paddingHorizontal: spacingX._20,
+    paddingTop: spacingY._30,
+    paddingBottom: spacingY._40,
     justifyContent: "space-between",
-    paddingVertical: spacingY._20,
   },
-  contentContainer: {
+  welcomeContainer: {
+    alignItems: "center",
+    marginBottom: spacingY._30,
+  },
+  welcomeTitle: {
+    textAlign: "center",
+    color: colors.black,
+    marginBottom: spacingY._10,
+    lineHeight: 38,
+  },
+  welcomeSubtitle: {
+    textAlign: "center",
+    lineHeight: 22,
+    paddingHorizontal: spacingX._16,
+  },
+  authContainer: {
+    width: "100%",
+  },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: spacingY._25,
+  },
+  dividerLine: {
     flex: 1,
-    justifyContent: "center",
+    height: 1,
+    backgroundColor: colors.neutral300,
   },
-  textCarousel: {
-    flexDirection: "row",
-    width: width * carouselData.length,
+  dividerText: {
+    paddingHorizontal: spacingX._12,
   },
-  textSlide: {
-    width: width,
-    justifyContent: "center",
-  },
-  textContent: {
-    alignItems: "center",
-    paddingHorizontal: spacingX._25,
-  },
-  heading: {
-    textAlign: "center",
-    marginBottom: spacingY._15,
-    color: colors.white,
-    lineHeight: 34,
-  },
-  description: {
-    textAlign: "center",
-    lineHeight: 24,
-    opacity: 0.8,
-  },
-  indicatorContainer: {
+  emailButton: {
+    backgroundColor: colors.black,
+    paddingVertical: spacingY._16,
+    borderRadius: 12,
+    marginBottom: spacingY._16,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: spacingY._30,
     gap: 8,
   },
-  indicator: {
-    height: 8,
-    borderRadius: 4,
+  loginContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: spacingY._8,
   },
-  buttonContainer: {
-    paddingHorizontal: spacingX._25,
-    paddingBottom: spacingY._20,
-  },
-  button: {
-    backgroundColor: "#fff",
-    paddingVertical: spacingY._15,
+  loginButton: {
+    backgroundColor: "transparent",
+    padding: 0,
   },
 });

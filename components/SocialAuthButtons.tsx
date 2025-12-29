@@ -58,13 +58,7 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({
     <>
       {showSocialAuth && (
         <>
-          {/* Divider */}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Typo style={styles.dividerText}>Or</Typo>
-            <View style={styles.dividerLine} />
-          </View>
-
+          
           {/* Social Buttons */}
           <View style={styles.socialContainer}>
             <Pressable
