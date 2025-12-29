@@ -134,7 +134,7 @@ const SocialAuthScreen = () => {
   };
 
   return (
-    <ScreenWrapper  statusBarStyle = "dark-content" style={{ backgroundColor: "#FAFAFA"}}>
+    <ScreenWrapper  statusBarStyle = "dark-content" style={{ }}>
       <View style={styles.container}>
         
         <View style={styles.contentView}>
