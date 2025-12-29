@@ -229,6 +229,15 @@ const Login = () => {
               </Button>
             </View>
 
+             {/* Divider */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Typo size={14} color={colors.neutral500} style={styles.dividerText}>
+              Or
+            </Typo>
+            <View style={styles.dividerLine} />
+          </View>
+
             {/* Social Auth Buttons Component */}
             <SocialAuthButtons
               isGoogleLoading={isGoogleLoading}
@@ -323,7 +332,6 @@ const styles = StyleSheet.create({
   },
   forgotPasswordContainer: {
     alignSelf: "flex-end",
-    paddingVertical: spacingY._4,
   },
   forgotPasswordText: {
     fontSize: 14,
@@ -335,7 +343,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: spacingY._16,
-    marginTop: spacingY._8,
+  },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: spacingY._25,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.neutral300,
+  },
+  dividerText: {
+    paddingHorizontal: spacingX._12,
   },
   footer: {
     flexDirection: "row",

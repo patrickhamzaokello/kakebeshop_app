@@ -182,8 +182,8 @@ export default function WelcomeScreen() {
             onPress={() => router.push("/(auth)/login")}
             style={styles.emailButton}
           >
-          <MaterialCommunityIcons name="email" color={"#FFF"} size={20} />
-            <Typo size={16} color={colors.white} fontWeight="600">
+          <MaterialCommunityIcons name="email" color={"#000"} size={20} />
+            <Typo size={16} color={colors.black} fontWeight="600">
               Sign Up with email
             </Typo>
           </CustomButton>
@@ -298,10 +298,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacingX._12,
   },
   emailButton: {
-    backgroundColor: colors.black,
-    paddingVertical: spacingY._16,
+    borderColor: "#E5E7EB",
+    backgroundColor: "#ffffff",
+    borderWidth: 1.5,
     borderRadius: 12,
-    marginBottom: spacingY._16,
+    paddingVertical: spacingY._16,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
@@ -311,10 +312,9 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: spacingY._8,
   },
   loginButton: {
     backgroundColor: "transparent",
-    padding: 0,
+    paddingHorizontal: 2,
   },
 });

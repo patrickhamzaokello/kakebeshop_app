@@ -153,18 +153,10 @@ const Register = () => {
 
             {/* Header */}
             <View style={styles.welcomeSection}>
-              <Image
-                source={require("@/assets/icons/ios-dark.png")}
-                style={{
-                  width: 100,
-                  height: 100,
-                  marginBottom: spacingY._20,
-                  borderRadius: 10,
-                }}
-              />
+            
               <View style={styles.welcomeTextContainer}>
                 <Typo size={32} fontWeight={"900"} color="#1a1a1a">
-                  Create an account
+                  Register
                 </Typo>
                 <Typo size={16} color="#000" style={styles.subtitle}>
                   Use your email and password to create a new account
@@ -184,7 +176,7 @@ const Register = () => {
                       styles.inputFocused,
                   ]}
                 >
-                  <AntDesign
+                  <Feather
                     name="user"
                     size={20}
                     color={colors.neutral400}
@@ -333,13 +325,22 @@ const Register = () => {
               </Button>
             </View>
 
+               {/* Divider */}
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Typo size={14} color={colors.neutral500} style={styles.dividerText}>
+              Or
+            </Typo>
+            <View style={styles.dividerLine} />
+          </View>
+
             {/* Social Auth Buttons Component */}
             <SocialAuthButtons
               isGoogleLoading={isGoogleLoading}
               isAppleLoading={isAppleLoading}
               setIsGoogleLoading={setIsGoogleLoading}
               setIsAppleLoading={setIsAppleLoading}
-              showSocialAuth={false}
+              showSocialAuth={true}
             />
 
             {/* Footer */}
@@ -430,6 +431,21 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: colors.black,
     textDecorationLine: "underline",
+  },
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: spacingY._25,
+    marginTop: spacingY._25,
+
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.neutral300,
+  },
+  dividerText: {
+    paddingHorizontal: spacingX._12,
   },
   loginButton: {
     backgroundColor: colors.primary,
