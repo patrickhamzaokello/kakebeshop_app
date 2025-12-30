@@ -168,7 +168,7 @@ export default function MerchantSignupScreen() {
           ]
         );
       } else {
-        Alert.alert("Error", response.error || "Failed to submit application");
+        Alert.alert("Error",  "Failed to submit application");
       }
     } catch (error: any) {
       console.error("Error submitting application:", error);

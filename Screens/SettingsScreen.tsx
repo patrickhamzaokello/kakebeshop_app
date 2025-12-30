@@ -369,10 +369,10 @@ export default function AccountScreen() {
                   </Text>
                 </View>
                 <View style={[styles.statusBadge, { 
-                  backgroundColor: profile.merchant.status === "ACTIVE" ? "#E8F5E9" : "#FFF3E0" 
+                  backgroundColor: profile.merchant.status === "ACTIVE" ? "#E8F5E9" : "#E60549"  
                 }]}>
                   <Text style={[styles.statusText, { 
-                    color: profile.merchant.status === "ACTIVE" ? "#4CAF50" : "#FF9800" 
+                    color: profile.merchant.status === "ACTIVE" ? "#4CAF50" : "#FFF" 
                   }]}>
                     {profile.merchant.status}
                   </Text>
