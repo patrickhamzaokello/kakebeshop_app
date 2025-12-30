@@ -35,6 +35,7 @@ interface UserProfile {
     status: string;
     rating: number;
     total_reviews: number;
+    is_active: boolean;
   };
   intent?: {
     intent: string;
@@ -104,7 +105,7 @@ export default function AccountScreen() {
   };
 
   const handleBecomeMerchant = () => {
-    router.push("/merchant/apply" as any);
+    router.push("/merchant/apply/signup" as any);
   };
 
   const accountMenuItems: MenuItem[] = [
@@ -409,7 +410,7 @@ export default function AccountScreen() {
       ) : null}
 
       {/* Merchant Section - Only show if user is merchant */}
-      {profile?.is_merchant && (
+      {profile?.is_merchant && profile?.merchant?.verified && profile?.merchant?.is_active && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Merchant</Text>
           <View style={styles.menuCard}>
