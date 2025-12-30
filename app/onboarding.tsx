@@ -7,10 +7,12 @@ import {
   View,
   ActivityIndicator,
   ScrollView,
+  Pressable,
 } from "react-native";
 import { useAuthStore } from "@/utils/authStore";
 import Typo from "@/components/Typo";
 import { Ionicons } from "@expo/vector-icons";
+import { Button } from "@react-navigation/elements";
 
 type UserIntent = "buy" | "sell" | "both" | null;
 
@@ -181,11 +183,12 @@ const SelectIntent = () => {
       <View style={styles.footer}>
         <TouchableOpacity
           style={[
-            styles.continueButton,
+            styles.continueButton, selectedIntent ? {} : styles.disabledButton
           ]}
           onPress={handleContinue}
-          // disabled={!selectedIntent || isLoading}
-          // activeOpacity={0.8}
+          disabled={!selectedIntent || isLoading}
+          activeOpacity={0.8}
+          key={"continue_button"}
         >
           {isLoading ? (
             <ActivityIndicator size="small" color="white" />
@@ -195,6 +198,16 @@ const SelectIntent = () => {
             </Typo>
           )}
         </TouchableOpacity>
+
+        <Pressable onPress={handleContinue}  style={styles.continueButton}>
+        {isLoading ? (
+            <ActivityIndicator size="small" color="white" />
+          ) : (
+            <Typo size={17} fontWeight="600" color="white">
+              Continue
+            </Typo>
+          )}
+        </Pressable>
       </View>
     </View>
   );

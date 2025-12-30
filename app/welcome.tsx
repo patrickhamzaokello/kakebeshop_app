@@ -151,10 +151,10 @@ export default function WelcomeScreen() {
         {/* Welcome Text */}
         <View style={styles.welcomeContainer}>
           <Typo size={32} fontWeight="700" style={styles.welcomeTitle}>
-            Welcome to Cookly 👋
+            Welcome to Kakebeshop
           </Typo>
           <Typo size={15} color={colors.neutral600} style={styles.welcomeSubtitle}>
-            The best cooking and food recipes app of the century.
+            The leading online marketplace for all products and services.
           </Typo>
         </View>
 
