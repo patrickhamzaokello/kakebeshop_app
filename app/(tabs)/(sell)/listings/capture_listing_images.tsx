@@ -1,0 +1,732 @@
+import ScreenWrapper from "@/components/ScreenWrapper";
+import { StatusBar } from "expo-status-bar";
+import {
+  StyleSheet,
+  View,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+  ScrollView,
+  Platform,
+} from "react-native";
+import Typo from "@/components/Typo";
+import { colors, spacingY, spacingX, borderRadius } from "@/constants/theme";
+import { router } from "expo-router";
+import Button from "@/components/CustomButton";
+import { useState } from "react";
+import * as ImagePicker from "expo-image-picker";
+import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
+import apiService from "@/utils/apiBase";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+
+type ImageStatus =
+  | "empty"
+  | "selected"
+  | "processing"
+  | "uploaded"
+  | "pending"
+  | "error";
+
+interface ImageVariant {
+  s3_key: string;
+  width: number;
+  height: number;
+  size_bytes: number;
+}
+
+interface ImageSlot {
+  id: string;
+  uri: string | null;
+  status: ImageStatus;
+  variants: {
+    thumb?: ImageVariant;
+    medium?: ImageVariant;
+    large?: ImageVariant;
+  };
+  error?: string;
+  currentVariant?: string; // For showing progress (thumb/medium/large)
+}
+
+export default function CaptureListingImages() {
+  const [listingId, setListingId] = useState<string>(generateUniqueId());
+  const [images, setImages] = useState<ImageSlot[]>(
+    Array.from({ length: 6 }, (_, i) => ({
+      id: `slot-${i}`,
+      uri: null,
+      status: "empty" as ImageStatus,
+      variants: {},
+    }))
+  );
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [allImagesUploaded, setAllImagesUploaded] = useState(false);
+
+  // Generate unique ID for listing
+  function generateUniqueId(): string {
+    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  // Check if all required images are uploaded
+  const checkAllImagesUploaded = (updatedImages: ImageSlot[]) => {
+    const requiredUploaded = updatedImages
+      .slice(0, 3)
+      .every((img) => img.status === "uploaded");
+    const optionalValid = updatedImages
+      .slice(3)
+      .every((img) => img.status === "empty" || img.status === "uploaded");
+    setAllImagesUploaded(requiredUploaded && optionalValid);
+  };
+
+  // Image picker options handler
+  const handleImageSelection = async (index: number) => {
+    Alert.alert(
+      "Select Image",
+      "Choose an option",
+      [
+        {
+          text: "Take Photo",
+          onPress: () => openCamera(index),
+        },
+        {
+          text: "Choose from Gallery",
+          onPress: () => openGallery(index),
+        },
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
+  // Open camera
+  const openCamera = async (index: number) => {
+    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert("Permission required", "Camera permission is required");
+      return;
+    }
+
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: "images",
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      updateImageSlot(index, result.assets[0].uri);
+    }
+  };
+
+  // Open gallery
+  const openGallery = async (index: number) => {
+    const permissionResult =
+      await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permissionResult.granted) {
+      Alert.alert("Permission required", "Gallery permission is required");
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: "images",
+      allowsEditing: true,
+      aspect: [4, 3],
+      quality: 1,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      updateImageSlot(index, result.assets[0].uri);
+    }
+  };
+
+  // Update image slot
+  const updateImageSlot = (index: number, uri: string) => {
+    setImages((prev) => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        uri,
+        status: "selected",
+        variants: {},
+        error: undefined,
+        currentVariant: undefined,
+      };
+      checkAllImagesUploaded(updated);
+      return updated;
+    });
+  };
+
+  // Clear all images
+  const handleClear = () => {
+    Alert.alert(
+      "Clear All Images",
+      "Are you sure you want to remove all images?",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Clear",
+          style: "destructive",
+          onPress: () => {
+            setImages(
+              Array.from({ length: 6 }, (_, i) => ({
+                id: `slot-${i}`,
+                uri: null,
+                status: "empty" as ImageStatus,
+                variants: {},
+              }))
+            );
+            setListingId(generateUniqueId());
+            setAllImagesUploaded(false);
+          },
+        },
+      ]
+    );
+  };
+
+  // Process all images
+  const handleProcessImages = async () => {
+    // Check if at least 3 images are selected
+    const selectedImages = images.filter((img) => img.uri !== null);
+    if (selectedImages.length < 3) {
+      Alert.alert(
+        "Insufficient Images",
+        "Please select at least 3 images (required)"
+      );
+      return;
+    }
+
+    setIsProcessing(true);
+
+    // Set all selected images to pending
+    setImages((prev) =>
+      prev.map((img) =>
+        img.status === "selected" ? { ...img, status: "pending" } : img
+      )
+    );
+
+    // Process images one by one
+    for (let i = 0; i < images.length; i++) {
+      if (images[i].uri) {
+        await processImage(i);
+      }
+    }
+
+    setIsProcessing(false);
+  };
+
+  // Process single image (creates 3 variants: thumb, medium, large)
+  const processImage = async (index: number) => {
+    const imageSlot = images[index];
+    if (!imageSlot.uri) return;
+
+    // Variant configurations
+    const variantConfigs = [
+      { name: "thumb", size: 240 },
+      { name: "medium", size: 500 },
+      { name: "large", size: 720 },
+    ];
+
+    try {
+      // Update status to processing
+      setImages((prev) => {
+        const updated = [...prev];
+        updated[index] = { ...updated[index], status: "processing" };
+        return updated;
+      });
+
+      const variants: any = {};
+
+      // Process each variant
+      for (const config of variantConfigs) {
+        // Update current variant being processed
+        setImages((prev) => {
+          const updated = [...prev];
+          updated[index] = {
+            ...updated[index],
+            currentVariant: config.name,
+          };
+          return updated;
+        });
+
+        // Step 1: Compress and convert to WebP with square aspect ratio
+        const manipResult = await manipulateAsync(
+          imageSlot.uri,
+          [
+            { resize: { width: config.size, height: config.size } }, // Square 1:1
+          ],
+          { compress: 0.8, format: SaveFormat.WEBP }
+        );
+
+        // Get image dimensions and size
+        const { width, height } = manipResult;
+        const response = await fetch(manipResult.uri);
+        const blob = await response.blob();
+        const size_bytes = blob.size;
+
+        // Step 2: Request presigned URL
+        const presignResponse = await apiService.post<{
+          upload_url: string;
+          s3_key: string;
+          expires_in: number;
+        }>("/api/v1/uploads/presign/", {
+          image_type: "listing",
+          object_id: listingId,
+          variant: config.name,
+        });
+
+        if (!presignResponse.success || !presignResponse.data) {
+          throw new Error(
+            `Failed to get presigned URL for ${config.name} variant`
+          );
+        }
+
+        const { upload_url, s3_key } = presignResponse.data;
+
+        // Step 3: Upload to S3
+        const uploadResponse = await fetch(upload_url, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "image/webp",
+          },
+          body: blob,
+        });
+
+        if (!uploadResponse.ok) {
+          throw new Error(
+            `Failed to upload ${config.name} variant to S3`
+          );
+        }
+
+        // Step 4: Confirm upload
+        const confirmResponse = await apiService.post(
+          "/api/v1/uploads/confirm/",
+          {
+            s3_key,
+            image_type: "listing",
+            variant: config.name,
+            width,
+            height,
+            size_bytes,
+          }
+        );
+
+        if (!confirmResponse.success) {
+          throw new Error(`Failed to confirm ${config.name} variant upload`);
+        }
+
+        // Store variant data
+        variants[config.name] = {
+          s3_key,
+          width,
+          height,
+          size_bytes,
+        };
+      }
+
+      // Update status to uploaded with all variants
+      setImages((prev) => {
+        const updated = [...prev];
+        updated[index] = {
+          ...updated[index],
+          status: "uploaded",
+          variants,
+          currentVariant: undefined,
+        };
+        checkAllImagesUploaded(updated);
+        return updated;
+      });
+    } catch (error: any) {
+      console.error("Image processing error:", error);
+      setImages((prev) => {
+        const updated = [...prev];
+        updated[index] = {
+          ...updated[index],
+          status: "error",
+          error: error.message || "Upload failed",
+          currentVariant: undefined,
+        };
+        return updated;
+      });
+    }
+  };
+
+  // Retry failed image
+  const retryImage = async (index: number) => {
+    await processImage(index);
+  };
+
+  // Remove single image
+  const removeImage = (index: number) => {
+    setImages((prev) => {
+      const updated = [...prev];
+      updated[index] = {
+        ...updated[index],
+        uri: null,
+        status: "empty",
+        variants: {},
+        error: undefined,
+        currentVariant: undefined,
+      };
+      checkAllImagesUploaded(updated);
+      return updated;
+    });
+  };
+
+  // Navigate to next screen
+  const handleNext = () => {
+    // Pass listing ID and all image variants to next screen
+    const uploadedImages = images
+      .filter((img) => img.variants.thumb && img.variants.medium && img.variants.large)
+      .map((img) => ({
+        thumb: img.variants.thumb,
+        medium: img.variants.medium,
+        large: img.variants.large,
+      }));
+
+    router.push({
+      pathname: "/listings/capture_listing_details",
+      params: {
+        listingId,
+        images: JSON.stringify(uploadedImages),
+      },
+    });
+  };
+
+  // Render image box
+  const renderImageBox = (imageSlot: ImageSlot, index: number) => {
+    const isRequired = index < 3;
+
+    return (
+      <TouchableOpacity
+        key={imageSlot.id}
+        style={[
+          styles.imageBox,
+          imageSlot.status === "uploaded" && styles.imageBoxUploaded,
+          imageSlot.status === "error" && styles.imageBoxError,
+        ]}
+        onPress={() => {
+          if (imageSlot.status === "empty" || imageSlot.status === "selected") {
+            handleImageSelection(index);
+          }
+        }}
+        disabled={isProcessing}
+      >
+        {/* Required badge */}
+        {isRequired && (
+          <View style={styles.requiredBadge}>
+            <Typo size={10} color={colors.white} fontWeight="600">
+              Required
+            </Typo>
+          </View>
+        )}
+
+        {/* Empty state */}
+        {imageSlot.status === "empty" && (
+          <View style={styles.emptyState}>
+            <Ionicons name="camera-outline" size={32} color={colors.neutral400} />
+            <Typo size={12} color={colors.neutral400} style={{ marginTop: 8 }}>
+              {isRequired ? "Required" : "Optional"}
+            </Typo>
+          </View>
+        )}
+
+        {/* Selected state */}
+        {imageSlot.status === "selected" && imageSlot.uri && (
+          <>
+            <Image source={{ uri: imageSlot.uri }} style={styles.imagePreview} />
+            <TouchableOpacity
+              style={styles.removeButton}
+              onPress={() => removeImage(index)}
+            >
+              <Ionicons name="close-circle" size={24} color={colors.error} />
+            </TouchableOpacity>
+          </>
+        )}
+
+        {/* Pending state */}
+        {imageSlot.status === "pending" && imageSlot.uri && (
+          <>
+            <Image
+              source={{ uri: imageSlot.uri }}
+              style={[styles.imagePreview, styles.imageProcessing]}
+            />
+            <View style={styles.statusOverlay}>
+              <Typo size={12} color={colors.neutral500}>
+                Pending
+              </Typo>
+            </View>
+          </>
+        )}
+
+        {/* Processing state */}
+        {imageSlot.status === "processing" && imageSlot.uri && (
+          <>
+            <Image
+              source={{ uri: imageSlot.uri }}
+              style={[styles.imagePreview, styles.imageProcessing]}
+            />
+            <View style={styles.statusOverlay}>
+              <ActivityIndicator color={colors.primary} size="small" />
+              <Typo size={12} color={colors.primary} style={{ marginTop: 4 }}>
+                {imageSlot.currentVariant
+                  ? `Processing ${imageSlot.currentVariant}...`
+                  : "Processing..."}
+              </Typo>
+            </View>
+          </>
+        )}
+
+        {/* Uploaded state */}
+        {imageSlot.status === "uploaded" && imageSlot.uri && (
+          <>
+            <Image source={{ uri: imageSlot.uri }} style={styles.imagePreview} />
+            <View style={styles.uploadedBadge}>
+              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+            </View>
+          </>
+        )}
+
+        {/* Error state */}
+        {imageSlot.status === "error" && imageSlot.uri && (
+          <>
+            <Image
+              source={{ uri: imageSlot.uri }}
+              style={[styles.imagePreview, styles.imageProcessing]}
+            />
+            <View style={styles.statusOverlay}>
+              <TouchableOpacity
+                style={styles.retryButton}
+                onPress={() => retryImage(index)}
+              >
+                <MaterialIcons name="refresh" size={24} color={colors.error} />
+                <Typo size={12} color={colors.error} style={{ marginTop: 4 }}>
+                  Retry
+                </Typo>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={styles.removeButton}
+              onPress={() => removeImage(index)}
+            >
+              <Ionicons name="close-circle" size={24} color={colors.error} />
+            </TouchableOpacity>
+          </>
+        )}
+      </TouchableOpacity>
+    );
+  };
+
+  return (
+    <ScreenWrapper>
+      <StatusBar style="dark" />
+      <View style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Typo size={24} fontWeight="700" color={colors.black}>
+            Add Listing Photos
+          </Typo>
+          <Typo size={14} color={colors.neutral500} style={{ marginTop: 4 }}>
+            Add at least 3 photos to continue
+          </Typo>
+        </View>
+
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* Image Grid */}
+          <View style={styles.gridContainer}>
+            {images.map((imageSlot, index) => renderImageBox(imageSlot, index))}
+          </View>
+
+          {/* Instructions */}
+          <View style={styles.instructionsContainer}>
+            <Typo size={14} fontWeight="600" color={colors.black}>
+              Photo Tips:
+            </Typo>
+            <Typo size={13} color={colors.neutral600} style={{ marginTop: 8 }}>
+              • Use good lighting and clear images
+            </Typo>
+            <Typo size={13} color={colors.neutral600} style={{ marginTop: 4 }}>
+              • Show the product from different angles
+            </Typo>
+            <Typo size={13} color={colors.neutral600} style={{ marginTop: 4 }}>
+              • Avoid blurry or low-quality photos
+            </Typo>
+            <Typo size={13} color={colors.neutral600} style={{ marginTop: 4 }}>
+              • Images will be cropped to square (1:1) and resized
+            </Typo>
+          </View>
+
+          {/* Action Buttons */}
+          <View style={styles.actionButtons}>
+            {/* Clear Button */}
+            <TouchableOpacity
+              style={styles.clearButton}
+              onPress={handleClear}
+              disabled={
+                isProcessing ||
+                images.every((img) => img.status === "empty")
+              }
+            >
+              <Typo size={14} fontWeight="600" color={colors.error}>
+                Clear All
+              </Typo>
+            </TouchableOpacity>
+
+            {/* Process Button */}
+            {!allImagesUploaded && (
+              <Button
+                style={styles.processButton}
+                onPress={handleProcessImages}
+                disabled={
+                  isProcessing ||
+                  images.filter((img) => img.status === "selected").length === 0
+                }
+                loading={isProcessing}
+              >
+                <Typo size={16} fontWeight="600" color={colors.white}>
+                  {isProcessing ? "Processing..." : "Process Images"}
+                </Typo>
+              </Button>
+            )}
+
+            {/* Next Button */}
+            {allImagesUploaded && (
+              <Button style={styles.nextButton} onPress={handleNext}>
+                <Typo size={16} fontWeight="600" color={colors.white}>
+                  Next
+                </Typo>
+              </Button>
+            )}
+          </View>
+        </ScrollView>
+      </View>
+    </ScreenWrapper>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: colors.white,
+  },
+  header: {
+    paddingHorizontal: spacingX._16,
+    paddingTop: spacingY._20,
+    paddingBottom: spacingY._16,
+  },
+  scrollContent: {
+    paddingHorizontal: spacingX._16,
+    paddingBottom: spacingY._30,
+  },
+  gridContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    marginBottom: spacingY._20,
+  },
+  imageBox: {
+    width: "48%",
+    aspectRatio: 1,
+    backgroundColor: colors.neutral100,
+    borderRadius: borderRadius.md,
+    marginBottom: spacingY._12,
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: colors.neutral200,
+    borderStyle: "dashed",
+  },
+  imageBoxUploaded: {
+    borderColor: colors.success,
+    borderStyle: "solid",
+  },
+  imageBoxError: {
+    borderColor: colors.error,
+    borderStyle: "solid",
+  },
+  emptyState: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  requiredBadge: {
+    position: "absolute",
+    top: 8,
+    left: 8,
+    backgroundColor: colors.primary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    zIndex: 1,
+  },
+  imagePreview: {
+    width: "100%",
+    height: "100%",
+  },
+  imageProcessing: {
+    opacity: 0.5,
+  },
+  removeButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    zIndex: 2,
+  },
+  statusOverlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+  },
+  uploadedBadge: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    backgroundColor: colors.white,
+    borderRadius: 20,
+  },
+  retryButton: {
+    alignItems: "center",
+  },
+  instructionsContainer: {
+    backgroundColor: colors.neutral50,
+    padding: spacingX._16,
+    borderRadius: borderRadius.md,
+    marginBottom: spacingY._20,
+  },
+  actionButtons: {
+    gap: spacingY._12,
+  },
+  clearButton: {
+    paddingVertical: spacingY._15,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: colors.error,
+    borderRadius: borderRadius.md,
+  },
+  processButton: {
+    backgroundColor: colors.primary,
+    paddingVertical: spacingY._15,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: borderRadius.md,
+  },
+  nextButton: {
+    backgroundColor: colors.success,
+    paddingVertical: spacingY._15,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: borderRadius.md,
+  },
+});

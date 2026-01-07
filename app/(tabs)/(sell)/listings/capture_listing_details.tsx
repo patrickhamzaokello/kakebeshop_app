@@ -7,25 +7,12 @@ import { colors, spacingY } from "@/constants/theme";
 import { router } from "expo-router";
 import Button from "@/components/CustomButton";
 
-export default function MerchantSellMain() {
+export default function SellLisitingDetails() {
   return (
     <View style={styles.container}>
-      <DetailHeaderSection
-        title="Sell on Kakebe"
-        subheading="Sell on Kakabe, get orders and manage your products"
-      />
-
-      <Button
-        loading={false}
-        onPress={() => {
-          router.push("/listings/capture_listing_images");
-        }}
-        style={styles.main_cta_button}
-      >
-        <Typo fontWeight={"700"} color="#ffffff" size={16}>
+      <Typo fontWeight={"700"} color="#000" size={16}>
           Get Started
         </Typo>
-      </Button>
     </View>
   );
 }
@@ -36,9 +23,5 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
 
-  main_cta_button: {
-    backgroundColor: colors.primary,
-    borderRadius: 12,
-    paddingVertical: spacingY._16,
-  },
+ 
 });
