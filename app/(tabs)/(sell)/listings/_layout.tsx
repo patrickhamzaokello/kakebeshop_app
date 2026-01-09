@@ -1,9 +1,30 @@
-import { Stack,usePathname } from "expo-router";
+// Example with Expo Router
+import { Stack } from "expo-router";
 
-export default function FavouritesLayout() {
-  const pathname = usePathname();
+export default function ListingsLayout() {
   return (
-      <Stack screenOptions={{ headerShown: false, animation: pathname.startsWith("/sell") ? "default" : "none" }} >
-      </Stack>
+    <Stack>
+      <Stack.Screen
+        name="capture_listing_images"
+        options={{
+          title: "Add Photos",
+          headerShown: false
+        }}
+      />
+      <Stack.Screen
+        name="capture_listing_details"
+        options={{
+          title: "Listing Details",
+          headerShown: false, // We have custom header
+        }}
+      />
+      <Stack.Screen
+        name="[id]"
+        options={{
+          title: "Listing",
+          headerShown: false,
+        }}
+      />
+    </Stack>
   );
 }

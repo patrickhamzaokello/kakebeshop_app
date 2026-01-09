@@ -7,7 +7,6 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
-  Platform,
 } from "react-native";
 import Typo from "@/components/Typo";
 import { colors, spacingY, spacingX, borderRadius } from "@/constants/theme";
@@ -37,6 +36,7 @@ interface ImageVariant {
 
 interface ImageSlot {
   id: string;
+  image_group_id: string; // NEW: UUID for grouping variants
   uri: string | null;
   status: ImageStatus;
   variants: {
@@ -45,14 +45,14 @@ interface ImageSlot {
     large?: ImageVariant;
   };
   error?: string;
-  currentVariant?: string; // For showing progress (thumb/medium/large)
+  currentVariant?: string;
 }
 
 export default function CaptureListingImages() {
-  const [listingId, setListingId] = useState<string>(generateUniqueId());
   const [images, setImages] = useState<ImageSlot[]>(
     Array.from({ length: 6 }, (_, i) => ({
       id: `slot-${i}`,
+      image_group_id: generateUUID(), // Generate UUID for each slot
       uri: null,
       status: "empty" as ImageStatus,
       variants: {},
@@ -61,9 +61,13 @@ export default function CaptureListingImages() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [allImagesUploaded, setAllImagesUploaded] = useState(false);
 
-  // Generate unique ID for listing
-  function generateUniqueId(): string {
-    return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  // Generate UUID (simple version)
+  function generateUUID(): string {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+      const r = Math.random() * 16 | 0;
+      const v = c === 'x' ? r : (r & 0x3 | 0x8);
+      return v.toString(16);
+    });
   }
 
   // Check if all required images are uploaded
@@ -175,12 +179,12 @@ export default function CaptureListingImages() {
             setImages(
               Array.from({ length: 6 }, (_, i) => ({
                 id: `slot-${i}`,
+                image_group_id: generateUUID(),
                 uri: null,
                 status: "empty" as ImageStatus,
                 variants: {},
               }))
             );
-            setListingId(generateUniqueId());
             setAllImagesUploaded(false);
           },
         },
@@ -257,7 +261,7 @@ export default function CaptureListingImages() {
         const manipResult = await manipulateAsync(
           imageSlot.uri,
           [
-            { resize: { width: config.size, height: config.size } }, // Square 1:1
+            { resize: { width: config.size, height: config.size } },
           ],
           { compress: 0.8, format: SaveFormat.WEBP }
         );
@@ -268,14 +272,14 @@ export default function CaptureListingImages() {
         const blob = await response.blob();
         const size_bytes = blob.size;
 
-        // Step 2: Request presigned URL
+        // Step 2: Request presigned URL with image_group_id
         const presignResponse = await apiService.post<{
           upload_url: string;
           s3_key: string;
           expires_in: number;
-        }>("/api/v1/uploads/presign/", {
+        }>("/api/v1/image/presign/", {
           image_type: "listing",
-          object_id: listingId,
+          image_group_id: imageSlot.image_group_id, // Use image_group_id instead of object_id
           variant: config.name,
         });
 
@@ -302,12 +306,13 @@ export default function CaptureListingImages() {
           );
         }
 
-        // Step 4: Confirm upload
+        // Step 4: Confirm upload with image_group_id
         const confirmResponse = await apiService.post(
-          "/api/v1/uploads/confirm/",
+          "/api/v1/image/confirm/",
           {
             s3_key,
             image_type: "listing",
+            image_group_id: imageSlot.image_group_id, // Include image_group_id
             variant: config.name,
             width,
             height,
@@ -371,28 +376,24 @@ export default function CaptureListingImages() {
         variants: {},
         error: undefined,
         currentVariant: undefined,
+        image_group_id: generateUUID(), // Generate new UUID when removing
       };
       checkAllImagesUploaded(updated);
       return updated;
     });
   };
 
-  // Navigate to next screen
+  // Navigate to next screen - pass image_group_ids instead of full image data
   const handleNext = () => {
-    // Pass listing ID and all image variants to next screen
-    const uploadedImages = images
-      .filter((img) => img.variants.thumb && img.variants.medium && img.variants.large)
-      .map((img) => ({
-        thumb: img.variants.thumb,
-        medium: img.variants.medium,
-        large: img.variants.large,
-      }));
+    // Get image_group_ids of uploaded images in order
+    const uploadedImageGroupIds = images
+      .filter((img) => img.status === "uploaded")
+      .map((img) => img.image_group_id);
 
     router.push({
       pathname: "/listings/capture_listing_details",
       params: {
-        listingId,
-        images: JSON.stringify(uploadedImages),
+        image_group_ids: JSON.stringify(uploadedImageGroupIds),
       },
     });
   };
@@ -522,7 +523,7 @@ export default function CaptureListingImages() {
   };
 
   return (
-    <ScreenWrapper>
+    <View style={{flex: 1}}>
       <StatusBar style="dark" />
       <View style={styles.container}>
         {/* Header */}
@@ -607,7 +608,7 @@ export default function CaptureListingImages() {
           </View>
         </ScrollView>
       </View>
-    </ScreenWrapper>
+    </View>
   );
 }
 
@@ -632,7 +633,7 @@ const styles = StyleSheet.create({
     marginBottom: spacingY._20,
   },
   imageBox: {
-    width: "48%",
+    width: "30%",
     aspectRatio: 1,
     backgroundColor: colors.neutral100,
     borderRadius: borderRadius.md,
