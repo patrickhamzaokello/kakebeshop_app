@@ -3,15 +3,14 @@ import {
   StyleSheet,
   View,
   Text,
-  SafeAreaView,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
-import { TwoColumnCategoriesScreen } from "@/Screens/CategoriesScreen";
+import { SafeAreaFrameContext } from "react-native-safe-area-context";
 
-export default function Category() {
+export default function SearchHomePage() {
   return (
-    <SafeAreaView style={styles.container}>
+    <View style={styles.container}>
       <StatusBar style="dark" />
       
       {/* Header */}
@@ -27,9 +26,7 @@ export default function Category() {
         </View>
       </View>
 
-      {/* Two-Column Categories View */}
-      <TwoColumnCategoriesScreen />
-    </SafeAreaView>
+    </View>
   );
 }
 

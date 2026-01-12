@@ -12,7 +12,7 @@ export default function MerchantDetails() {
       <ScreenWrapper style={styles.container}>
         <StatusBar style="dark" />
 
-        <Typo>Merchant details</Typo>
+        <Typo>Merchant now</Typo>
       </ScreenWrapper>
   );
 }

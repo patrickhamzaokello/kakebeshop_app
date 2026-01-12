@@ -145,7 +145,7 @@ export default function AccountScreen() {
       id: "my-listings",
       title: "My Listings",
       icon: "pricetags-outline",
-      route: "/merchant/listings",
+      route: "/merchant/mylistings",
       color: "#4CAF50",
     },
     {

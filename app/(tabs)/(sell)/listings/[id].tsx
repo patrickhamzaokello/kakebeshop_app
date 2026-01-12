@@ -19,7 +19,7 @@ import { Image } from "expo-image";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-// Updated interfaces to match API response
+// Interfaces
 interface ImageVariant {
   id: string;
   image: string;
@@ -131,12 +131,7 @@ export default function ListingDetail() {
       Alert.alert(
         "Error",
         "Failed to load listing details. Please try again.",
-        [
-          {
-            text: "Go Back",
-            onPress: () => router.back(),
-          },
-        ]
+        [{ text: "Go Back", onPress: () => router.back() }]
       );
     } finally {
       setIsLoading(false);
@@ -144,7 +139,6 @@ export default function ListingDetail() {
   };
 
   const handleEdit = () => {
-    // Navigate to edit screen
     router.push(`/listings/edit/${listingId}`);
   };
 
@@ -153,10 +147,7 @@ export default function ListingDetail() {
       "Delete Listing",
       "Are you sure you want to delete this listing? This action cannot be undone.",
       [
-        {
-          text: "Cancel",
-          style: "cancel",
-        },
+        { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
@@ -165,13 +156,9 @@ export default function ListingDetail() {
               const response = await apiService.delete(
                 `/api/v1/listings/${listingId}/`
               );
-
               if (response.success) {
                 Alert.alert("Success", "Listing deleted successfully", [
-                  {
-                    text: "OK",
-                    onPress: () => router.replace("/(tabs)/(sell)/sell"),
-                  },
+                  { text: "OK", onPress: () => router.replace("/(tabs)/(sell)/sell") },
                 ]);
               } else {
                 throw new Error("Failed to delete listing");
@@ -185,80 +172,45 @@ export default function ListingDetail() {
     );
   };
 
-  const getStatusBadge = (status: string) => {
-    const statusConfig = {
-      DRAFT: { label: "Draft", color: colors.neutral500, bg: colors.neutral100 },
-      PENDING: { label: "Pending Review", color: colors.warning, bg: colors.warning + "20" },
-      ACTIVE: { label: "Active", color: colors.success, bg: colors.success + "20" },
-      REJECTED: { label: "Rejected", color: colors.error, bg: colors.error + "20" },
-      EXPIRED: { label: "Expired", color: colors.neutral500, bg: colors.neutral100 },
+  const getStatusInfo = (status: string) => {
+    const statusMap = {
+      DRAFT: { label: "Draft", color: "#64748B" },
+      PENDING: { label: "Pending Review", color: "#F59E0B" },
+      ACTIVE: { label: "Active", color: "#10B981" },
+      REJECTED: { label: "Rejected", color: "#EF4444" },
+      EXPIRED: { label: "Expired", color: "#94A3B8" },
     };
-
-    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.DRAFT;
-
-    return (
-      <View style={[styles.statusBadge, { backgroundColor: config.bg }]}>
-        <Typo size={12} fontWeight="600" color={config.color}>
-          {config.label}
-        </Typo>
-      </View>
-    );
+    return statusMap[status as keyof typeof statusMap] || statusMap.DRAFT;
   };
 
   const formatPrice = () => {
     if (!listing) return "";
-
-    if (listing.price_type === "ON_REQUEST") {
-      return "Price on Request";
-    }
-
+    if (listing.price_type === "ON_REQUEST") return "Price on Request";
+    
     if (listing.price_type === "FIXED") {
-      return `${listing.currency} ${parseFloat(listing.price || "0").toLocaleString()}${
-        listing.is_price_negotiable ? " (Negotiable)" : ""
-      }`;
+      const price = `${listing.currency} ${parseFloat(listing.price || "0").toLocaleString()}`;
+      return listing.is_price_negotiable ? `${price} (Negotiable)` : price;
     }
-
+    
     if (listing.price_type === "RANGE") {
-      return `${listing.currency} ${parseFloat(
-        listing.price_min || "0"
-      ).toLocaleString()} - ${parseFloat(listing.price_max || "0").toLocaleString()}${
-        listing.is_price_negotiable ? " (Negotiable)" : ""
-      }`;
+      const range = `${listing.currency} ${parseFloat(listing.price_min || "0").toLocaleString()} - ${parseFloat(listing.price_max || "0").toLocaleString()}`;
+      return listing.is_price_negotiable ? `${range} (Negotiable)` : range;
     }
-
     return "";
   };
 
-  // Helper function to get the best available image URL from an image group
-  const getImageUrl = (imageGroup: ListingImageGroup, preferredVariant: 'large' | 'medium' | 'thumb' = 'large'): string => {
-    // Try to get the preferred variant first
-    if (preferredVariant === 'large' && imageGroup.large) {
-      return imageGroup.large.image;
-    }
-    if (preferredVariant === 'medium' && imageGroup.medium) {
-      return imageGroup.medium.image;
-    }
-    if (preferredVariant === 'thumb' && imageGroup.thumb) {
-      return imageGroup.thumb.image;
-    }
-    
-    // Fallback: try to get any available variant
-    if (imageGroup.large) return imageGroup.large.image;
-    if (imageGroup.medium) return imageGroup.medium.image;
-    if (imageGroup.thumb) return imageGroup.thumb.image;
-    
-    // Return empty string if no images available
-    return '';
+  const getImageUrl = (imageGroup: ListingImageGroup, variant: 'large' | 'medium' | 'thumb' = 'large'): string => {
+    if (variant === 'large' && imageGroup.large) return imageGroup.large.image;
+    if (variant === 'medium' && imageGroup.medium) return imageGroup.medium.image;
+    if (variant === 'thumb' && imageGroup.thumb) return imageGroup.thumb.image;
+    return imageGroup.large?.image || imageGroup.medium?.image || imageGroup.thumb?.image || '';
   };
 
-  // Get unique images (remove duplicates based on image URL)
   const getUniqueImages = (images: ListingImageGroup[]): ListingImageGroup[] => {
     const seen = new Set<string>();
     return images.filter(imageGroup => {
       const url = getImageUrl(imageGroup, 'thumb');
-      if (!url || seen.has(url)) {
-        return false;
-      }
+      if (!url || seen.has(url)) return false;
       seen.add(url);
       return true;
     });
@@ -268,11 +220,8 @@ export default function ListingDetail() {
     return (
       <ScreenWrapper>
         <StatusBar style="dark" />
-        <View style={[styles.container, styles.centerContent]}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Typo size={16} color={colors.neutral500} style={{ marginTop: 16 }}>
-            Loading listing...
-          </Typo>
+        <View style={[styles.container, styles.centered]}>
+          <ActivityIndicator size="large" color="#000" />
         </View>
       </ScreenWrapper>
     );
@@ -282,248 +231,160 @@ export default function ListingDetail() {
     return (
       <ScreenWrapper>
         <StatusBar style="dark" />
-        <View style={[styles.container, styles.centerContent]}>
-          <Ionicons name="alert-circle" size={48} color={colors.neutral400} />
-          <Typo size={16} color={colors.neutral500} style={{ marginTop: 16 }}>
-            Listing not found
-          </Typo>
-          <TouchableOpacity
-            style={styles.backButtonCentered}
-            onPress={() => router.back()}
-          >
-            <Typo size={14} fontWeight="600" color={colors.primary}>
-              Go Back
-            </Typo>
+        <View style={[styles.container, styles.centered]}>
+          <Typo size={16} color="#64748B">Listing not found</Typo>
+          <TouchableOpacity style={styles.textButton} onPress={() => router.back()}>
+            <Typo size={15} color="#000">Go Back</Typo>
           </TouchableOpacity>
         </View>
       </ScreenWrapper>
     );
   }
 
-  // Get unique images to display
   const uniqueImages = getUniqueImages(listing.images);
+  const statusInfo = getStatusInfo(listing.status);
 
   return (
     <ScreenWrapper>
       <StatusBar style="dark" />
-      <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={24} color={colors.black} />
-          </TouchableOpacity>
-          <View style={styles.headerTextContainer}>
-            <Typo size={18} fontWeight="700" color={colors.black}>
-              Listing Details
-            </Typo>
-          </View>
-          <TouchableOpacity
-            style={styles.moreButton}
-            onPress={() => {
-              Alert.alert("Actions", "Choose an action", [
-                {
-                  text: "Edit",
-                  onPress: handleEdit,
-                },
-                {
-                  text: "Delete",
-                  style: "destructive",
-                  onPress: handleDelete,
-                },
-                {
-                  text: "Cancel",
-                  style: "cancel",
-                },
-              ]);
-            }}
-          >
-            <Ionicons name="ellipsis-vertical" size={24} color={colors.black} />
-          </TouchableOpacity>
+      
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerButton}>
+          <Ionicons name="arrow-back" size={24} color="#000" />
+        </TouchableOpacity>
+        <View style={styles.headerCenter}>
+          <Typo size={17} fontWeight="600" color="#000">Listing Details</Typo>
         </View>
-
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
+        <TouchableOpacity 
+          onPress={() => {
+            Alert.alert("Options", "", [
+              { text: "Edit Listing", onPress: handleEdit },
+              { text: "Delete Listing", onPress: handleDelete, style: "destructive" },
+              { text: "Cancel", style: "cancel" },
+            ]);
+          }}
+          style={styles.headerButton}
         >
-          {/* Image Gallery */}
-          {uniqueImages.length > 0 && (
-            <View style={styles.imageGalleryContainer}>
-              <ScrollView
-                horizontal
-                pagingEnabled
-                showsHorizontalScrollIndicator={false}
-                onMomentumScrollEnd={(event) => {
-                  const newIndex = Math.round(
-                    event.nativeEvent.contentOffset.x / SCREEN_WIDTH
-                  );
-                  setCurrentImageIndex(newIndex);
-                }}
-              >
-                {uniqueImages.map((imageGroup, index) => {
-                  const imageUrl = getImageUrl(imageGroup, 'large');
-                  if (!imageUrl) return null;
-                  
-                  return (
-                    <View key={`image-${index}-${imageUrl}`} style={styles.imageSlide}>
-                      <Image
-                        source={{ uri: imageUrl }}
-                        style={styles.listingImage}
-                        contentFit="cover"
-                        placeholder={getImageUrl(imageGroup, 'thumb')}
-                        transition={200}
-                      />
-                    </View>
-                  );
-                })}
-              </ScrollView>
+          <Ionicons name="ellipsis-horizontal" size={24} color="#000" />
+        </TouchableOpacity>
+      </View>
 
-              {/* Image Pagination Dots */}
-              {uniqueImages.length > 1 && (
-                <View style={styles.paginationDots}>
-                  {uniqueImages.map((_, index) => (
-                    <View
-                      key={`dot-${index}`}
-                      style={[
-                        styles.dot,
-                        currentImageIndex === index && styles.dotActive,
-                      ]}
-                    />
-                  ))}
-                </View>
-              )}
-
-              {/* Image Counter */}
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        {/* Image Gallery */}
+        {uniqueImages.length > 0 ? (
+          <View style={styles.galleryContainer}>
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) => {
+                setCurrentImageIndex(Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH));
+              }}
+            >
+              {uniqueImages.map((imageGroup, index) => {
+                const imageUrl = getImageUrl(imageGroup, 'large');
+                if (!imageUrl) return null;
+                return (
+                  <Image
+                    key={`img-${index}`}
+                    source={{ uri: imageUrl }}
+                    style={styles.image}
+                    contentFit="cover"
+                    placeholder={getImageUrl(imageGroup, 'thumb')}
+                  />
+                );
+              })}
+            </ScrollView>
+            
+            {/* Image Counter */}
+            {uniqueImages.length > 1 && (
               <View style={styles.imageCounter}>
-                <Typo size={12} fontWeight="600" color={colors.white}>
+                <Typo size={13} color="#000">
                   {currentImageIndex + 1} / {uniqueImages.length}
                 </Typo>
               </View>
-            </View>
-          )}
+            )}
+          </View>
+        ) : (
+          <View style={styles.noImagePlaceholder}>
+            <Ionicons name="image-outline" size={48} color="#CBD5E1" />
+            <Typo size={14} color="#94A3B8" style={{ marginTop: 8 }}>No images</Typo>
+          </View>
+        )}
 
-          {/* No Images Placeholder */}
-          {uniqueImages.length === 0 && (
-            <View style={styles.noImageContainer}>
-              <Ionicons name="image-outline" size={64} color={colors.neutral300} />
-              <Typo size={14} color={colors.neutral500} style={{ marginTop: 12 }}>
-                No images available
+        {/* Content */}
+        <View style={styles.content}>
+          {/* Status & Featured */}
+          <View style={styles.row}>
+            <View style={[styles.statusBadge, { backgroundColor: statusInfo.color + '15' }]}>
+              <View style={[styles.statusDot, { backgroundColor: statusInfo.color }]} />
+              <Typo size={13} fontWeight="500" color={statusInfo.color}>
+                {statusInfo.label}
               </Typo>
             </View>
-          )}
-
-          {/* Status and Stats */}
-          <View style={styles.statusContainer}>
-            {getStatusBadge(listing.status)}
-            <View style={styles.statsRow}>
-              <View style={styles.statItem}>
-                <Ionicons name="eye-outline" size={16} color={colors.neutral500} />
-                <Typo size={13} color={colors.neutral600} style={{ marginLeft: 4 }}>
-                  {listing.views_count} views
+            {listing.is_featured && (
+              <View style={styles.featuredBadge}>
+                <Ionicons name="star" size={12} color="#F59E0B" />
+                <Typo size={13} fontWeight="500" color="#F59E0B" style={{ marginLeft: 4 }}>
+                  Featured
                 </Typo>
               </View>
-              <View style={styles.statItem}>
-                <Ionicons name="call-outline" size={16} color={colors.neutral500} />
-                <Typo size={13} color={colors.neutral600} style={{ marginLeft: 4 }}>
-                  {listing.contact_count} contacts
-                </Typo>
-              </View>
-            </View>
+            )}
           </View>
 
-          {/* Merchant Info */}
+          {/* Title & Price */}
           <View style={styles.section}>
-            <View style={styles.merchantRow}>
-              <View style={styles.merchantAvatar}>
-                {listing.merchant.logo ? (
-                  <Image
-                    source={{ uri: listing.merchant.logo }}
-                    style={styles.merchantLogo}
-                    contentFit="cover"
-                  />
-                ) : (
-                  <Ionicons name="star-outline" size={24} color={colors.primary} />
-                )}
-              </View>
-              <View style={{ flex: 1 }}>
-                <View style={styles.merchantNameRow}>
-                  <Typo size={15} fontWeight="600" color={colors.black}>
-                    {listing.merchant.display_name}
-                  </Typo>
-                  {listing.merchant.verified && (
-                    <Ionicons name="checkmark-circle" size={16} color={colors.primary} style={{ marginLeft: 4 }} />
-                  )}
-                </View>
-                {listing.merchant.business_name && (
-                  <Typo size={12} color={colors.neutral500}>
-                    {listing.merchant.business_name}
-                  </Typo>
-                )}
-                {listing.merchant.rating > 0 && (
-                  <View style={styles.ratingRow}>
-                    <Ionicons name="star" size={12} color={colors.warning} />
-                    <Typo size={12} color={colors.neutral600} style={{ marginLeft: 4 }}>
-                      {listing.merchant.rating.toFixed(1)} ({listing.merchant.total_reviews} reviews)
-                    </Typo>
-                  </View>
-                )}
-              </View>
-            </View>
-          </View>
-
-          {/* Title */}
-          <View style={styles.section}>
-            <Typo size={22} fontWeight="700" color={colors.black}>
+            <Typo size={24} fontWeight="700" color="#000" style={{ lineHeight: 32 }}>
               {listing.title}
             </Typo>
-          </View>
-
-          {/* Price */}
-          <View style={styles.section}>
-            <Typo size={24} fontWeight="700" color={colors.primary}>
+            <Typo size={20} fontWeight="600" color="#000" style={{ marginTop: 8 }}>
               {formatPrice()}
             </Typo>
           </View>
 
-          {/* Category and Type */}
-          <View style={styles.section}>
-            <View style={styles.infoRow}>
-              <Ionicons name="grid-outline" size={20} color={colors.neutral600} />
-              <View style={{ marginLeft: 12, flex: 1 }}>
-                <Typo size={12} color={colors.neutral500}>
-                  Category
-                </Typo>
-                <Typo size={15} fontWeight="600" color={colors.black}>
-                  {listing.category.name}
-                </Typo>
-              </View>
+          {/* Stats */}
+          <View style={styles.statsRow}>
+            <View style={styles.statBox}>
+              <Typo size={24} fontWeight="700" color="#000">{listing.views_count}</Typo>
+              <Typo size={13} color="#64748B" style={{ marginTop: 2 }}>Views</Typo>
             </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statBox}>
+              <Typo size={24} fontWeight="700" color="#000">{listing.contact_count}</Typo>
+              <Typo size={13} color="#64748B" style={{ marginTop: 2 }}>Contacts</Typo>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statBox}>
+              <Typo size={24} fontWeight="700" color="#000">
+                {listing.is_verified ? 'Yes' : 'No'}
+              </Typo>
+              <Typo size={13} color="#64748B" style={{ marginTop: 2 }}>Verified</Typo>
+            </View>
+          </View>
 
-            <View style={styles.infoRow}>
-              <Ionicons name="pricetag-outline" size={20} color={colors.neutral600} />
-              <View style={{ marginLeft: 12, flex: 1 }}>
-                <Typo size={12} color={colors.neutral500}>
-                  Type
-                </Typo>
-                <Typo size={15} fontWeight="600" color={colors.black}>
-                  {listing.listing_type === "PRODUCT" ? "Product" : "Service"}
-                </Typo>
-              </View>
+          {/* Info Grid */}
+          <View style={styles.infoGrid}>
+            <View style={styles.infoItem}>
+              <Typo size={13} color="#64748B">Category</Typo>
+              <Typo size={15} fontWeight="600" color="#000" style={{ marginTop: 4 }}>
+                {listing.category.name}
+              </Typo>
+            </View>
+            <View style={styles.infoItem}>
+              <Typo size={13} color="#64748B">Type</Typo>
+              <Typo size={15} fontWeight="600" color="#000" style={{ marginTop: 4 }}>
+                {listing.listing_type === "PRODUCT" ? "Product" : "Service"}
+              </Typo>
             </View>
           </View>
 
           {/* Description */}
           <View style={styles.section}>
-            <Typo size={16} fontWeight="600" color={colors.black}>
+            <Typo size={15} fontWeight="600" color="#000" style={{ marginBottom: 8 }}>
               Description
             </Typo>
-            <Typo
-              size={14}
-              color={colors.neutral700}
-              style={{ marginTop: 8, lineHeight: 22 }}
-            >
+            <Typo size={15} color="#475569" style={{ lineHeight: 24 }}>
               {listing.description}
             </Typo>
           </View>
@@ -531,69 +392,87 @@ export default function ListingDetail() {
           {/* Tags */}
           {listing.tags.length > 0 && (
             <View style={styles.section}>
-              <Typo size={16} fontWeight="600" color={colors.black}>
+              <Typo size={15} fontWeight="600" color="#000" style={{ marginBottom: 8 }}>
                 Tags
               </Typo>
-              <View style={styles.tagsContainer}>
+              <View style={styles.tagsRow}>
                 {listing.tags.map((tag) => (
                   <View key={tag.id} style={styles.tag}>
-                    <Typo size={13} color={colors.neutral700}>
-                      {tag.name}
-                    </Typo>
+                    <Typo size={14} color="#475569">{tag.name}</Typo>
                   </View>
                 ))}
               </View>
             </View>
           )}
 
-          {/* Rejection Reason (if rejected) */}
+          {/* Alert Messages */}
           {listing.status === "REJECTED" && listing.rejection_reason && (
-            <View style={styles.rejectionBox}>
-              <View style={styles.rejectionHeader}>
-                <Ionicons name="close-circle" size={20} color={colors.error} />
-                <Typo
-                  size={14}
-                  fontWeight="600"
-                  color={colors.error}
-                  style={{ marginLeft: 8 }}
-                >
+            <View style={[styles.alertBox, styles.alertError]}>
+              <View style={styles.alertHeader}>
+                <Ionicons name="alert-circle" size={20} color="#DC2626" />
+                <Typo size={15} fontWeight="600" color="#DC2626" style={{ marginLeft: 8 }}>
                   Rejection Reason
                 </Typo>
               </View>
-              <Typo size={14} color={colors.neutral700} style={{ marginTop: 8 }}>
+              <Typo size={14} color="#475569" style={{ marginTop: 8, lineHeight: 22 }}>
                 {listing.rejection_reason}
               </Typo>
             </View>
           )}
 
-          {/* Pending Review Info */}
           {listing.status === "PENDING" && (
-            <View style={styles.infoBox}>
-              <Ionicons name="time-outline" size={20} color={colors.warning} />
-              <Typo
-                size={13}
-                color={colors.neutral700}
-                style={{ marginLeft: 8, flex: 1 }}
-              >
-                Your listing is currently under review. This usually takes 24-48
-                hours. You'll be notified once it's approved.
+            <View style={[styles.alertBox, styles.alertWarning]}>
+              <View style={styles.alertHeader}>
+                <Ionicons name="time-outline" size={20} color="#D97706" />
+                <Typo size={15} fontWeight="600" color="#D97706" style={{ marginLeft: 8 }}>
+                  Under Review
+                </Typo>
+              </View>
+              <Typo size={14} color="#475569" style={{ marginTop: 8, lineHeight: 22 }}>
+                Your listing is being reviewed. This typically takes 24-48 hours.
               </Typo>
             </View>
           )}
 
           {/* Timestamps */}
-          <View style={styles.timestampContainer}>
-            <Typo size={12} color={colors.neutral500}>
-              Created: {new Date(listing.created_at).toLocaleDateString()} at{" "}
-              {new Date(listing.created_at).toLocaleTimeString()}
-            </Typo>
-            <Typo size={12} color={colors.neutral500} style={{ marginTop: 4 }}>
-              Updated: {new Date(listing.updated_at).toLocaleDateString()} at{" "}
-              {new Date(listing.updated_at).toLocaleTimeString()}
-            </Typo>
+          <View style={styles.timestampBox}>
+            <View style={styles.timestampRow}>
+              <Typo size={13} color="#64748B">Created</Typo>
+              <Typo size={13} color="#1E293B">
+                {new Date(listing.created_at).toLocaleDateString('en-US', { 
+                  month: 'short', day: 'numeric', year: 'numeric' 
+                })}
+              </Typo>
+            </View>
+            <View style={[styles.timestampRow, { marginTop: 6 }]}>
+              <Typo size={13} color="#64748B">Last Updated</Typo>
+              <Typo size={13} color="#1E293B">
+                {new Date(listing.updated_at).toLocaleDateString('en-US', { 
+                  month: 'short', day: 'numeric', year: 'numeric' 
+                })}
+              </Typo>
+            </View>
           </View>
-        </ScrollView>
-      </View>
+
+          {/* Actions */}
+          <View style={styles.actions}>
+            <TouchableOpacity 
+              style={styles.deleteButton}
+              onPress={handleDelete}
+              activeOpacity={0.7}
+            >
+              <Typo size={15} fontWeight="600" color="#DC2626">Delete Listing</Typo>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.editButton}
+              onPress={handleEdit}
+              activeOpacity={0.8}
+            >
+              <Typo size={15} fontWeight="600" color="#FFF">Edit Listing</Typo>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
     </ScreenWrapper>
   );
 }
@@ -601,185 +480,203 @@ export default function ListingDetail() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
   },
-  centerContent: {
+  centered: {
     justifyContent: "center",
     alignItems: "center",
   },
+  
+  // Header
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: spacingX._16,
-    paddingTop: spacingY._20,
-    paddingBottom: spacingY._16,
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral100,
+    borderBottomColor: "#F1F5F9",
   },
-  backButton: {
-    marginRight: spacingX._12,
+  headerButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  headerTextContainer: {
+  headerCenter: {
+    flex: 1,
+    alignItems: "center",
+  },
+  
+  // Scroll
+  scrollView: {
     flex: 1,
   },
-  moreButton: {
-    padding: 4,
-  },
-  scrollContent: {
-    paddingBottom: spacingY._40,
-  },
-  imageGalleryContainer: {
+  
+  // Gallery
+  galleryContainer: {
     position: "relative",
   },
-  imageSlide: {
+  image: {
     width: SCREEN_WIDTH,
     height: SCREEN_WIDTH,
-    backgroundColor: colors.neutral50,
-  },
-  listingImage: {
-    width: "100%",
-    height: "100%",
-  },
-  noImageContainer: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH * 0.6,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: colors.neutral50,
-  },
-  paginationDots: {
-    position: "absolute",
-    bottom: 16,
-    left: 0,
-    right: 0,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 6,
-  },
-  dot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: colors.white + "60",
-  },
-  dotActive: {
-    width: 20,
-    backgroundColor: colors.white,
+    backgroundColor: "#F8FAFC",
   },
   imageCounter: {
     position: "absolute",
-    top: 16,
+    bottom: 16,
     right: 16,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
+    backgroundColor: "rgba(255, 255, 255, 0.95)",
     paddingHorizontal: 12,
     paddingVertical: 6,
-    borderRadius: 16,
+    borderRadius: 6,
   },
-  statusContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacingX._16,
-    paddingVertical: spacingY._16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral100,
-  },
-  statusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-  },
-  statsRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
-  statItem: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  section: {
-    paddingHorizontal: spacingX._16,
-    paddingVertical: spacingY._16,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.neutral100,
-  },
-  merchantRow: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  merchantAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: colors.primary + "20",
+  noImagePlaceholder: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_WIDTH * 0.6,
+    backgroundColor: "#F8FAFC",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
-    overflow: "hidden",
   },
-  merchantLogo: {
-    width: "100%",
+  
+  // Content
+  content: {
+    padding: 20,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  
+  // Status
+  statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginRight: 6,
+  },
+  featuredBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: "#FEF3C7",
+    marginLeft: 8,
+  },
+  
+  // Stats
+  statsRow: {
+    flexDirection: "row",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 8,
+    padding: 16,
+    marginBottom: 24,
+  },
+  statBox: {
+    flex: 1,
+    alignItems: "center",
+  },
+  statDivider: {
+    width: 1,
     height: "100%",
+    backgroundColor: "#E2E8F0",
   },
-  merchantNameRow: {
+  
+  // Info
+  infoGrid: {
     flexDirection: "row",
-    alignItems: "center",
+    gap: 16,
+    marginBottom: 24,
   },
-  ratingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 2,
+  infoItem: {
+    flex: 1,
+    padding: 16,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 8,
   },
-  infoRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: spacingY._16,
-  },
-  tagsContainer: {
+  
+  // Tags
+  tagsRow: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: spacingX._8,
-    marginTop: spacingY._12,
+    gap: 8,
   },
   tag: {
-    paddingHorizontal: spacingX._12,
-    paddingVertical: spacingY._6,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral100,
-    borderWidth: 1,
-    borderColor: colors.neutral200,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: "#F1F5F9",
+    borderRadius: 6,
   },
-  rejectionBox: {
-    marginHorizontal: spacingX._16,
-    marginVertical: spacingY._16,
-    padding: spacingX._16,
-    backgroundColor: colors.error + "10",
-    borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.error + "40",
+  
+  // Alerts
+  alertBox: {
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 24,
   },
-  rejectionHeader: {
+  alertError: {
+    backgroundColor: "#FEF2F2",
+    borderWidth: 1,
+    borderColor: "#FEE2E2",
+  },
+  alertWarning: {
+    backgroundColor: "#FFFBEB",
+    borderWidth: 1,
+    borderColor: "#FEF3C7",
+  },
+  alertHeader: {
     flexDirection: "row",
     alignItems: "center",
   },
-  infoBox: {
+  
+  // Timestamp
+  timestampBox: {
+    padding: 16,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 8,
+    marginBottom: 24,
+  },
+  timestampRow: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    marginHorizontal: spacingX._16,
-    marginVertical: spacingY._16,
-    padding: spacingX._16,
-    backgroundColor: colors.warning + "10",
-    borderRadius: borderRadius.md,
+    justifyContent: "space-between",
+    alignItems: "center",
   },
-  timestampContainer: {
-    paddingHorizontal: spacingX._16,
-    paddingVertical: spacingY._16,
+  
+  // Actions
+  actions: {
+    flexDirection: "row",
+    gap: 12,
   },
-  backButtonCentered: {
-    marginTop: spacingY._20,
-    paddingVertical: spacingY._12,
-    paddingHorizontal: spacingX._20,
+  deleteButton: {
+    flex: 1,
+    paddingVertical: 14,
+    backgroundColor: "#FEF2F2",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#FEE2E2",
+    alignItems: "center",
+  },
+  editButton: {
+    flex: 2,
+    paddingVertical: 14,
+    backgroundColor: "#000",
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  
+  textButton: {
+    marginTop: 16,
+    paddingVertical: 8,
   },
 });
