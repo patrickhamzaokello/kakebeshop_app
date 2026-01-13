@@ -88,7 +88,6 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
       const details = await listingDetailsService.getListingDetails(listing.id);
       setListingDetails(details);
     } catch (error) {
-      console.error("Error fetching listing details:", error);
     } finally {
       setLoading(false);
     }

@@ -9,7 +9,8 @@ interface ApiResponse<T = any> {
 
 class ApiService {
   private axiosInstance: AxiosInstance;
-  private baseURL = "https://backend.kakebeshop.com";
+  // private baseURL = "https://backend.kakebeshop.com";
+  private baseURL = "http://127.0.0.1:8000"
   private isRefreshing = false;
   private failedQueue: Array<{
     resolve: (value: any) => void;

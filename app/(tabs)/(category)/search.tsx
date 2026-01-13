@@ -1,12 +1,13 @@
-import React, { useCallback, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import {
   StyleSheet,
   View,
   Text,
+  TextInput,
   TouchableOpacity,
-  ScrollView,
-  RefreshControl,
   FlatList,
+  Keyboard,
+  ActivityIndicator,
   Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,12 +15,11 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { colors, spacingX, spacingY, radius } from "@/constants/theme";
-import { useSectionData } from "@/hooks/useSectionData";
-import { homeService } from "@/utils/services/homeService";
 import { Listing } from "@/utils/types/models";
 import { ListingImage } from "@/components/test/common/ListingImage";
 import { MaterialIcons } from "@expo/vector-icons";
 import { QuickViewModal } from "@/components/test/common/QuickViewModal";
+import apiService from "@/utils/apiBase";
 
 const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
   const animatedValue = React.useRef(new Animated.Value(0)).current;
@@ -99,25 +99,56 @@ const ListingShimmerCard = () => (
   </View>
 );
 
-export default function ExplorePage() {
+export default function SearchPage() {
   const router = useRouter();
-  const [refreshing, setRefreshing] = useState(false);
+  const searchInputRef = useRef<TextInput>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [results, setResults] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
 
-  const recommendedData = useSectionData(() =>
-    homeService.getAllListings()
-  );
+  // Auto-focus the search input when the page mounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      searchInputRef.current?.focus();
+    }, 100);
+    return () => clearTimeout(timer);
+  }, []);
 
+  const handleSearch = useCallback(async () => {
+    if (!searchQuery.trim()) return;
 
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await recommendedData.refetch();
-    setRefreshing(false);
-  }, [recommendedData.refetch]);
+    Keyboard.dismiss();
+    setLoading(true);
+    setHasSearched(true);
 
-  const handleSearchPress = () => {
-    router.push("/(tabs)/(category)/search");
+    try {
+      const response = await apiService.get<{ results: Listing[] }>(
+        "/api/v1/listings/",
+        {
+          params: { search: searchQuery.trim() },
+        }
+      );
+      setResults(response.data.results || []);
+    } catch (error) {
+      console.error("Search error:", error);
+      setResults([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [searchQuery]);
+
+  const handleBack = () => {
+    router.back();
+  };
+
+  const handleClear = () => {
+    setSearchQuery("");
+    setResults([]);
+    setHasSearched(false);
+    searchInputRef.current?.focus();
   };
 
   const handleListingPress = (listing: Listing) => {
@@ -183,64 +214,92 @@ export default function ExplorePage() {
     </View>
   );
 
+  const renderEmptyState = () => {
+    if (!hasSearched) {
+      return (
+        <View style={styles.emptyContainer}>
+          <Ionicons name="search" size={64} color={colors.neutral200} />
+          <Text style={styles.emptyTitle}>Search for products</Text>
+          <Text style={styles.emptySubtitle}>
+            Find products, brands, and more
+          </Text>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.emptyContainer}>
+        <Ionicons name="alert-circle-outline" size={64} color={colors.neutral300} />
+        <Text style={styles.emptyTitle}>No results found</Text>
+        <Text style={styles.emptySubtitle}>
+          Try a different search term
+        </Text>
+      </View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar style="dark" />
 
       <SafeAreaView edges={["top"]} style={styles.safeArea}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Explore</Text>
-        </View>
+        {/* Search Header */}
+        <View style={styles.searchHeader}>
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={handleBack}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.black} />
+          </TouchableOpacity>
 
-        {/* Search Input */}
-        <TouchableOpacity
-          style={styles.searchContainer}
-          onPress={handleSearchPress}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="search" size={20} color={colors.neutral400} />
-          <Text style={styles.searchPlaceholder}>
-            Search products, brands...
-          </Text>
-          <Ionicons name="options-outline" size={18} color={colors.neutral400} />
-        </TouchableOpacity>
+          <View style={styles.searchInputContainer}>
+            <Ionicons name="search" size={20} color={colors.neutral400} />
+            <TextInput
+              ref={searchInputRef}
+              style={styles.searchInput}
+              placeholder="Search products, brands..."
+              placeholderTextColor={colors.neutral400}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={handleSearch}
+              returnKeyType="search"
+              autoCapitalize="none"
+              autoCorrect={false}
+              clearButtonMode="never"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={handleClear} activeOpacity={0.7}>
+                <Ionicons
+                  name="close-circle"
+                  size={20}
+                  color={colors.neutral400}
+                />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
       </SafeAreaView>
 
-      {/* Recommended Listings */}
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-      >
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Recommended for you</Text>
-
-          {recommendedData.loading && !recommendedData.data ? (
-            renderShimmerGrid()
-          ) : recommendedData.data && recommendedData.data.length > 0 ? (
-            <FlatList
-              data={recommendedData.data.results}
-              renderItem={renderListingItem}
-              keyExtractor={(item) => item.id}
-              numColumns={2}
-              columnWrapperStyle={styles.row}
-              scrollEnabled={false}
-            />
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Ionicons
-                name="cube-outline"
-                size={48}
-                color={colors.neutral300}
-              />
-              <Text style={styles.emptyText}>No recommendations available</Text>
-            </View>
-          )}
-        </View>
-      </ScrollView>
+      {/* Results */}
+      <View style={styles.resultsContainer}>
+        {loading ? (
+          renderShimmerGrid()
+        ) : results.length > 0 ? (
+          <FlatList
+            data={results}
+            renderItem={renderListingItem}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            columnWrapperStyle={styles.row}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          />
+        ) : (
+          renderEmptyState()
+        )}
+      </View>
 
       <QuickViewModal
         visible={modalVisible}
@@ -259,46 +318,44 @@ const styles = StyleSheet.create({
   safeArea: {
     backgroundColor: colors.white,
   },
-  header: {
-    paddingHorizontal: spacingX._16,
-    paddingTop: spacingY._8,
-    paddingBottom: spacingY._12,
+  searchHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: spacingX._12,
+    paddingVertical: spacingY._10,
+    gap: 12,
   },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: colors.black,
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  searchContainer: {
+  searchInputContainer: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: colors.neutral100,
-    marginHorizontal: spacingX._16,
-    marginBottom: spacingY._12,
-    paddingHorizontal: spacingX._16,
-    paddingVertical: spacingY._12,
+    paddingHorizontal: spacingX._12,
+    paddingVertical: spacingY._10,
     borderRadius: radius._8,
     borderWidth: 1,
     borderColor: colors.neutral200,
   },
-  searchPlaceholder: {
+  searchInput: {
     flex: 1,
-    marginLeft: spacingX._12,
+    marginLeft: spacingX._10,
     fontSize: 15,
-    color: colors.neutral400,
+    color: colors.black,
     fontWeight: "500",
+    padding: 0,
   },
-  scrollView: {
+  resultsContainer: {
     flex: 1,
-  },
-  sectionContainer: {
     padding: spacingX._16,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.black,
-    marginBottom: spacingY._12,
+  listContent: {
+    paddingBottom: spacingY._20,
   },
   shimmerContainer: {
     gap: 8,
@@ -355,13 +412,20 @@ const styles = StyleSheet.create({
     color: colors.black,
   },
   emptyContainer: {
+    flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: spacingY._60,
   },
-  emptyText: {
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: colors.neutral600,
+    marginTop: spacingY._16,
+  },
+  emptySubtitle: {
     fontSize: 14,
     color: colors.neutral400,
-    marginTop: spacingY._12,
+    marginTop: spacingY._8,
   },
 });

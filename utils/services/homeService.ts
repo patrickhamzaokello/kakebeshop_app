@@ -33,7 +33,6 @@ export const homeService = {
             const response = await apiService.get<PaginatedResponse<CarouselImage>>('/api/v1/banners/');
             return response.data.results;
         } catch (error) {
-            console.error('Error fetching carousel:', error);
             // Return empty array for graceful degradation
             return [];
         }
@@ -45,7 +44,6 @@ export const homeService = {
             const response = await apiService.get<Category[]>('/api/v1/categories/featured/');
             return response.data;
         } catch (error) {
-            console.error('Error fetching categories:', error);
             return [];
         }
     },
@@ -58,7 +56,6 @@ export const homeService = {
             });
             return response.data;
         } catch (error) {
-            console.error('Error fetching merchants:', error);
             return [];
         }
     },
@@ -74,7 +71,6 @@ export const homeService = {
             });
             return response.data;
         } catch (error) {
-            console.error('Error fetching featured listings:', error);
             return [];
         }
     },
@@ -95,7 +91,6 @@ export const homeService = {
                 previous: response.data.previous,
             };
         } catch (error) {
-            console.error('Error fetching listings:', error);
             return {
                 results: [],
                 hasMore: false,

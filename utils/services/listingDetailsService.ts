@@ -10,7 +10,6 @@ export const listingDetailsService = {
 
       return response.data;
     } catch (error) {
-      console.error("Error fetching listing details", error);
       return null;
     }
   },

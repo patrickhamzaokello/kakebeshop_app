@@ -1,39 +1,151 @@
-import { scale, verticalScale } from "@/utils/styling";
+import { Dimensions, PixelRatio, TextStyle, ViewStyle } from "react-native";
+
+// =============================================================================
+// RESPONSIVE SCALING UTILITIES
+// =============================================================================
+
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+
+const [shortDimension, longDimension] =
+  SCREEN_WIDTH < SCREEN_HEIGHT
+    ? [SCREEN_WIDTH, SCREEN_HEIGHT]
+    : [SCREEN_HEIGHT, SCREEN_WIDTH];
+
+const guidelineBaseWidth = 375;
+const guidelineBaseHeight = 812;
+
+export const scale = (size: number) =>
+  Math.round(
+    PixelRatio.roundToNearestPixel((shortDimension / guidelineBaseWidth) * size)
+  );
+
+export const verticalScale = (size: number) =>
+  Math.round(
+    PixelRatio.roundToNearestPixel(
+      (longDimension / guidelineBaseHeight) * size
+    )
+  );
+
+export const moderateScale = (size: number, factor = 0.5) =>
+  Math.round(size + (scale(size) - size) * factor);
+
+// =============================================================================
+// COLOR PALETTE
+// =============================================================================
 
 export const colors = {
+  // Brand Colors - Vibrant Red Accent
   primary: "#E60549",
-  primaryLight: "#d9f99d",
-  primaryDark: "#1C1A40",
-  text: "#fff",
-  textLight: "#e5e5e5",
-  textLighter: "#d4d4d4",
-  white: "#fff",
-  black: "#000",
-  rose: "#ef4444",
-  green: "#16a34a",
-  background: "rgba(255, 255, 255, 0.1)",
-  divider: "rgba(255, 255, 255, 0.1)",
-  surface: "rgba(255, 255, 255, 0.1)",
-  border: "rgba(255, 255, 255, 0.1)",
-  success: "#1DB954",
-  error: "#F15E6C",
-  warning: "#F7B633",
-  info: "#3498DB",
-  lineseparator: "#E5E7EB",
-  neutral50: "#fafafa",
-  neutral100: "#f5f5f5",
-  neutral200: "#e5e5e5",
-  neutral300: "#d4d4d4",
-  neutral350: "#CCCCCC",
-  neutral400: "#a3a3a3",
-  neutral500: "#737373",
-  neutral600: "#525252",
-  neutral700: "#404040",
-  neutral800: "#262626",
-  neutral900: "#000",
-  matteBlack: "#1C1C1C",
-  secondary: "#FF6F61",
+  primaryLight: "#FF4D7A",
+  primaryDark: "#B8003A",
+  primarySoft: "#FFEEF3",
+
+  // Secondary Accent
+  secondary: "#FF6B6B",
+  secondaryLight: "#FF8E8E",
+  secondaryDark: "#E64545",
+
+  // Text Colors - Strong Black-based hierarchy
+  text: "#1A1A1A",
+  textPrimary: "#1A1A1A",
+  textSecondary: "#4A4A4A",
+  textMuted: "#6B6B6B",
+  textPlaceholder: "#9A9A9A",
+  textInverse: "#FFFFFF",
+
+  // Background Colors - Clean White base
+  background: "#FFFFFF",
+  backgroundSecondary: "#F8F8F8",
+  backgroundTertiary: "#F0F0F0",
+  surface: "#FFFFFF",
+  surfaceElevated: "#FFFFFF",
+
+  // Core Colors
+  white: "#FFFFFF",
+  black: "#000000",
+
+  // Gray Scale - More contrast, less faint
+  gray50: "#FAFAFA",
+  gray100: "#F5F5F5",
+  gray200: "#EEEEEE",
+  gray300: "#E0E0E0",
+  gray400: "#BDBDBD",
+  gray500: "#9E9E9E",
+  gray600: "#757575",
+  gray700: "#616161",
+  gray800: "#424242",
+  gray900: "#212121",
+
+  // Neutral Scale (legacy support)
+  neutral50: "#FAFAFA",
+  neutral100: "#F5F5F5",
+  neutral200: "#EEEEEE",
+  neutral300: "#E0E0E0",
+  neutral350: "#D0D0D0",
+  neutral400: "#BDBDBD",
+  neutral500: "#9E9E9E",
+  neutral600: "#757575",
+  neutral700: "#616161",
+  neutral800: "#424242",
+  neutral900: "#212121",
+
+  // Semantic Colors - Vibrant & Clear
+  success: "#00C853",
+  successLight: "#E8F5E9",
+  successDark: "#00A844",
+
+  error: "#FF3D3D",
+  errorLight: "#FFEBEE",
+  errorDark: "#D32F2F",
+
+  warning: "#FFB300",
+  warningLight: "#FFF8E1",
+  warningDark: "#FF8F00",
+
+  info: "#2196F3",
+  infoLight: "#E3F2FD",
+  infoDark: "#1976D2",
+
+  // UI Elements
+  border: "#E8E8E8",
+  borderLight: "#F0F0F0",
+  borderDark: "#D0D0D0",
+  divider: "#EEEEEE",
+  separator: "#E8E8E8",
+
+  // Interactive States
+  ripple: "rgba(230, 5, 73, 0.12)",
+  overlay: "rgba(0, 0, 0, 0.5)",
+  overlayLight: "rgba(0, 0, 0, 0.3)",
+  backdrop: "rgba(0, 0, 0, 0.6)",
+
+  // Special Colors
+  star: "#FFB800",
+  heart: "#E60549",
+  verified: "#2196F3",
+  online: "#00C853",
+  offline: "#9E9E9E",
+
+  // Legacy aliases
+  rose: "#FF3D3D",
+  green: "#00C853",
+  matteBlack: "#1A1A1A",
+  lineseparator: "#EEEEEE",
 };
+
+// =============================================================================
+// SPACING SYSTEM
+// =============================================================================
+
+export const spacing = {
+  xs: scale(4),
+  sm: scale(8),
+  md: scale(12),
+  lg: scale(16),
+  xl: scale(20),
+  xxl: scale(24),
+  xxxl: scale(32),
+} as const;
 
 export const spacingX = {
   _2: scale(2),
@@ -48,18 +160,19 @@ export const spacingX = {
   _15: scale(15),
   _16: scale(16),
   _20: scale(20),
+  _24: scale(24),
   _25: scale(25),
   _30: scale(30),
+  _32: scale(32),
   _35: scale(35),
-  _40: scale(10),
-};
+  _40: scale(40),
+} as const;
 
 export const spacingY = {
   _1: verticalScale(1),
   _2: verticalScale(2),
   _3: verticalScale(3),
   _4: verticalScale(4),
-
   _5: verticalScale(5),
   _6: verticalScale(6),
   _7: verticalScale(7),
@@ -70,15 +183,23 @@ export const spacingY = {
   _16: verticalScale(16),
   _17: verticalScale(17),
   _20: verticalScale(20),
+  _24: verticalScale(24),
   _25: verticalScale(25),
   _30: verticalScale(30),
+  _32: verticalScale(32),
   _35: verticalScale(35),
   _40: verticalScale(40),
+  _48: verticalScale(48),
   _50: verticalScale(50),
   _60: verticalScale(60),
   _80: verticalScale(80),
+  _100: verticalScale(100),
   _140: verticalScale(140),
-};
+} as const;
+
+// =============================================================================
+// BORDER RADIUS
+// =============================================================================
 
 export const radius = {
   _3: verticalScale(3),
@@ -93,8 +214,26 @@ export const radius = {
   _16: verticalScale(16),
   _17: verticalScale(17),
   _20: verticalScale(20),
+  _24: verticalScale(24),
   _30: verticalScale(30),
-};
+  full: 9999,
+} as const;
+
+export const borderRadius = {
+  none: 0,
+  xs: 4,
+  sm: 8,
+  md: 12,
+  lg: 16,
+  xl: 20,
+  xxl: 24,
+  xxxl: 32,
+  full: 9999,
+} as const;
+
+// =============================================================================
+// TYPOGRAPHY
+// =============================================================================
 
 export const fontSize = {
   xs: 10,
@@ -105,55 +244,397 @@ export const fontSize = {
   xxl: 20,
   xxxl: 24,
   display: 30,
-  headline: 40,
-};
+  headline: 36,
+  hero: 48,
+} as const;
 
 export const fontWeight = {
-  light: "300",
-  regular: "400",
-  medium: "500",
-  semibold: "600",
-  bold: "700",
+  light: "300" as const,
+  regular: "400" as const,
+  medium: "500" as const,
+  semibold: "600" as const,
+  bold: "700" as const,
+  extrabold: "800" as const,
 };
 
-export const borderRadius = {
-  xs: 4,
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 24,
-  full: 9999,
+export const lineHeight = {
+  tight: 1.2,
+  normal: 1.5,
+  relaxed: 1.75,
+} as const;
+
+// Pre-defined text styles
+export const typography = {
+  hero: {
+    fontSize: fontSize.hero,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+    lineHeight: fontSize.hero * lineHeight.tight,
+  } as TextStyle,
+
+  headline: {
+    fontSize: fontSize.headline,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+    lineHeight: fontSize.headline * lineHeight.tight,
+  } as TextStyle,
+
+  title: {
+    fontSize: fontSize.xxxl,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+    lineHeight: fontSize.xxxl * lineHeight.tight,
+  } as TextStyle,
+
+  subtitle: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+    lineHeight: fontSize.xl * lineHeight.normal,
+  } as TextStyle,
+
+  body: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.regular,
+    color: colors.textPrimary,
+    lineHeight: fontSize.lg * lineHeight.normal,
+  } as TextStyle,
+
+  bodySmall: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.regular,
+    color: colors.textSecondary,
+    lineHeight: fontSize.md * lineHeight.normal,
+  } as TextStyle,
+
+  caption: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.regular,
+    color: colors.textMuted,
+    lineHeight: fontSize.sm * lineHeight.normal,
+  } as TextStyle,
+
+  label: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
+    lineHeight: fontSize.sm * lineHeight.normal,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  } as TextStyle,
+
+  button: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold,
+    color: colors.white,
+    lineHeight: fontSize.lg * lineHeight.tight,
+  } as TextStyle,
+
+  price: {
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+  } as TextStyle,
+
+  priceSmall: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+  } as TextStyle,
 };
+
+// =============================================================================
+// SHADOWS
+// =============================================================================
 
 export const shadow = {
+  none: {
+    shadowColor: "transparent",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
+  } as ViewStyle,
+
+  xs: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  } as ViewStyle,
+
   sm: {
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.18,
-    shadowRadius: 1.0,
-    elevation: 1,
-  },
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 2,
+  } as ViewStyle,
+
   md: {
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 3,
-  },
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 8,
+    elevation: 4,
+  } as ViewStyle,
+
   lg: {
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 8,
+  } as ViewStyle,
+
+  xl: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.2,
+    shadowRadius: 24,
+    elevation: 12,
+  } as ViewStyle,
+
+  // Colored shadows for primary elements
+  primary: {
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 6,
-  },
+    shadowRadius: 8,
+    elevation: 4,
+  } as ViewStyle,
+
+  // Card shadow
+  card: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 3,
+  } as ViewStyle,
+
+  // Floating action button shadow
+  fab: {
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 8,
+  } as ViewStyle,
 };
+
+// =============================================================================
+// COMMON COMPONENT STYLES
+// =============================================================================
+
+export const components = {
+  // Card styles
+  card: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    ...shadow.card,
+  } as ViewStyle,
+
+  cardElevated: {
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.md,
+    ...shadow.md,
+  } as ViewStyle,
+
+  // Input styles
+  input: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: borderRadius.sm,
+    paddingHorizontal: spacingX._16,
+    paddingVertical: spacingY._12,
+    fontSize: fontSize.lg,
+    color: colors.textPrimary,
+  } as ViewStyle & TextStyle,
+
+  inputFocused: {
+    borderColor: colors.primary,
+    borderWidth: 2,
+  } as ViewStyle,
+
+  // Button base
+  buttonPrimary: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.sm,
+    paddingVertical: spacingY._14,
+    paddingHorizontal: spacingX._24,
+    alignItems: "center",
+    justifyContent: "center",
+  } as ViewStyle,
+
+  buttonSecondary: {
+    backgroundColor: colors.white,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+    borderRadius: borderRadius.sm,
+    paddingVertical: spacingY._14,
+    paddingHorizontal: spacingX._24,
+    alignItems: "center",
+    justifyContent: "center",
+  } as ViewStyle,
+
+  buttonText: {
+    backgroundColor: "transparent",
+    paddingVertical: spacingY._8,
+    paddingHorizontal: spacingX._16,
+  } as ViewStyle,
+
+  // Container styles
+  screenContainer: {
+    flex: 1,
+    backgroundColor: colors.background,
+  } as ViewStyle,
+
+  contentContainer: {
+    paddingHorizontal: spacingX._16,
+    paddingVertical: spacingY._16,
+  } as ViewStyle,
+
+  // Divider
+  divider: {
+    height: 1,
+    backgroundColor: colors.divider,
+  } as ViewStyle,
+
+  dividerThick: {
+    height: 8,
+    backgroundColor: colors.backgroundSecondary,
+  } as ViewStyle,
+
+  // Badge
+  badge: {
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacingX._8,
+    paddingVertical: spacingY._2,
+    minWidth: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  } as ViewStyle,
+
+  badgeText: {
+    color: colors.white,
+    fontSize: fontSize.xs,
+    fontWeight: fontWeight.bold,
+  } as TextStyle,
+
+  // Chip/Tag
+  chip: {
+    backgroundColor: colors.backgroundTertiary,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacingX._12,
+    paddingVertical: spacingY._6,
+  } as ViewStyle,
+
+  chipActive: {
+    backgroundColor: colors.primary,
+  } as ViewStyle,
+
+  chipText: {
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
+    color: colors.textSecondary,
+  } as TextStyle,
+
+  chipTextActive: {
+    color: colors.white,
+  } as TextStyle,
+
+  // Icon button
+  iconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: borderRadius.sm,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: "center",
+    justifyContent: "center",
+  } as ViewStyle,
+
+  iconButtonPrimary: {
+    backgroundColor: colors.primary,
+    borderWidth: 0,
+  } as ViewStyle,
+};
+
+// =============================================================================
+// ANIMATION DURATIONS
+// =============================================================================
+
+export const animation = {
+  fast: 150,
+  normal: 300,
+  slow: 500,
+} as const;
+
+// =============================================================================
+// Z-INDEX LEVELS
+// =============================================================================
+
+export const zIndex = {
+  base: 0,
+  dropdown: 100,
+  sticky: 200,
+  modal: 300,
+  popover: 400,
+  tooltip: 500,
+  toast: 600,
+} as const;
+
+// =============================================================================
+// LAYOUT CONSTANTS
+// =============================================================================
+
+export const layout = {
+  screenPadding: spacingX._16,
+  cardPadding: spacingX._16,
+  listItemHeight: verticalScale(56),
+  headerHeight: verticalScale(56),
+  tabBarHeight: verticalScale(60),
+  buttonHeight: verticalScale(48),
+  inputHeight: verticalScale(48),
+  iconSize: {
+    xs: 16,
+    sm: 20,
+    md: 24,
+    lg: 28,
+    xl: 32,
+  },
+} as const;
+
+// =============================================================================
+// THEME OBJECT (Combined export)
+// =============================================================================
+
+const theme = {
+  colors,
+  spacing,
+  spacingX,
+  spacingY,
+  radius,
+  borderRadius,
+  fontSize,
+  fontWeight,
+  lineHeight,
+  typography,
+  shadow,
+  components,
+  animation,
+  zIndex,
+  layout,
+  scale,
+  verticalScale,
+  moderateScale,
+};
+
+export default theme;

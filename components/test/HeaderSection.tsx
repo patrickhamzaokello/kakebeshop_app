@@ -10,6 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { HeaderData } from "@/utils/types/models";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { colors } from "@/constants/theme";
 
 interface HeaderSectionProps {
   data: HeaderData | null;
@@ -93,7 +94,7 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
 
   if (loading) {
     return (
-      <LinearGradient colors={["#DCF3FF", "#FFFFFF"]} style={styles.container}>
+      <LinearGradient colors={[colors.primarySoft, colors.white]} style={styles.container}>
         <View style={{ flex: 1 }}>
           <SafeAreaView />
 
@@ -150,7 +151,7 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
   }
 
   return (
-    <LinearGradient colors={["#DCF3FF", "#FFFFFF"]} style={styles.container}>
+    <LinearGradient colors={[colors.primarySoft, colors.white]} style={styles.container}>
       <View style={{ flex: 1 }}>
         <SafeAreaView />
 

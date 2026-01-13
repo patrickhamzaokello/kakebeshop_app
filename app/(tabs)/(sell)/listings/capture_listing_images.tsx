@@ -18,6 +18,8 @@ import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import apiService from "@/utils/apiBase";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 
 type ImageStatus =
   | "empty"
@@ -526,6 +528,7 @@ export default function CaptureListingImages() {
     <View style={{flex: 1}}>
       <StatusBar style="dark" />
       <View style={styles.container}>
+         <SafeAreaView edges={["top"]} />
         {/* Header */}
         <View style={styles.header}>
           <Typo size={24} fontWeight="700" color={colors.black}>

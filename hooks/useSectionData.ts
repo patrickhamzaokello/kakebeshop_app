@@ -43,7 +43,6 @@ export function useSectionData<T>(
             if (mounted.current && currentLoad === loadCounter.current) {
                 const apiError = err as ApiError;
                 setError(apiError);
-                console.error('Section data error:', apiError);
             }
         } finally {
             if (mounted.current && currentLoad === loadCounter.current) {

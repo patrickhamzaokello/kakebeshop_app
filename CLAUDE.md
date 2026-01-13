@@ -22,10 +22,12 @@ npm run lint             # Run ESLint
 
 ### EAS Build (Expo Application Services)
 ```bash
-eas build --profile development    # Development build
-eas build --profile preview        # Preview build
-eas build --profile production     # Production build
+eas build --profile development    # Development build (com.kakebe.shop.dev)
+eas build --profile preview        # Preview build (com.kakebe.shop.preview)
+eas build --profile production     # Production build (com.kakebe.shop)
 ```
+
+App variants use different bundle IDs to allow side-by-side installation.
 
 ## Architecture
 
@@ -158,6 +160,8 @@ import { useAuthStore } from "@/utils/authStore";
 - **React Version:** 19.1.0
 - **React Native Version:** 0.81.5
 - **TypeScript:** Strict mode enabled
+- **Experiments enabled:** `typedRoutes` (for type-safe navigation), `reactCompiler` (for automatic optimizations)
+- **Deep linking scheme:** `kakebeshop://` (configured in `app.config.ts`)
 - All API responses should be typed using interfaces from `utils/types/models.ts`
 - Cart operations use optimistic updates for better UX (update UI immediately, revert on failure)
 - Auth tokens stored in SecureStore, never in AsyncStorage or plain state
