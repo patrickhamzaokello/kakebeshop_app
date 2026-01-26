@@ -63,13 +63,13 @@ const Login = () => {
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(trimmedEmail)) {
-      Alert.alert("Registration Failed", "Please enter a valid email address");
+      Alert.alert("Login Failed", "Please enter a valid email address");
       return;
     }
 
     if (!validatePassword(trimmedPassword)) {
       Alert.alert(
-        "Registration Failed",
+        "Login Failed",
         "Password must be at least 8 characters long"
       );
       return;
@@ -78,8 +78,9 @@ const Login = () => {
     setIsLoading(true);
     try {
       const res = await loginUser(trimmedEmail, trimmedPassword);
+      console.log(res)
       if (!res.success) {
-        if (res.msg?.includes("Email is not verified")) {
+        if (res.msg?.includes("Your email is not verified.")) {
           router.replace({
             pathname: "/(auth)/start_email_verification",
             params: { email },

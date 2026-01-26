@@ -9,8 +9,8 @@ interface ApiResponse<T = any> {
 
 class ApiService {
   private axiosInstance: AxiosInstance;
-  // private baseURL = "https://backend.kakebeshop.com";
-  private baseURL = "http://127.0.0.1:8000"
+  private baseURL = "https://backend.kakebeshop.com";
+  // private baseURL = "http://192.168.1.3:8000"
   private isRefreshing = false;
   private failedQueue: Array<{
     resolve: (value: any) => void;
@@ -22,7 +22,6 @@ class ApiService {
   constructor() {
     this.axiosInstance = axios.create({
       baseURL: this.baseURL,
-      timeout: 10000,
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",

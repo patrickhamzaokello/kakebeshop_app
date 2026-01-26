@@ -165,35 +165,14 @@ export const useAuthStore = create<AuthState>()(
 
             return { success: true };
           } else {
-            let msg = data?.details || "Login failed";
-            if (
-              msg.includes("invalid-credential") ||
-              msg.includes("Invalid credentials")
-            ) {
-              msg = "Invalid Credentials";
-            }
-            if (msg.includes("invalid-email")) {
-              msg = "Invalid Email";
-            }
-            if (msg.includes("Email is not verified")){
-              msg = "Email account not verified";
-            }
+            let msg = data?.details?.error[0]|| "Login failed";
+           
             return { success: false, msg };
           }
         } catch (error: any) {
-          let msg = error.data?.detail || "Login failed";
-          if (
-            msg.includes("invalid-credential") ||
-            msg.includes("Invalid credentials")
-          ) {
-            msg = "Invalid Credentials";
-          }
-          if (msg.includes("invalid-email")) {
-            msg = "Invalid Email";
-          }
-          if (msg.includes("Email is not verified")){
-            msg = msg
-          }
+          console.log(error)
+          let msg = error?.data?.error[0] || "Error occured, please try again";
+          
           return { success: false, msg };
          
         }

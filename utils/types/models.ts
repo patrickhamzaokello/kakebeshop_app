@@ -289,4 +289,80 @@ export type AuthVerificationResponse = {
     uidb64: string;         // "YjNhNTVmOGEt..."
 };
 
+// Listing Details Page Types
+export interface CartCheckResponse {
+    in_cart: boolean;
+    cart_item_id: string | null;
+    quantity: number;
+}
+
+export interface WishlistCheckResponse {
+    in_wishlist: boolean;
+}
+
+export interface ListingDetailImage {
+    thumb: {
+        id: string;
+        image: string;
+        width: number;
+        height: number;
+        size_bytes: number;
+        order: number;
+    };
+    large: {
+        id: string;
+        image: string;
+        width: number;
+        height: number;
+        size_bytes: number;
+        order: number;
+    };
+}
+
+export interface SimilarListingItem {
+    id: string;
+    merchant: Merchant;
+    title: string;
+    listing_type: string;
+    category_name: string;
+    price_type: string;
+    price: string;
+    price_min: string | null;
+    price_max: string | null;
+    currency: string;
+    is_featured: boolean;
+    is_verified: boolean;
+    views_count: number;
+    primary_image: {
+        id: string;
+        image: string;
+        width: number;
+        height: number;
+        variant: string;
+        image_group_id: string;
+    } | null;
+    created_at: string;
+}
+
+export interface SimilarFromMerchantResponse {
+    count: number;
+    reference_listing: {
+        id: string;
+        title: string;
+        merchant_name: string;
+    };
+    results: SimilarListingItem[];
+}
+
+export interface SimilarFromMarketplaceResponse {
+    count: number;
+    reference_listing: {
+        id: string;
+        title: string;
+        category: string;
+        listing_type: string;
+    };
+    results: SimilarListingItem[];
+}
+
 

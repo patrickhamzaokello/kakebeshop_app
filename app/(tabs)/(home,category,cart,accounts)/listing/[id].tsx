@@ -1,362 +1,689 @@
 import React, { useState, useEffect, useCallback } from "react";
 import {
-  StyleSheet,
   View,
   Text,
   ScrollView,
+  Image,
   TouchableOpacity,
-  ActivityIndicator,
+  StyleSheet,
   Dimensions,
+  ActivityIndicator,
+  RefreshControl,
+  Share,
+  Alert,
+  Animated,
   Linking,
-  FlatList,
+  Modal,
+  Pressable,
 } from "react-native";
-import { StatusBar } from "expo-status-bar";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Image } from "expo-image";
-import { Ionicons } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
-import apiService from "@/utils/apiBase";
+import { Ionicons, MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { colors, radius, shadow, spacingX, spacingY } from "@/constants/theme";
+import { listingDetailsService } from "@/utils/services/listingDetailsService";
 import { useCartStore } from "@/utils/stores/useCartStore";
+import { useAuthStore } from "@/utils/authStore";
+import {
+  ListingDetail,
+  CartCheckResponse,
+  WishlistCheckResponse,
+  SimilarFromMerchantResponse,
+  SimilarFromMarketplaceResponse,
+  SimilarListingItem,
+} from "@/utils/types/models";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+const IMAGE_HEIGHT = SCREEN_WIDTH * 0.9;
 
-// Types
-interface ImageVariant {
-  id: string;
-  image: string;
-  order: number;
-}
-
-interface ImageGroup {
-  thumb?: ImageVariant;
-  medium?: ImageVariant;
-  large?: ImageVariant;
-}
-
-interface Category {
-  id: string;
-  name: string;
-  allows_cart: boolean;
-  is_contact_only: boolean;
-}
-
-interface Merchant {
-  id: string;
-  display_name: string;
-  business_name: string;
-  logo: string | null;
-  rating: number;
-  total_reviews: number;
-  verified: boolean;
-  business_phone?: string;
-}
-
-interface Tag {
-  id: string;
-  name: string;
-}
-
-interface Review {
-  id: string;
-  user_name: string;
-  user_image: string | null;
-  rating: number;
-  comment: string;
-  created_at: string;
-}
-
-interface Listing {
-  id: string;
-  title: string;
-  description: string;
-  listing_type: "PRODUCT" | "SERVICE";
-  category: Category;
-  merchant: Merchant;
-  price_type: "FIXED" | "RANGE" | "ON_REQUEST";
-  price?: string;
-  price_min?: string;
-  price_max?: string;
-  currency: string;
-  is_price_negotiable: boolean;
-  is_verified: boolean;
-  is_featured: boolean;
-  images: ImageGroup[];
-  tags: Tag[];
-  views_count: number;
-  created_at: string;
-}
-
-interface SimilarListing {
-  id: string;
-  title: string;
-  price: string;
-  currency: string;
-  primary_image: { image: string; thumbnail: string };
-  merchant: { business_name: string };
-}
-
-export default function ListingDetailPage() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { addToCart } = useCartStore();
-
-  const [listing, setListing] = useState<Listing | null>(null);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [similarListings, setSimilarListings] = useState<SimilarListing[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [imageIndex, setImageIndex] = useState(0);
-  const [isWishlisted, setIsWishlisted] = useState(false);
-  const [addingToCart, setAddingToCart] = useState(false);
-  const [quantity, setQuantity] = useState(1);
+// Shimmer Placeholder Component
+const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
+  const animatedValue = new Animated.Value(0);
 
   useEffect(() => {
-    fetchData();
-  }, [id]);
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(animatedValue, {
+          toValue: 1,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+        Animated.timing(animatedValue, {
+          toValue: 0,
+          duration: 1000,
+          useNativeDriver: true,
+        }),
+      ])
+    ).start();
+  }, []);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const opacity = animatedValue.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.3, 0.7],
+  });
+
+  return (
+    <Animated.View
+      style={[
+        {
+          backgroundColor: "#E0E0E0",
+          opacity,
+        },
+        style,
+      ]}
+    />
+  );
+};
+
+// Loading Skeleton Component
+const ListingDetailsSkeleton = () => (
+  <View style={styles.container}>
+    <SafeAreaView edges={["top"]} style={styles.safeArea}>
+      {/* Header skeleton */}
+      <View style={styles.header}>
+        <ShimmerPlaceholder style={{ width: 40, height: 40, borderRadius: 20 }} />
+        <ShimmerPlaceholder style={{ width: 40, height: 40, borderRadius: 20 }} />
+      </View>
+    </SafeAreaView>
+
+    <ScrollView showsVerticalScrollIndicator={false}>
+      {/* Image skeleton */}
+      <ShimmerPlaceholder style={{ width: SCREEN_WIDTH, height: IMAGE_HEIGHT }} />
+
+      <View style={styles.contentContainer}>
+        {/* Title skeleton */}
+        <ShimmerPlaceholder
+          style={{ width: "80%", height: 24, borderRadius: 4, marginBottom: 8 }}
+        />
+        <ShimmerPlaceholder
+          style={{ width: "60%", height: 24, borderRadius: 4, marginBottom: 16 }}
+        />
+
+        {/* Price skeleton */}
+        <ShimmerPlaceholder
+          style={{ width: "40%", height: 32, borderRadius: 4, marginBottom: 24 }}
+        />
+
+        {/* Seller card skeleton */}
+        <View style={styles.sellerCard}>
+          <ShimmerPlaceholder style={{ width: 50, height: 50, borderRadius: 25 }} />
+          <View style={{ flex: 1, marginLeft: 12 }}>
+            <ShimmerPlaceholder
+              style={{ width: "70%", height: 16, borderRadius: 4, marginBottom: 8 }}
+            />
+            <ShimmerPlaceholder style={{ width: "50%", height: 12, borderRadius: 4 }} />
+          </View>
+        </View>
+
+        {/* Description skeleton */}
+        <ShimmerPlaceholder
+          style={{ width: "100%", height: 80, borderRadius: 8, marginTop: 16 }}
+        />
+      </View>
+    </ScrollView>
+  </View>
+);
+
+// Similar Listing Card Component
+const SimilarListingCard: React.FC<{
+  item: SimilarListingItem;
+  onPress: () => void;
+  showMerchant?: boolean;
+}> = ({ item, onPress, showMerchant = false }) => (
+  <TouchableOpacity style={styles.similarCard} onPress={onPress} activeOpacity={0.7}>
+    <Image
+      source={
+        item.primary_image?.image
+          ? { uri: item.primary_image.image }
+          : require("@/assets/images/placeholder.png")
+      }
+      style={styles.similarCardImage}
+      resizeMode="cover"
+    />
+    <View style={styles.similarCardContent}>
+      <Text style={styles.similarCardTitle} numberOfLines={2}>
+        {item.title}
+      </Text>
+      {showMerchant && (
+        <Text style={styles.similarCardMerchant} numberOfLines={1}>
+          {item.merchant.display_name}
+        </Text>
+      )}
+      <Text style={styles.similarCardPrice}>
+        {item.currency} {parseFloat(item.price).toLocaleString()}
+      </Text>
+    </View>
+  </TouchableOpacity>
+);
+
+// Main Component
+export default function ListingDetailsScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const router = useRouter();
+  const { isLoggedIn } = useAuthStore();
+  const { addToCart, fetchCart } = useCartStore();
+
+  // State
+  const [listing, setListing] = useState<ListingDetail | null>(null);
+  const [cartStatus, setCartStatus] = useState<CartCheckResponse | null>(null);
+  const [wishlistStatus, setWishlistStatus] = useState<WishlistCheckResponse | null>(null);
+  const [similarMerchant, setSimilarMerchant] = useState<SimilarFromMerchantResponse | null>(
+    null
+  );
+  const [similarMarketplace, setSimilarMarketplace] =
+    useState<SimilarFromMarketplaceResponse | null>(null);
+
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [addingToCart, setAddingToCart] = useState(false);
+  const [togglingWishlist, setTogglingWishlist] = useState(false);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+  const [contactModalVisible, setContactModalVisible] = useState(false);
+
+  // Check if cart is allowed (only for FIXED price type)
+  const isCartAllowed = listing?.price_type === "FIXED";
+
+  // Fetch all data
+  const fetchAllData = useCallback(async () => {
+    if (!id) return;
+
     try {
-      const [listingRes, reviewsRes, similarRes] = await Promise.all([
-        apiService.get<Listing>(`/api/v1/listings/${id}/`),
-        apiService.get<{ results: Review[] }>(`/api/v1/listings/${id}/reviews/`),
-        apiService.get<{ results: SimilarListing[] }>(
-          `/api/v1/listings/${id}/similar/`
-        ),
-      ]);
+      // Fetch listing details first (required)
+      const listingData = await listingDetailsService.getListingDetails(id);
 
-      if (listingRes.success && listingRes.data) {
-        setListing(listingRes.data.results);
+      if (!listingData) {
+        Alert.alert("Error", "Listing not found");
+        router.back();
+        return;
       }
-      if (reviewsRes.success && reviewsRes.data) {
-        setReviews(reviewsRes.data.results || []);
+
+      setListing(listingData);
+
+      // Fetch additional data in parallel
+      const promises: Promise<any>[] = [
+        listingDetailsService.getSimilarFromMerchant(id, 6),
+        listingDetailsService.getSimilarFromMarketplace(id, 12),
+      ];
+
+      // Only fetch cart/wishlist status if logged in
+      if (isLoggedIn) {
+        promises.push(
+          listingDetailsService.checkCartStatus(id),
+          listingDetailsService.checkWishlistStatus(id)
+        );
       }
-      if (similarRes.success && similarRes.data) {
-        setSimilarListings(similarRes.data.results || []);
+
+      const results = await Promise.all(promises);
+
+      setSimilarMerchant(results[0]);
+      setSimilarMarketplace(results[1]);
+
+      if (isLoggedIn) {
+        setCartStatus(results[2]);
+        setWishlistStatus(results[3]);
+
+        // Pre-fill quantity if item is already in cart
+        if (results[2]?.in_cart && results[2]?.quantity) {
+          setQuantity(results[2].quantity);
+        }
       }
-    } catch (e) {
+    } catch (error) {
+      console.error("Error fetching listing details:", error);
+      Alert.alert("Error", "Failed to load listing details");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [id, isLoggedIn, router]);
 
-  const getImageUrl = (group: ImageGroup): string => {
-    return group.large?.image || group.medium?.image || group.thumb?.image || "";
-  };
+  useEffect(() => {
+    fetchAllData();
+  }, [fetchAllData]);
 
-  const formatPrice = (): string => {
-    if (!listing) return "";
-    if (listing.price_type === "ON_REQUEST") return "Price on request";
-    if (listing.price_type === "FIXED") {
-      return `${listing.currency} ${parseInt(listing.price || "0").toLocaleString()}`;
-    }
-    if (listing.price_type === "RANGE") {
-      return `${listing.currency} ${parseInt(listing.price_min || "0").toLocaleString()} - ${parseInt(listing.price_max || "0").toLocaleString()}`;
-    }
-    return "";
-  };
+  // Handle refresh
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    fetchAllData();
+  }, [fetchAllData]);
 
+  // Handle add to cart
   const handleAddToCart = async () => {
-    if (!listing || addingToCart) return;
+    if (!isLoggedIn) {
+      Alert.alert("Login Required", "Please login to add items to cart", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Login", onPress: () => router.push("/(auth)/login") },
+      ]);
+      return;
+    }
+
+    if (!id) return;
+
     setAddingToCart(true);
-    const success = await addToCart(listing.id, quantity);
-    setAddingToCart(false);
-    if (success) {
-      setQuantity(1);
-    }
-  };
-
-  const handleContactMerchant = () => {
-    if (listing?.merchant.business_phone) {
-      Linking.openURL(`tel:${listing.merchant.business_phone}`);
-    }
-  };
-
-  const handleWishlist = async () => {
-    if (!listing) return;
     try {
-      if (isWishlisted) {
-        await apiService.delete(`/api/v1/wishlist/${listing.id}/`);
+      const success = await addToCart(id, quantity);
+      if (success) {
+        setCartStatus({ in_cart: true, cart_item_id: null, quantity });
+        Alert.alert("Success", "Item added to cart");
+        await fetchCart();
       } else {
-        await apiService.post("/api/v1/wishlist/", { listing: listing.id });
+        Alert.alert("Error", "Failed to add item to cart");
       }
-      setIsWishlisted(!isWishlisted);
-    } catch (e) {
-      console.error("Wishlist error:", e);
+    } catch (error) {
+      Alert.alert("Error", "Failed to add item to cart");
+    } finally {
+      setAddingToCart(false);
     }
   };
 
+  // Handle wishlist toggle
+  const handleWishlistToggle = async () => {
+    if (!isLoggedIn) {
+      Alert.alert("Login Required", "Please login to add items to wishlist", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Login", onPress: () => router.push("/(auth)/login") },
+      ]);
+      return;
+    }
+
+    if (!id) return;
+
+    setTogglingWishlist(true);
+    try {
+      if (wishlistStatus?.in_wishlist) {
+        const success = await listingDetailsService.RemoveListingFromWishlist(id);
+        if (success) {
+          setWishlistStatus({ in_wishlist: false });
+        }
+      } else {
+        const success = await listingDetailsService.AddListingtoWishlist(id);
+        if (success) {
+          setWishlistStatus({ in_wishlist: true });
+        }
+      }
+    } catch (error) {
+      Alert.alert("Error", "Failed to update wishlist");
+    } finally {
+      setTogglingWishlist(false);
+    }
+  };
+
+  // Handle share
+  const handleShare = async () => {
+    if (!listing) return;
+
+    try {
+      await Share.share({
+        title: listing.title,
+        message: `Check out ${listing.title} on Kakebe Shop!\n\n${listing.currency} ${parseFloat(listing.price).toLocaleString()}`,
+        url: `https://kakebeshop.com/listing/${id}`,
+      });
+    } catch (error) {
+      console.error("Error sharing:", error);
+    }
+  };
+
+  // Handle similar listing press
+  const handleSimilarListingPress = (listingId: string) => {
+    router.push({
+      pathname: "/listing/[id]",
+      params: { id: listingId },
+    });
+  };
+
+  // Handle merchant press
   const handleMerchantPress = () => {
-    if (listing) {
-      router.push({ pathname: "/merchant/[id]", params: { id: listing.merchant.id } });
+    if (listing?.merchant?.id) {
+      router.push({
+        pathname: "/merchant/[id]",
+        params: { id: listing.merchant.id },
+      });
     }
   };
 
-  const handleSimilarPress = (itemId: string) => {
-    router.push({ pathname: "/listing/[id]", params: { id: itemId } });
+  // Format price based on price type
+  const formatPrice = (price: string | null, currency: string) => {
+    if (!price) return "";
+    return `${currency} ${parseFloat(price).toLocaleString()}`;
   };
 
-  const renderStars = (rating: number) => {
-    return (
-      <View style={styles.stars}>
-        {[1, 2, 3, 4, 5].map((star) => (
-          <Ionicons
-            key={star}
-            name={star <= rating ? "star" : "star-outline"}
-            size={14}
-            color={star <= rating ? "#FBBF24" : "#D1D5DB"}
-          />
-        ))}
-      </View>
+  // Get display price based on price type
+  const getDisplayPrice = () => {
+    if (!listing) return "";
+
+    switch (listing.price_type) {
+      case "FIXED":
+        return formatPrice(listing.price, listing.currency);
+      case "RANGE":
+        const minPrice = listing.price_min
+          ? parseFloat(listing.price_min).toLocaleString()
+          : "0";
+        const maxPrice = listing.price_max
+          ? parseFloat(listing.price_max).toLocaleString()
+          : "0";
+        return `${listing.currency} ${minPrice} - ${maxPrice}`;
+      case "ON_REQUEST":
+        return "Contact for Price";
+      default:
+        return listing.price ? formatPrice(listing.price, listing.currency) : "Contact for Price";
+    }
+  };
+
+  // Handle contact merchant
+  const handleContactMerchant = () => {
+    setContactModalVisible(true);
+  };
+
+  // Handle call merchant
+  const handleCallMerchant = async () => {
+    setContactModalVisible(false);
+
+    // For now, we'll show an alert since we don't have the merchant phone in the current data
+    // In a real implementation, you would get the phone from merchant details or a separate API call
+    Alert.alert(
+      "Contact Merchant",
+      `Would you like to call ${listing?.merchant.display_name}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Call",
+          onPress: () => {
+            // If merchant has a phone number, use it
+            // For demo, we'll show a placeholder
+            Alert.alert("Info", "Merchant contact information will be available soon.");
+            // Linking.openURL(`tel:+256700000000`);
+          },
+        },
+      ]
     );
+  };
+
+  // Handle message merchant
+  const handleMessageMerchant = () => {
+    setContactModalVisible(false);
+
+    // Navigate to a chat/message screen or show contact options
+    Alert.alert(
+      "Message Merchant",
+      `Send a message to ${listing?.merchant.display_name} about "${listing?.title}"`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "WhatsApp",
+          onPress: () => {
+            // For demo - in production, get actual phone
+            const message = encodeURIComponent(
+              `Hi, I'm interested in your listing: ${listing?.title}`
+            );
+            // Linking.openURL(`https://wa.me/256700000000?text=${message}`);
+            Alert.alert("Info", "WhatsApp contact will be available soon.");
+          },
+        },
+        {
+          text: "In-App Message",
+          onPress: () => {
+            // Navigate to in-app messaging
+            Alert.alert("Info", "In-app messaging coming soon.");
+          },
+        },
+      ]
+    );
+  };
+
+  // Get images array
+  const getImages = () => {
+    if (!listing?.images || listing.images.length === 0) {
+      return [];
+    }
+    return listing.images;
   };
 
   if (loading) {
-    return (
-      <View style={styles.centered}>
-        <StatusBar style="dark" />
-        <ActivityIndicator size="small" color="#000" />
-      </View>
-    );
+    return <ListingDetailsSkeleton />;
   }
 
   if (!listing) {
     return (
-      <View style={styles.centered}>
-        <StatusBar style="dark" />
+      <View style={styles.errorContainer}>
+        <Ionicons name="alert-circle-outline" size={64} color={colors.gray400} />
         <Text style={styles.errorText}>Listing not found</Text>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.linkText}>Go back</Text>
+        <TouchableOpacity style={styles.errorButton} onPress={() => router.back()}>
+          <Text style={styles.errorButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const images = listing.images.filter((img) => getImageUrl(img));
-  const canAddToCart = listing.category.allows_cart && !listing.category.is_contact_only;
-  const isContactOnly = listing.category.is_contact_only;
+  const images = getImages();
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
-
       {/* Header */}
-      <SafeAreaView edges={["top"]} style={styles.headerSafe}>
+      <SafeAreaView edges={["top"]} style={styles.safeArea}>
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
-            <Ionicons name="chevron-back" size={24} color="#000" />
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="arrow-back" size={24} color={colors.black} />
           </TouchableOpacity>
-          <TouchableOpacity onPress={handleWishlist} style={styles.headerBtn}>
-            <Ionicons
-              name={isWishlisted ? "heart" : "heart-outline"}
-              size={24}
-              color={isWishlisted ? "#EF4444" : "#000"}
-            />
-          </TouchableOpacity>
+
+          <View style={styles.headerActions}>
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={handleShare}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="share-outline" size={24} color={colors.black} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.headerButton}
+              onPress={handleWishlistToggle}
+              activeOpacity={0.7}
+              disabled={togglingWishlist}
+            >
+              {togglingWishlist ? (
+                <ActivityIndicator size="small" color={colors.primary} />
+              ) : (
+                <Ionicons
+                  name={wishlistStatus?.in_wishlist ? "heart" : "heart-outline"}
+                  size={24}
+                  color={wishlistStatus?.in_wishlist ? colors.primary : colors.black}
+                />
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       </SafeAreaView>
 
-      <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
-        {/* Images */}
-        {images.length > 0 ? (
-          <View>
-            <ScrollView
-              horizontal
-              pagingEnabled
-              showsHorizontalScrollIndicator={false}
-              onMomentumScrollEnd={(e) => {
-                setImageIndex(Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH));
-              }}
-            >
-              {images.map((img, i) => (
-                <Image
-                  key={i}
-                  source={{ uri: getImageUrl(img) }}
-                  style={styles.image}
-                  contentFit="cover"
-                />
-              ))}
-            </ScrollView>
-            {images.length > 1 && (
-              <View style={styles.pagination}>
-                <Text style={styles.paginationText}>
-                  {imageIndex + 1}/{images.length}
-                </Text>
-              </View>
-            )}
-          </View>
-        ) : (
-          <View style={styles.noImage}>
-            <Ionicons name="image-outline" size={40} color="#D1D5DB" />
-          </View>
-        )}
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
+        {/* Image Gallery */}
+        <View style={styles.imageContainer}>
+          {images.length > 0 ? (
+            <>
+              {/* Main Large Image */}
+              <Image
+                source={{ uri: images[currentImageIndex]?.large?.image || images[currentImageIndex]?.thumb?.image }}
+                style={styles.mainImage}
+                resizeMode="cover"
+              />
 
-        <View style={styles.content}>
-          {/* Title & Price */}
-          <Text style={styles.title}>{listing.title}</Text>
-          <Text style={styles.price}>{formatPrice()}</Text>
-          {listing.is_price_negotiable && listing.price_type !== "ON_REQUEST" && (
-            <Text style={styles.negotiable}>Negotiable</Text>
+              {/* Thumbnail Selector */}
+              {images.length > 1 && (
+                <View style={styles.thumbnailContainer}>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.thumbnailScrollContent}
+                  >
+                    {images.map((image, index) => (
+                      <TouchableOpacity
+                        key={`thumb-${index}`}
+                        style={[
+                          styles.thumbnailWrapper,
+                          index === currentImageIndex && styles.thumbnailWrapperActive,
+                        ]}
+                        onPress={() => setCurrentImageIndex(index)}
+                        activeOpacity={0.7}
+                      >
+                        <Image
+                          source={{ uri: image.thumb?.image }}
+                          style={styles.thumbnailImage}
+                          resizeMode="cover"
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+            </>
+          ) : (
+            <Image
+              source={require("@/assets/images/placeholder.png")}
+              style={styles.mainImage}
+              resizeMode="cover"
+            />
           )}
 
-          {/* Merchant */}
-          <TouchableOpacity style={styles.merchantRow} onPress={handleMerchantPress}>
-            {listing.merchant.logo ? (
-              <Image source={{ uri: listing.merchant.logo }} style={styles.merchantLogo} />
-            ) : (
-              <View style={styles.merchantLogoPlaceholder}>
-                <Text style={styles.merchantInitial}>
-                  {listing.merchant.business_name.charAt(0)}
-                </Text>
+          {/* Badges */}
+          <View style={styles.badgesContainer}>
+            {listing.is_featured && (
+              <View style={[styles.badge, styles.featuredBadge]}>
+                <Ionicons name="star" size={12} color={colors.white} />
+                <Text style={styles.badgeText}>Featured</Text>
               </View>
             )}
-            <View style={styles.merchantInfo}>
-              <View style={styles.merchantNameRow}>
-                <Text style={styles.merchantName}>{listing.merchant.business_name}</Text>
+            {listing.is_verified && (
+              <View style={[styles.badge, styles.verifiedBadge]}>
+                <Ionicons name="checkmark-circle" size={12} color={colors.white} />
+                <Text style={styles.badgeText}>Verified</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Image Counter */}
+          {images.length > 1 && (
+            <View style={styles.imageCounter}>
+              <Text style={styles.imageCounterText}>
+                {currentImageIndex + 1} / {images.length}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        <View style={styles.contentContainer}>
+          {/* Category & Type */}
+          <View style={styles.metaRow}>
+            <View style={styles.categoryChip}>
+              <Text style={styles.categoryText}>{listing.category?.name || "General"}</Text>
+            </View>
+            <View style={styles.typeChip}>
+              <Text style={styles.typeText}>
+                {listing.listing_type === "PRODUCT" ? "Product" : "Service"}
+              </Text>
+            </View>
+          </View>
+
+          {/* Title */}
+          <Text style={styles.title}>{listing.title}</Text>
+
+          {/* Price Section */}
+          <View style={styles.priceSection}>
+            <Text style={[styles.price, listing.price_type !== "FIXED" && styles.priceRange]}>
+              {getDisplayPrice()}
+            </Text>
+            {listing.is_price_negotiable && (
+              <View style={styles.negotiableBadge}>
+                <Text style={styles.negotiableText}>Negotiable</Text>
+              </View>
+            )}
+            {listing.price_type === "RANGE" && (
+              <View style={styles.rangeBadge}>
+                <Text style={styles.rangeText}>Price Range</Text>
+              </View>
+            )}
+          </View>
+
+          {/* Stats Row */}
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Ionicons name="eye-outline" size={16} color={colors.gray600} />
+              <Text style={styles.statText}>{listing.views_count} views</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Ionicons name="chatbubble-outline" size={16} color={colors.gray600} />
+              <Text style={styles.statText}>{listing.contact_count} inquiries</Text>
+            </View>
+          </View>
+
+          {/* Divider */}
+          <View style={styles.divider} />
+
+          {/* Seller Card */}
+          <TouchableOpacity
+            style={styles.sellerCard}
+            onPress={handleMerchantPress}
+            activeOpacity={0.7}
+          >
+            <View style={styles.sellerAvatar}>
+              {listing.merchant.logo ? (
+                <Image
+                  source={{ uri: listing.merchant.logo }}
+                  style={styles.sellerAvatarImage}
+                />
+              ) : (
+                <View style={styles.sellerAvatarPlaceholder}>
+                  <Ionicons name="storefront" size={24} color={colors.gray500} />
+                </View>
+              )}
+            </View>
+
+            <View style={styles.sellerInfo}>
+              <View style={styles.sellerNameRow}>
+                <Text style={styles.sellerName}>{listing.merchant.display_name}</Text>
                 {listing.merchant.verified && (
-                  <Ionicons name="checkmark-circle" size={16} color="#10B981" />
+                  <Ionicons
+                    name="checkmark-circle"
+                    size={16}
+                    color={colors.verified}
+                    style={{ marginLeft: 4 }}
+                  />
                 )}
               </View>
-              <View style={styles.merchantRating}>
-                <Ionicons name="star" size={12} color="#FBBF24" />
-                <Text style={styles.ratingText}>
-                  {listing.merchant.rating.toFixed(1)} ({listing.merchant.total_reviews})
+
+              <View style={styles.sellerStats}>
+                <Ionicons name="star" size={14} color={colors.star} />
+                <Text style={styles.sellerRating}>
+                  {listing.merchant.rating.toFixed(1)} ({listing.merchant.total_reviews}{" "}
+                  reviews)
                 </Text>
               </View>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#9CA3AF" />
+
+            <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
           </TouchableOpacity>
 
-          {/* Quantity Selector (if cart allowed) */}
-          {canAddToCart && (
-            <View style={styles.quantitySection}>
-              <Text style={styles.quantityLabel}>Quantity</Text>
-              <View style={styles.quantityControls}>
-                <TouchableOpacity
-                  style={styles.quantityBtn}
-                  onPress={() => setQuantity(Math.max(1, quantity - 1))}
-                >
-                  <Ionicons name="remove" size={20} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.quantityValue}>{quantity}</Text>
-                <TouchableOpacity
-                  style={styles.quantityBtn}
-                  onPress={() => setQuantity(quantity + 1)}
-                >
-                  <Ionicons name="add" size={20} color="#000" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          )}
+          {/* Divider */}
+          <View style={styles.divider} />
 
           {/* Description */}
-          <View style={styles.section}>
+          <View style={styles.descriptionSection}>
             <Text style={styles.sectionTitle}>Description</Text>
             <Text style={styles.description}>{listing.description}</Text>
           </View>
 
           {/* Tags */}
-          {listing.tags.length > 0 && (
-            <View style={styles.section}>
-              <View style={styles.tags}>
+          {listing.tags && listing.tags.length > 0 && (
+            <View style={styles.tagsSection}>
+              <Text style={styles.sectionTitle}>Tags</Text>
+              <View style={styles.tagsContainer}>
                 {listing.tags.map((tag) => (
                   <View key={tag.id} style={styles.tag}>
                     <Text style={styles.tagText}>{tag.name}</Text>
@@ -366,126 +693,240 @@ export default function ListingDetailPage() {
             </View>
           )}
 
-          {/* Reviews */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Reviews</Text>
-              {reviews.length > 0 && (
-                <TouchableOpacity>
-                  <Text style={styles.seeAll}>See all</Text>
+          {/* Similar from Merchant */}
+          {similarMerchant && similarMerchant.results.length > 0 && (
+            <View style={styles.similarSection}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>
+                  More from {listing.merchant.display_name}
+                </Text>
+                <TouchableOpacity onPress={handleMerchantPress}>
+                  <Text style={styles.seeAllText}>View Store</Text>
                 </TouchableOpacity>
-              )}
-            </View>
+              </View>
 
-            {reviews.length > 0 ? (
-              reviews.slice(0, 3).map((review) => (
-                <View key={review.id} style={styles.reviewItem}>
-                  <View style={styles.reviewHeader}>
-                    {review.user_image ? (
-                      <Image source={{ uri: review.user_image }} style={styles.reviewAvatar} />
-                    ) : (
-                      <View style={styles.reviewAvatarPlaceholder}>
-                        <Text style={styles.reviewInitial}>
-                          {review.user_name.charAt(0)}
-                        </Text>
-                      </View>
-                    )}
-                    <View style={styles.reviewInfo}>
-                      <Text style={styles.reviewName}>{review.user_name}</Text>
-                      {renderStars(review.rating)}
-                    </View>
-                    <Text style={styles.reviewDate}>
-                      {new Date(review.created_at).toLocaleDateString("en-GB", {
-                        day: "numeric",
-                        month: "short",
-                      })}
-                    </Text>
-                  </View>
-                  <Text style={styles.reviewComment}>{review.comment}</Text>
-                </View>
-              ))
-            ) : (
-              <Text style={styles.noReviews}>No reviews yet</Text>
-            )}
-          </View>
-
-          {/* Similar Products */}
-          {similarListings.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Similar products</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.similarScrollContent}
+              >
+                {similarMerchant.results.map((item) => (
+                  <SimilarListingCard
+                    key={item.id}
+                    item={item}
+                    onPress={() => handleSimilarListingPress(item.id)}
+                  />
+                ))}
+              </ScrollView>
             </View>
           )}
-        </View>
 
-        {/* Similar Products List */}
-        {similarListings.length > 0 && (
-          <FlatList
-            data={similarListings}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.similarList}
-            keyExtractor={(item) => item.id}
-            renderItem={({ item }) => (
-              <TouchableOpacity
-                style={styles.similarItem}
-                onPress={() => handleSimilarPress(item.id)}
+          {/* Similar from Marketplace */}
+          {similarMarketplace && similarMarketplace.results.length > 0 && (
+            <View style={styles.similarSection}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>You May Also Like</Text>
+              </View>
+
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.similarScrollContent}
               >
-                <Image
-                  source={{ uri: item.primary_image?.thumbnail || item.primary_image?.image }}
-                  style={styles.similarImage}
-                  contentFit="cover"
-                />
-                <Text style={styles.similarTitle} numberOfLines={2}>
-                  {item.title}
-                </Text>
-                <Text style={styles.similarPrice}>
-                  {item.currency} {parseInt(item.price).toLocaleString()}
-                </Text>
-              </TouchableOpacity>
-            )}
-          />
-        )}
+                {similarMarketplace.results.map((item) => (
+                  <SimilarListingCard
+                    key={item.id}
+                    item={item}
+                    onPress={() => handleSimilarListingPress(item.id)}
+                    showMerchant
+                  />
+                ))}
+              </ScrollView>
+            </View>
+          )}
 
-        <View style={{ height: 100 }} />
+          {/* Bottom spacing for sticky bar */}
+          <View style={{ height: 100 }} />
+        </View>
       </ScrollView>
 
-      {/* Bottom Action Bar */}
-      <SafeAreaView edges={["bottom"]} style={styles.bottomBar}>
-        <View style={styles.bottomContent}>
-          {isContactOnly ? (
-            <TouchableOpacity style={styles.contactBtn} onPress={handleContactMerchant}>
-              <Ionicons name="call" size={20} color="#fff" />
-              <Text style={styles.contactBtnText}>Contact seller</Text>
-            </TouchableOpacity>
-          ) : canAddToCart ? (
+      {/* Sticky Bottom Action Bar */}
+      <SafeAreaView edges={["bottom"]} style={styles.bottomBarSafeArea}>
+        <View style={styles.bottomBar}>
+          <View style={styles.bottomPriceContainer}>
+            <Text style={styles.bottomPriceLabel}>
+              {listing.price_type === "RANGE" ? "Price Range" : "Price"}
+            </Text>
+            <Text style={[styles.bottomPrice, listing.price_type !== "FIXED" && styles.bottomPriceSmall]}>
+              {getDisplayPrice()}
+            </Text>
+          </View>
+
+          {/* Show cart controls only for FIXED price */}
+          {isCartAllowed ? (
             <>
-              <View style={styles.bottomPrice}>
-                <Text style={styles.bottomPriceLabel}>Total</Text>
-                <Text style={styles.bottomPriceValue}>
-                  {listing.currency}{" "}
-                  {(parseInt(listing.price || "0") * quantity).toLocaleString()}
-                </Text>
-              </View>
+              {/* Quantity Selector (only show if not already in cart) */}
+              {!cartStatus?.in_cart && (
+                <View style={styles.quantitySelector}>
+                  <TouchableOpacity
+                    style={styles.quantityButton}
+                    onPress={() => setQuantity(Math.max(1, quantity - 1))}
+                    disabled={quantity <= 1}
+                  >
+                    <Ionicons
+                      name="remove"
+                      size={18}
+                      color={quantity <= 1 ? colors.gray400 : colors.black}
+                    />
+                  </TouchableOpacity>
+                  <Text style={styles.quantityText}>{quantity}</Text>
+                  <TouchableOpacity
+                    style={styles.quantityButton}
+                    onPress={() => setQuantity(quantity + 1)}
+                  >
+                    <Ionicons name="add" size={18} color={colors.black} />
+                  </TouchableOpacity>
+                </View>
+              )}
+
               <TouchableOpacity
-                style={[styles.addToCartBtn, addingToCart && styles.addToCartBtnDisabled]}
-                onPress={handleAddToCart}
+                style={[
+                  styles.addToCartButton,
+                  cartStatus?.in_cart && styles.inCartButton,
+                ]}
+                onPress={cartStatus?.in_cart ? () => router.push("/(tabs)/(cart)/cart") : handleAddToCart}
                 disabled={addingToCart}
+                activeOpacity={0.8}
               >
                 {addingToCart ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small" color={colors.white} />
                 ) : (
-                  <Text style={styles.addToCartText}>Add to cart</Text>
+                  <>
+                    <Ionicons
+                      name={cartStatus?.in_cart ? "cart" : "cart-outline"}
+                      size={20}
+                      color={colors.white}
+                    />
+                    <Text style={styles.addToCartText}>
+                      {cartStatus?.in_cart ? "View Cart" : "Add to Cart"}
+                    </Text>
+                  </>
                 )}
+              </TouchableOpacity>
+
+              {/* Contact button for fixed price items */}
+              <TouchableOpacity
+                style={styles.contactIconButton}
+                onPress={handleContactMerchant}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.primary} />
               </TouchableOpacity>
             </>
           ) : (
-            <TouchableOpacity style={styles.contactBtn} onPress={handleContactMerchant}>
-              <Ionicons name="call" size={20} color="#fff" />
-              <Text style={styles.contactBtnText}>Contact seller</Text>
+            /* For RANGE or ON_REQUEST - show only contact button */
+            <TouchableOpacity
+              style={styles.contactMerchantButton}
+              onPress={handleContactMerchant}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="chatbubble-ellipses" size={20} color={colors.white} />
+              <Text style={styles.contactMerchantText}>Contact Merchant</Text>
             </TouchableOpacity>
           )}
         </View>
       </SafeAreaView>
+
+      {/* Contact Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={contactModalVisible}
+        onRequestClose={() => setContactModalVisible(false)}
+      >
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setContactModalVisible(false)}
+        >
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalHandle} />
+
+            <Text style={styles.modalTitle}>Contact Merchant</Text>
+            <Text style={styles.modalSubtitle}>
+              Choose how you'd like to reach {listing.merchant.display_name}
+            </Text>
+
+            {/* Call Option */}
+            <TouchableOpacity
+              style={styles.contactOption}
+              onPress={handleCallMerchant}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.contactOptionIcon, { backgroundColor: colors.successLight }]}>
+                <Ionicons name="call" size={24} color={colors.success} />
+              </View>
+              <View style={styles.contactOptionInfo}>
+                <Text style={styles.contactOptionTitle}>Call</Text>
+                <Text style={styles.contactOptionDescription}>
+                  Speak directly with the merchant
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
+            </TouchableOpacity>
+
+            {/* Message Option */}
+            <TouchableOpacity
+              style={styles.contactOption}
+              onPress={handleMessageMerchant}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.contactOptionIcon, { backgroundColor: colors.infoLight }]}>
+                <Ionicons name="chatbubbles" size={24} color={colors.info} />
+              </View>
+              <View style={styles.contactOptionInfo}>
+                <Text style={styles.contactOptionTitle}>Send Message</Text>
+                <Text style={styles.contactOptionDescription}>
+                  Send an inquiry about this listing
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
+            </TouchableOpacity>
+
+            {/* WhatsApp Option */}
+            <TouchableOpacity
+              style={styles.contactOption}
+              onPress={() => {
+                setContactModalVisible(false);
+                const message = encodeURIComponent(
+                  `Hi, I'm interested in your listing: ${listing.title}`
+                );
+                Alert.alert("Info", "WhatsApp contact will be available soon.");
+              }}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.contactOptionIcon, { backgroundColor: "#E7F5E9" }]}>
+                <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
+              </View>
+              <View style={styles.contactOptionInfo}>
+                <Text style={styles.contactOptionTitle}>WhatsApp</Text>
+                <Text style={styles.contactOptionDescription}>
+                  Chat on WhatsApp
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
+            </TouchableOpacity>
+
+            {/* Cancel Button */}
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => setContactModalVisible(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -493,383 +934,507 @@ export default function ListingDetailPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: colors.white,
   },
-  centered: {
-    flex: 1,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  errorText: {
-    fontSize: 16,
-    color: "#6B7280",
-  },
-  linkText: {
-    fontSize: 16,
-    color: "#000",
-    marginTop: 12,
-  },
-
-  // Header
-  headerSafe: {
-    backgroundColor: "#fff",
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
+  safeArea: {
+    backgroundColor: colors.white,
     zIndex: 10,
   },
   header: {
     flexDirection: "row",
-    alignItems: "center",
     justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  headerBtn: {
+  headerButton: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-
-  // Scroll
-  scroll: {
-    flex: 1,
-  },
-
-  // Image
-  image: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH,
-    backgroundColor: "#F9FAFB",
-  },
-  noImage: {
-    width: SCREEN_WIDTH,
-    height: SCREEN_WIDTH * 0.7,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: colors.white,
     justifyContent: "center",
     alignItems: "center",
+    ...shadow.sm,
   },
-  pagination: {
+  headerActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  imageContainer: {
+    position: "relative",
+    backgroundColor: colors.gray100,
+  },
+  mainImage: {
+    width: SCREEN_WIDTH,
+    height: IMAGE_HEIGHT,
+  },
+  thumbnailContainer: {
+    backgroundColor: colors.white,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray200,
+  },
+  thumbnailScrollContent: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  thumbnailWrapper: {
+    width: 60,
+    height: 60,
+    borderRadius: 8,
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  thumbnailWrapperActive: {
+    borderColor: colors.primary,
+  },
+  thumbnailImage: {
+    width: "100%",
+    height: "100%",
+  },
+  imageCounter: {
     position: "absolute",
-    bottom: 12,
-    right: 12,
-    backgroundColor: "rgba(0,0,0,0.6)",
+    bottom: 16,
+    right: 16,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
     paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  imageCounterText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  badgesContainer: {
+    position: "absolute",
+    top: 16,
+    left: 16,
+    flexDirection: "row",
+    gap: 8,
+  },
+  badge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+    gap: 4,
+  },
+  featuredBadge: {
+    backgroundColor: colors.star,
+  },
+  verifiedBadge: {
+    backgroundColor: colors.verified,
+  },
+  badgeText: {
+    color: colors.white,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  contentContainer: {
+    padding: 16,
+  },
+  metaRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginBottom: 12,
+  },
+  categoryChip: {
+    backgroundColor: colors.primarySoft,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  categoryText: {
+    color: colors.primary,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  typeChip: {
+    backgroundColor: colors.gray100,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  typeText: {
+    color: colors.gray700,
+    fontSize: 12,
+    fontWeight: "500",
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: colors.textPrimary,
+    marginBottom: 8,
+  },
+  priceSection: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 12,
+  },
+  price: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: colors.primary,
+  },
+  priceRange: {
+    fontSize: 22,
+  },
+  rangeBadge: {
+    backgroundColor: colors.infoLight,
+    paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
   },
-  paginationText: {
-    fontSize: 13,
-    color: "#fff",
-    fontWeight: "500",
+  rangeText: {
+    color: colors.info,
+    fontSize: 12,
+    fontWeight: "600",
   },
-
-  // Content
-  content: {
-    padding: 20,
+  negotiableBadge: {
+    backgroundColor: colors.successLight,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
   },
-
-  // Title & Price
-  title: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#000",
-    lineHeight: 28,
+  negotiableText: {
+    color: colors.success,
+    fontSize: 12,
+    fontWeight: "600",
   },
-  price: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#000",
-    marginTop: 8,
+  statsRow: {
+    flexDirection: "row",
+    gap: 16,
+    marginBottom: 16,
   },
-  negotiable: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginTop: 4,
-  },
-
-  // Merchant
-  merchantRow: {
+  statItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 16,
-    marginTop: 8,
-    borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: "#F3F4F6",
+    gap: 4,
   },
-  merchantLogo: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#F3F4F6",
+  statText: {
+    fontSize: 14,
+    color: colors.gray600,
   },
-  merchantLogoPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#E5E7EB",
+  divider: {
+    height: 1,
+    backgroundColor: colors.gray200,
+    marginVertical: 16,
+  },
+  sellerCard: {
+    flexDirection: "row",
     alignItems: "center",
+    backgroundColor: colors.gray50,
+    padding: 12,
+    borderRadius: 12,
+  },
+  sellerAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    overflow: "hidden",
+  },
+  sellerAvatarImage: {
+    width: "100%",
+    height: "100%",
+  },
+  sellerAvatarPlaceholder: {
+    width: "100%",
+    height: "100%",
+    backgroundColor: colors.gray200,
     justifyContent: "center",
+    alignItems: "center",
   },
-  merchantInitial: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#6B7280",
-  },
-  merchantInfo: {
+  sellerInfo: {
     flex: 1,
     marginLeft: 12,
   },
-  merchantNameRow: {
+  sellerNameRow: {
     flexDirection: "row",
     alignItems: "center",
+  },
+  sellerName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.textPrimary,
+  },
+  sellerStats: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
     gap: 4,
   },
-  merchantName: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#000",
+  sellerRating: {
+    fontSize: 14,
+    color: colors.gray600,
   },
-  merchantRating: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 2,
-    gap: 4,
-  },
-  ratingText: {
-    fontSize: 13,
-    color: "#6B7280",
-  },
-
-  // Quantity
-  quantitySection: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderColor: "#F3F4F6",
-  },
-  quantityLabel: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: "#000",
-  },
-  quantityControls: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 16,
-  },
-  quantityBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#F3F4F6",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  quantityValue: {
-    fontSize: 17,
-    fontWeight: "600",
-    color: "#000",
-    minWidth: 24,
-    textAlign: "center",
-  },
-
-  // Section
-  section: {
-    marginTop: 24,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 12,
+  descriptionSection: {
+    marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "600",
-    color: "#000",
+    color: colors.textPrimary,
+    marginBottom: 8,
   },
-  seeAll: {
-    fontSize: 14,
-    color: "#6B7280",
-  },
-
-  // Description
   description: {
     fontSize: 15,
-    color: "#374151",
     lineHeight: 22,
-    marginTop: 8,
+    color: colors.textSecondary,
   },
-
-  // Tags
-  tags: {
+  tagsSection: {
+    marginBottom: 16,
+  },
+  tagsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
   },
   tag: {
+    backgroundColor: colors.gray100,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: "#F3F4F6",
-    borderRadius: 4,
+    borderRadius: 16,
   },
   tagText: {
     fontSize: 13,
-    color: "#374151",
+    color: colors.gray700,
   },
-
-  // Reviews
-  reviewItem: {
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
+  similarSection: {
+    marginTop: 16,
   },
-  reviewHeader: {
+  sectionHeader: {
     flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 12,
   },
-  reviewAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#F3F4F6",
-  },
-  reviewAvatarPlaceholder: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#E5E7EB",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  reviewInitial: {
+  seeAllText: {
     fontSize: 14,
+    color: colors.primary,
     fontWeight: "600",
-    color: "#6B7280",
   },
-  reviewInfo: {
-    flex: 1,
-    marginLeft: 10,
+  similarScrollContent: {
+    paddingRight: 16,
   },
-  reviewName: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#000",
-  },
-  stars: {
-    flexDirection: "row",
-    gap: 2,
-    marginTop: 2,
-  },
-  reviewDate: {
-    fontSize: 13,
-    color: "#9CA3AF",
-  },
-  reviewComment: {
-    fontSize: 14,
-    color: "#374151",
-    lineHeight: 20,
-    marginTop: 8,
-  },
-  noReviews: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    marginTop: 8,
-  },
-
-  // Similar
-  similarList: {
-    paddingHorizontal: 20,
-    gap: 12,
-  },
-  similarItem: {
+  similarCard: {
     width: 140,
-  },
-  similarImage: {
-    width: 140,
-    height: 140,
+    marginRight: 12,
+    backgroundColor: colors.white,
     borderRadius: 8,
-    backgroundColor: "#F9FAFB",
+    borderWidth: 1,
+    borderColor: colors.gray200,
+    overflow: "hidden",
   },
-  similarTitle: {
+  similarCardImage: {
+    width: "100%",
+    height: 140,
+  },
+  similarCardContent: {
+    padding: 8,
+  },
+  similarCardTitle: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  similarCardMerchant: {
+    fontSize: 11,
+    color: colors.gray500,
+    marginBottom: 4,
+  },
+  similarCardPrice: {
     fontSize: 14,
-    color: "#000",
-    marginTop: 8,
-    lineHeight: 18,
+    fontWeight: "700",
+    color: colors.textPrimary,
   },
-  similarPrice: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#000",
-    marginTop: 4,
+  bottomBarSafeArea: {
+    backgroundColor: colors.white,
+    ...shadow.lg,
   },
-
-  // Bottom Bar
   bottomBar: {
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
-  },
-  bottomContent: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingVertical: 12,
-    gap: 16,
+    borderTopWidth: 1,
+    borderTopColor: colors.gray200,
   },
-  bottomPrice: {
+  bottomPriceContainer: {
     flex: 1,
   },
   bottomPriceLabel: {
-    fontSize: 13,
-    color: "#6B7280",
+    fontSize: 12,
+    color: colors.gray500,
   },
-  bottomPriceValue: {
+  bottomPrice: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#000",
+    color: colors.textPrimary,
   },
-  addToCartBtn: {
-    backgroundColor: "#000",
-    paddingHorizontal: 32,
-    paddingVertical: 14,
+  bottomPriceSmall: {
+    fontSize: 15,
+  },
+  quantitySelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: colors.gray100,
     borderRadius: 8,
+    marginRight: 12,
   },
-  addToCartBtnDisabled: {
-    opacity: 0.7,
+  quantityButton: {
+    width: 36,
+    height: 36,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  addToCartText: {
+  quantityText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#fff",
+    color: colors.textPrimary,
+    minWidth: 24,
+    textAlign: "center",
   },
-  contactBtn: {
+  addToCartButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    gap: 8,
+  },
+  inCartButton: {
+    backgroundColor: colors.success,
+  },
+  addToCartText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+    backgroundColor: colors.white,
+  },
+  errorText: {
+    fontSize: 18,
+    color: colors.gray600,
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  errorButton: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  errorButtonText: {
+    color: colors.white,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  // Contact button styles
+  contactIconButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: colors.primarySoft,
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 8,
+  },
+  contactMerchantButton: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#000",
+    backgroundColor: colors.primary,
     paddingVertical: 14,
     borderRadius: 8,
     gap: 8,
   },
-  contactBtnText: {
+  contactMerchantText: {
+    color: colors.white,
     fontSize: 16,
     fontWeight: "600",
-    color: "#fff",
+  },
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
+  },
+  modalContent: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 34,
+    paddingTop: 12,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    backgroundColor: colors.gray300,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: colors.gray600,
+    marginBottom: 20,
+  },
+  contactOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.gray100,
+  },
+  contactOptionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  contactOptionInfo: {
+    flex: 1,
+    marginLeft: 14,
+  },
+  contactOptionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.textPrimary,
+    marginBottom: 2,
+  },
+  contactOptionDescription: {
+    fontSize: 13,
+    color: colors.gray500,
+  },
+  cancelButton: {
+    marginTop: 16,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: colors.gray600,
   },
 });
