@@ -14,44 +14,9 @@ import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "@/utils/authStore";
 import apiService from "@/utils/apiBase";
+import { MenuItem, UserProfile } from "@/utils/types/models";
 
-interface UserProfile {
-  id: string;
-  username: string;
-  name: string;
-  email: string;
-  profile_image: string | null;
-  phone: string | null;
-  bio: string | null;
-  is_verified: boolean;
-  phone_verified: boolean;
-  is_merchant: boolean;
-  merchant?: {
-    id: string;
-    display_name: string;
-    business_name: string;
-    logo: string | null;
-    verified: boolean;
-    status: string;
-    rating: number;
-    total_reviews: number;
-    is_active: boolean;
-  };
-  intent?: {
-    intent: string;
-    intent_display: string;
-  };
-}
 
-interface MenuItem {
-  id: string;
-  title: string;
-  icon: keyof typeof Ionicons.glyphMap;
-  route?: string;
-  onPress?: () => void;
-  badge?: string;
-  color?: string;
-}
 
 export default function AccountScreen() {
   const router = useRouter();

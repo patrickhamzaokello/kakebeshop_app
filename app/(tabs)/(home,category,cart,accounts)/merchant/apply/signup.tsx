@@ -1,105 +1,112 @@
+import {
+  borderRadius,
+  colors,
+  fontSize,
+  fontWeight,
+  shadow,
+  spacingX,
+  spacingY,
+} from "@/constants/theme";
+import apiService from "@/utils/apiBase";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import { StatusBar } from "expo-status-bar";
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  Image,
   Alert,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import * as ImagePicker from "expo-image-picker";
-import apiService from "@/utils/apiBase";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function MerchantSignupScreen() {
-  const router = useRouter();
-  
-  const [loading, setLoading] = useState(false);
+interface FormData {
+  display_name: string;
+  business_name: string;
+  description: string;
+  business_phone: string;
+  business_email: string;
+  location: string;
+  logo: string | null;
+  cover_image: string | null;
+}
+
+interface FormErrors {
+  display_name?: string;
+  business_name?: string;
+  description?: string;
+  business_phone?: string;
+  business_email?: string;
+  location?: string;
+}
+
+export default function BecomeMerchantScreen() {
   const [currentStep, setCurrentStep] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
-  // Form data
-  const [formData, setFormData] = useState({
-    businessName: "",
-    displayName: "",
+  const [formData, setFormData] = useState<FormData>({
+    display_name: "",
+    business_name: "",
     description: "",
-    phoneNumber: "",
-    email: "",
-    address: "",
-    businessCategory: "",
-    logo: null as string | null,
+    business_phone: "",
+    business_email: "",
+    location: "",
+    logo: null,
+    cover_image: null,
   });
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<FormErrors>({});
 
-  const handlePickImage = async () => {
-    try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (status !== "granted") {
-        Alert.alert(
-          "Permission Required",
-          "Please grant permission to access your photos"
-        );
-        return;
-      }
+  const totalSteps = 3;
 
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.8,
-      });
-
-      if (!result.canceled && result.assets[0]) {
-        setFormData(prev => ({ ...prev, logo: result.assets[0].uri }));
-      }
-    } catch (error) {
-      console.error("Error picking image:", error);
-      Alert.alert("Error", "Failed to pick image");
-    }
-  };
-
+  // Form validation
   const validateStep = (step: number): boolean => {
-    const newErrors: Record<string, string> = {};
+    const newErrors: FormErrors = {};
 
-    if (step === 1) {
-      if (!formData.businessName.trim()) {
-        newErrors.businessName = "Business name is required";
-      }
-      if (!formData.displayName.trim()) {
-        newErrors.displayName = "Display name is required";
-      }
-      if (!formData.businessCategory.trim()) {
-        newErrors.businessCategory = "Business category is required";
-      }
-    }
+    switch (step) {
+      case 1: // Business Info
+        if (!formData.display_name.trim()) {
+          newErrors.display_name = "Display name is required";
+        } else if (formData.display_name.trim().length < 3) {
+          newErrors.display_name = "Display name must be at least 3 characters";
+        }
 
-    if (step === 2) {
-      if (!formData.description.trim()) {
-        newErrors.description = "Business description is required";
-      } else if (formData.description.trim().length < 50) {
-        newErrors.description = "Description must be at least 50 characters";
-      }
-    }
+        if (!formData.business_name.trim()) {
+          newErrors.business_name = "Business name is required";
+        }
 
-    if (step === 3) {
-      if (!formData.phoneNumber.trim()) {
-        newErrors.phoneNumber = "Phone number is required";
-      }
-      if (!formData.email.trim()) {
-        newErrors.email = "Email is required";
-      } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-        newErrors.email = "Please enter a valid email";
-      }
-      if (!formData.address.trim()) {
-        newErrors.address = "Business address is required";
-      }
+        if (!formData.description.trim()) {
+          newErrors.description = "Business description is required";
+        } else if (formData.description.trim().length < 20) {
+          newErrors.description = "Description must be at least 20 characters";
+        }
+        break;
+
+      case 2: // Contact Info
+        if (!formData.business_phone.trim()) {
+          newErrors.business_phone = "Phone number is required";
+        } else if (!/^[0-9+\-\s()]{10,}$/.test(formData.business_phone)) {
+          newErrors.business_phone = "Enter a valid phone number";
+        }
+
+        if (formData.business_email.trim()) {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(formData.business_email)) {
+            newErrors.business_email = "Enter a valid email address";
+          }
+        }
+
+        if (!formData.location.trim()) {
+          newErrors.location = "Location is required";
+        }
+        break;
     }
 
     setErrors(newErrors);
@@ -108,10 +115,8 @@ export default function MerchantSignupScreen() {
 
   const handleNext = () => {
     if (validateStep(currentStep)) {
-      if (currentStep < 3) {
+      if (currentStep < totalSteps) {
         setCurrentStep(currentStep + 1);
-      } else {
-        handleSubmit();
       }
     }
   };
@@ -119,171 +124,168 @@ export default function MerchantSignupScreen() {
   const handleBack = () => {
     if (currentStep > 1) {
       setCurrentStep(currentStep - 1);
-      setErrors({});
+    } else {
+      router.back();
     }
   };
 
   const handleSubmit = async () => {
-    if (!validateStep(3)) return;
+    if (!validateStep(currentStep)) {
+      return;
+    }
 
-    setLoading(true);
+    setIsSubmitting(true);
 
     try {
-      const submitData = new FormData();
-      submitData.append("business_name", formData.businessName);
-      submitData.append("display_name", formData.displayName);
-      submitData.append("description", formData.description);
-      submitData.append("phone", formData.phoneNumber);
-      submitData.append("email", formData.email);
-      submitData.append("address", formData.address);
-      submitData.append("business_category", formData.businessCategory);
+      const submitData = {
+        business_name: formData.business_name,
+        display_name: formData.display_name,
+        description: formData.description,
+        business_phone: formData.business_phone,
+        business_email: formData.business_email,
+      };
 
-      if (formData.logo && !formData.logo.startsWith("http")) {
-        const filename = formData.logo.split("/").pop() || "logo.jpg";
-        const match = /\.(\w+)$/.exec(filename);
-        const type = match ? `image/${match[1]}` : "image/jpeg";
-
-        submitData.append("logo", {
-          uri: formData.logo,
-          name: filename,
-          type,
-        } as any);
-      }
-
+      // Replace with actual API call
       const response = await apiService.post("/api/v1/merchants/create_profile/", submitData, {
         headers: {
-          "Content-Type": "multipart/form-data",
+          "Content-Type": "application/json",
         },
       });
 
       if (response.success) {
         Alert.alert(
-          "Application Submitted! 🎉",
-          "Your merchant application has been submitted successfully. We'll review it and get back to you soon.",
+          "Success!",
+          "Your merchant profile has been created. It will be reviewed by our team within 24-48 hours.",
           [
             {
               text: "OK",
-              onPress: () => router.back(),
+              onPress: () => router.replace("/"),
             },
           ]
         );
       } else {
-        Alert.alert("Error",  "Failed to submit application");
+        console.log("API Response Error:", response);
+        Alert.alert(
+          "Failure!",
+          "Your merchant profile has failed to be saved. Try again",
+          [
+            {
+              text: "OK",
+              onPress: () => router.replace("/"),
+            },
+          ]
+        );
       }
-    } catch (error: any) {
-      console.error("Error submitting application:", error);
+    } catch (error) {
       Alert.alert(
         "Error",
-        error?.response?.data?.message || "Failed to submit application. Please try again."
+        error instanceof Error ? error.message : "Something went wrong. Please try again."
       );
     } finally {
-      setLoading(false);
+      setIsSubmitting(false);
     }
   };
 
-  const updateFormData = (key: string, value: string) => {
-    setFormData(prev => ({ ...prev, [key]: value }));
-    // Clear error for this field
-    if (errors[key]) {
-      setErrors(prev => {
-        const newErrors = { ...prev };
-        delete newErrors[key];
-        return newErrors;
-      });
+  const pickImage = async (type: "logo" | "cover_image") => {
+    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permissionResult.granted) {
+      Alert.alert(
+        "Permission Required",
+        "Please allow access to your photo library to upload images."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: type === "logo" ? [1, 1] : [16, 9],
+      quality: 0.8,
+    });
+
+    if (!result.canceled && result.assets[0]) {
+      // In production, upload to your server/cloud storage
+      // For now, we'll use the local URI
+      setFormData((prev) => ({
+        ...prev,
+        [type]: result.assets[0].uri,
+      }));
     }
   };
 
+  const removeImage = (type: "logo" | "cover_image") => {
+    setFormData((prev) => ({
+      ...prev,
+      [type]: null,
+    }));
+  };
+
+  // Step 1: Business Information
   const renderStep1 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Business Information</Text>
-      <Text style={styles.stepDescription}>
-        Tell us about your business
-      </Text>
-
-      {/* Logo Upload */}
-      <View style={styles.logoSection}>
-        <Text style={styles.label}>Business Logo</Text>
-        <TouchableOpacity
-          style={styles.logoUpload}
-          onPress={handlePickImage}
-          activeOpacity={0.7}
-        >
-          {formData.logo ? (
-            <Image source={{ uri: formData.logo }} style={styles.logoImage} />
-          ) : (
-            <View style={styles.logoPlaceholder}>
-              <Ionicons name="camera" size={32} color="#999" />
-              <Text style={styles.logoPlaceholderText}>Add Logo</Text>
-            </View>
-          )}
-        </TouchableOpacity>
-        <Text style={styles.hint}>Optional - You can add this later</Text>
-      </View>
-
-      {/* Business Name */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>
-          Business Name <Text style={styles.required}>*</Text>
+      <View style={styles.stepHeader}>
+        <View style={styles.stepIconContainer}>
+          <MaterialCommunityIcons
+            name="store"
+            size={32}
+            color={colors.primary}
+          />
+        </View>
+        <Text style={styles.stepTitle}>Business Information</Text>
+        <Text style={styles.stepDescription}>
+          Tell us about your business
         </Text>
-        <TextInput
-          style={[styles.input, errors.businessName && styles.inputError]}
-          placeholder="e.g., FoodHub Uganda Ltd"
-          value={formData.businessName}
-          onChangeText={(text) => updateFormData("businessName", text)}
-          autoCapitalize="words"
-        />
-        {errors.businessName && (
-          <Text style={styles.errorText}>{errors.businessName}</Text>
-        )}
       </View>
 
-      {/* Display Name */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>
+        <Text style={styles.inputLabel}>
           Display Name <Text style={styles.required}>*</Text>
         </Text>
         <TextInput
-          style={[styles.input, errors.displayName && styles.inputError]}
-          placeholder="e.g., FoodHub"
-          value={formData.displayName}
-          onChangeText={(text) => updateFormData("displayName", text)}
-          autoCapitalize="words"
+          style={[styles.input, errors.display_name && styles.inputError]}
+          placeholder="How you want to be shown (e.g., Sarah's Boutique)"
+          placeholderTextColor={colors.textMuted}
+          value={formData.display_name}
+          onChangeText={(text) => {
+            setFormData((prev) => ({ ...prev, display_name: text }));
+            if (errors.display_name) {
+              setErrors((prev) => ({ ...prev, display_name: undefined }));
+            }
+          }}
         />
-        {errors.displayName && (
-          <Text style={styles.errorText}>{errors.displayName}</Text>
+        {errors.display_name && (
+          <Text style={styles.errorText}>{errors.display_name}</Text>
         )}
-        <Text style={styles.hint}>This will be shown to customers</Text>
+        <Text style={styles.helperText}>
+          This is what customers will see
+        </Text>
       </View>
 
-      {/* Business Category */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>
-          Business Category <Text style={styles.required}>*</Text>
+        <Text style={styles.inputLabel}>
+          Business Name <Text style={styles.required}>*</Text>
         </Text>
         <TextInput
-          style={[styles.input, errors.businessCategory && styles.inputError]}
-          placeholder="e.g., Food & Beverages, Electronics, Fashion"
-          value={formData.businessCategory}
-          onChangeText={(text) => updateFormData("businessCategory", text)}
-          autoCapitalize="words"
+          style={[styles.input, errors.business_name && styles.inputError]}
+          placeholder="Official registered business name"
+          placeholderTextColor={colors.textMuted}
+          value={formData.business_name}
+          onChangeText={(text) => {
+            setFormData((prev) => ({ ...prev, business_name: text }));
+            if (errors.business_name) {
+              setErrors((prev) => ({ ...prev, business_name: undefined }));
+            }
+          }}
         />
-        {errors.businessCategory && (
-          <Text style={styles.errorText}>{errors.businessCategory}</Text>
+        {errors.business_name && (
+          <Text style={styles.errorText}>{errors.business_name}</Text>
         )}
       </View>
-    </View>
-  );
-
-  const renderStep2 = () => (
-    <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Business Description</Text>
-      <Text style={styles.stepDescription}>
-        Help customers understand what you offer
-      </Text>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>
-          Description <Text style={styles.required}>*</Text>
+        <Text style={styles.inputLabel}>
+          Business Description <Text style={styles.required}>*</Text>
         </Text>
         <TextInput
           style={[
@@ -291,144 +293,181 @@ export default function MerchantSignupScreen() {
             styles.textArea,
             errors.description && styles.inputError,
           ]}
-          placeholder="Describe your business, products, and what makes you unique..."
+          placeholder="Describe what you sell and what makes your business unique..."
+          placeholderTextColor={colors.textMuted}
           value={formData.description}
-          onChangeText={(text) => updateFormData("description", text)}
+          onChangeText={(text) => {
+            setFormData((prev) => ({ ...prev, description: text }));
+            if (errors.description) {
+              setErrors((prev) => ({ ...prev, description: undefined }));
+            }
+          }}
           multiline
-          numberOfLines={6}
+          numberOfLines={5}
           textAlignVertical="top"
+          maxLength={500}
         />
-        <View style={styles.characterCount}>
-          <Text
-            style={[
-              styles.hint,
-              formData.description.length < 50 && styles.hintError,
-            ]}
-          >
-            {formData.description.length}/50 minimum
-          </Text>
-        </View>
         {errors.description && (
           <Text style={styles.errorText}>{errors.description}</Text>
         )}
-      </View>
-
-      <View style={styles.infoBox}>
-        <Ionicons name="information-circle-outline" size={20} color="#2196F3" />
-        <Text style={styles.infoText}>
-          A good description helps customers find and trust your business
+        <Text style={styles.characterCount}>
+          {formData.description.length}/500
         </Text>
       </View>
     </View>
   );
 
-  const renderStep3 = () => (
+  // Step 2: Contact Information
+  const renderStep2 = () => (
     <View style={styles.stepContainer}>
-      <Text style={styles.stepTitle}>Contact Information</Text>
-      <Text style={styles.stepDescription}>
-        How can customers reach you?
-      </Text>
-
-      {/* Phone Number */}
-      <View style={styles.inputGroup}>
-        <Text style={styles.label}>
-          Phone Number <Text style={styles.required}>*</Text>
+      <View style={styles.stepHeader}>
+        <View style={styles.stepIconContainer}>
+          <Ionicons name="call" size={32} color={colors.primary} />
+        </View>
+        <Text style={styles.stepTitle}>Contact Information</Text>
+        <Text style={styles.stepDescription}>
+          How can customers reach you?
         </Text>
-        <TextInput
-          style={[styles.input, errors.phoneNumber && styles.inputError]}
-          placeholder="e.g., +256700000000"
-          value={formData.phoneNumber}
-          onChangeText={(text) => updateFormData("phoneNumber", text)}
-          keyboardType="phone-pad"
-        />
-        {errors.phoneNumber && (
-          <Text style={styles.errorText}>{errors.phoneNumber}</Text>
-        )}
       </View>
 
-      {/* Email */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>
-          Email Address <Text style={styles.required}>*</Text>
+        <Text style={styles.inputLabel}>
+          Business Phone <Text style={styles.required}>*</Text>
         </Text>
         <TextInput
-          style={[styles.input, errors.email && styles.inputError]}
-          placeholder="e.g., info@foodhub.com"
-          value={formData.email}
-          onChangeText={(text) => updateFormData("email", text)}
+          style={[styles.input, errors.business_phone && styles.inputError]}
+          placeholder="+256 700 123 456"
+          placeholderTextColor={colors.textMuted}
+          value={formData.business_phone}
+          onChangeText={(text) => {
+            setFormData((prev) => ({ ...prev, business_phone: text }));
+            if (errors.business_phone) {
+              setErrors((prev) => ({ ...prev, business_phone: undefined }));
+            }
+          }}
+          keyboardType="phone-pad"
+        />
+        {errors.business_phone && (
+          <Text style={styles.errorText}>{errors.business_phone}</Text>
+        )}
+        <Text style={styles.helperText}>
+          This will be visible to customers
+        </Text>
+      </View>
+
+      <View style={styles.inputGroup}>
+        <Text style={styles.inputLabel}>
+          Business Email <Text style={styles.optional}>(Optional)</Text>
+        </Text>
+        <TextInput
+          style={[styles.input, errors.business_email && styles.inputError]}
+          placeholder="business@example.com"
+          placeholderTextColor={colors.textMuted}
+          value={formData.business_email}
+          onChangeText={(text) => {
+            setFormData((prev) => ({ ...prev, business_email: text }));
+            if (errors.business_email) {
+              setErrors((prev) => ({ ...prev, business_email: undefined }));
+            }
+          }}
           keyboardType="email-address"
           autoCapitalize="none"
         />
-        {errors.email && (
-          <Text style={styles.errorText}>{errors.email}</Text>
+        {errors.business_email && (
+          <Text style={styles.errorText}>{errors.business_email}</Text>
         )}
       </View>
 
-      {/* Address */}
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>
-          Business Address <Text style={styles.required}>*</Text>
+        <Text style={styles.inputLabel}>
+          Location <Text style={styles.required}>*</Text>
         </Text>
         <TextInput
-          style={[
-            styles.input,
-            styles.textArea,
-            errors.address && styles.inputError,
-          ]}
-          placeholder="Enter your physical business address"
-          value={formData.address}
-          onChangeText={(text) => updateFormData("address", text)}
-          multiline
-          numberOfLines={3}
-          textAlignVertical="top"
+          style={[styles.input, errors.location && styles.inputError]}
+          placeholder="e.g., Kampala, Uganda"
+          placeholderTextColor={colors.textMuted}
+          value={formData.location}
+          onChangeText={(text) => {
+            setFormData((prev) => ({ ...prev, location: text }));
+            if (errors.business_email) {
+              setErrors((prev) => ({ ...prev, location: undefined }));
+            }
+          }}
+          keyboardType="default"
+          autoCapitalize="none"
         />
-        {errors.address && (
-          <Text style={styles.errorText}>{errors.address}</Text>
+        
+        {errors.location && (
+          <Text style={styles.errorText}>{errors.location}</Text>
         )}
-      </View>
-
-      <View style={styles.infoBox}>
-        <Ionicons name="shield-checkmark-outline" size={20} color="#4CAF50" />
-        <Text style={styles.infoText}>
-          Your information will be verified before approval
+        <Text style={styles.helperText}>
+          Where are you primarily based?
         </Text>
       </View>
     </View>
   );
 
-  const renderProgressBar = () => (
-    <View style={styles.progressContainer}>
-      {[1, 2, 3].map((step) => (
-        <View key={step} style={styles.progressStepContainer}>
-          <View
-            style={[
-              styles.progressDot,
-              currentStep >= step && styles.progressDotActive,
-            ]}
-          >
-            {currentStep > step ? (
-              <Ionicons name="checkmark" size={16} color="white" />
-            ) : (
-              <Text
-                style={[
-                  styles.progressDotText,
-                  currentStep >= step && styles.progressDotTextActive,
-                ]}
-              >
-                {step}
-              </Text>
-            )}
-          </View>
-          {step < 3 && (
-            <View
-              style={[
-                styles.progressLine,
-                currentStep > step && styles.progressLineActive,
-              ]}
-            />
-          )}
+  
+
+  // Step 3: Review & Submit
+  const renderStep3 = () => (
+    <View style={styles.stepContainer}>
+      <View style={styles.stepHeader}>
+        <View style={styles.stepIconContainer}>
+          <Ionicons name="checkmark-circle" size={32} color={colors.success} />
         </View>
-      ))}
+        <Text style={styles.stepTitle}>Review Your Information</Text>
+        <Text style={styles.stepDescription}>
+          Please confirm everything is correct
+        </Text>
+      </View>
+
+      <View style={styles.reviewSection}>
+        <Text style={styles.reviewSectionTitle}>Business Details</Text>
+        <View style={styles.reviewItem}>
+          <Text style={styles.reviewLabel}>Display Name:</Text>
+          <Text style={styles.reviewValue}>{formData.display_name}</Text>
+        </View>
+        <View style={styles.reviewItem}>
+          <Text style={styles.reviewLabel}>Business Name:</Text>
+          <Text style={styles.reviewValue}>{formData.business_name}</Text>
+        </View>
+        <View style={styles.reviewItem}>
+          <Text style={styles.reviewLabel}>Description:</Text>
+          <Text style={styles.reviewValue}>{formData.description}</Text>
+        </View>
+      </View>
+
+      <View style={styles.reviewSection}>
+        <Text style={styles.reviewSectionTitle}>Contact Information</Text>
+        <View style={styles.reviewItem}>
+          <Text style={styles.reviewLabel}>Phone:</Text>
+          <Text style={styles.reviewValue}>{formData.business_phone}</Text>
+        </View>
+        {formData.business_email && (
+          <View style={styles.reviewItem}>
+            <Text style={styles.reviewLabel}>Email:</Text>
+            <Text style={styles.reviewValue}>{formData.business_email}</Text>
+          </View>
+        )}
+        <View style={styles.reviewItem}>
+          <Text style={styles.reviewLabel}>Location:</Text>
+          <Text style={styles.reviewValue}>{formData.location}</Text>
+        </View>
+      </View>      
+
+      <View style={styles.verificationNotice}>
+        <Ionicons name="time-outline" size={24} color={colors.warning} />
+        <View style={styles.verificationNoticeContent}>
+          <Text style={styles.verificationNoticeTitle}>
+            Verification Required
+          </Text>
+          <Text style={styles.verificationNoticeText}>
+            Your profile will be reviewed by our team within 24-48 hours. You'll
+            receive a notification once approved.
+          </Text>
+        </View>
+      </View>
     </View>
   );
 
@@ -437,69 +476,91 @@ export default function MerchantSignupScreen() {
       style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
     >
+      <StatusBar style="light" />
+
+      {/* Header */}
+      <LinearGradient
+        colors={[colors.primary, colors.primaryDark]}
+        style={styles.header}
+      >
+        <SafeAreaView edges={["top"]}>
+          <View style={styles.headerContent}>
+            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
+              <Ionicons name="arrow-back" size={24} color={colors.white} />
+            </TouchableOpacity>
+            <View style={styles.headerTextContainer}>
+              <Text style={styles.headerTitle}>Become a Seller</Text>
+              <Text style={styles.headerSubtitle}>
+                Step {currentStep} of {totalSteps}
+              </Text>
+            </View>
+            <View style={{ width: 40 }} />
+          </View>
+
+          {/* Progress Bar */}
+          <View style={styles.progressBarContainer}>
+            <View
+              style={[
+                styles.progressBar,
+                { width: `${(currentStep / totalSteps) * 100}%` },
+              ]}
+            />
+          </View>
+        </SafeAreaView>
+      </LinearGradient>
+
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerIcon}>
-            <Ionicons name="storefront" size={32} color="#E60549" />
-          </View>
-          <Text style={styles.headerTitle}>Become a Merchant</Text>
-          <Text style={styles.headerSubtitle}>
-            Start selling your products on Kakebe
-          </Text>
-        </View>
-
-        {/* Progress Bar */}
-        {renderProgressBar()}
-
-        {/* Steps */}
         {currentStep === 1 && renderStep1()}
         {currentStep === 2 && renderStep2()}
         {currentStep === 3 && renderStep3()}
       </ScrollView>
 
-      {/* Bottom Actions */}
-      <View style={styles.bottomActions}>
-        <View style={styles.actionButtons}>
-          {currentStep > 1 && (
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={handleBack}
-              activeOpacity={0.7}
-              disabled={loading}
-            >
-              <Ionicons name="arrow-back" size={20} color="#666" />
-              <Text style={styles.backButtonText}>Back</Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            style={[
-              styles.nextButton,
-              currentStep === 1 && styles.nextButtonFull,
-            ]}
-            onPress={handleNext}
-            activeOpacity={0.7}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator size="small" color="white" />
-            ) : (
-              <>
-                <Text style={styles.nextButtonText}>
-                  {currentStep === 3 ? "Submit Application" : "Continue"}
-                </Text>
-                {currentStep < 3 && (
-                  <Ionicons name="arrow-forward" size={20} color="white" />
-                )}
-              </>
+      {/* Footer Buttons */}
+      <View style={styles.footer}>
+        <SafeAreaView edges={["bottom"]}>
+          <View style={styles.footerButtons}>
+            {currentStep > 1 && (
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={handleBack}
+              >
+                <Ionicons name="arrow-back" size={20} color={colors.primary} />
+                <Text style={styles.secondaryButtonText}>Back</Text>
+              </TouchableOpacity>
             )}
-          </TouchableOpacity>
-        </View>
+
+            <TouchableOpacity
+              style={[
+                styles.primaryButton,
+                currentStep === 1 && styles.primaryButtonFull,
+                isSubmitting && styles.primaryButtonDisabled,
+              ]}
+              onPress={currentStep === totalSteps ? handleSubmit : handleNext}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <Text style={styles.primaryButtonText}>Submitting...</Text>
+              ) : (
+                <>
+                  <Text style={styles.primaryButtonText}>
+                    {currentStep === totalSteps ? "Submit" : "Continue"}
+                  </Text>
+                  <Ionicons
+                    name={
+                      currentStep === totalSteps ? "checkmark" : "arrow-forward"
+                    }
+                    size={20}
+                    color={colors.white}
+                  />
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
       </View>
     </KeyboardAvoidingView>
   );
@@ -508,244 +569,348 @@ export default function MerchantSignupScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FAFAFA",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingBottom: 100,
+    backgroundColor: colors.white,
   },
 
   // Header
   header: {
-    alignItems: "center",
-    paddingVertical: 32,
-    paddingHorizontal: 20,
-    backgroundColor: "white",
+    paddingBottom: spacingY._16,
   },
-  headerIcon: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: "#FFE5ED",
-    justifyContent: "center",
+  headerContent: {
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+    justifyContent: "space-between",
+    paddingHorizontal: spacingX._20,
+    paddingTop: spacingY._12,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  headerTextContainer: {
+    flex: 1,
+    alignItems: "center",
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#1A1A1A",
-    marginBottom: 8,
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
+    color: colors.white,
   },
   headerSubtitle: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
+    fontSize: fontSize.sm,
+    color: "rgba(255, 255, 255, 0.8)",
+    marginTop: spacingY._2,
   },
 
   // Progress Bar
-  progressContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingVertical: 24,
-    paddingHorizontal: 20,
-    backgroundColor: "white",
+  progressBarContainer: {
+    height: 4,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    marginTop: spacingY._16,
+    marginHorizontal: spacingX._20,
+    borderRadius: 2,
+    overflow: "hidden",
   },
-  progressStepContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  progressDot: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#F5F5F5",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#E5E5E5",
-  },
-  progressDotActive: {
-    backgroundColor: "#E60549",
-    borderColor: "#E60549",
-  },
-  progressDotText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#999",
-  },
-  progressDotTextActive: {
-    color: "white",
-  },
-  progressLine: {
-    width: 40,
-    height: 2,
-    backgroundColor: "#E5E5E5",
-    marginHorizontal: 8,
-  },
-  progressLineActive: {
-    backgroundColor: "#E60549",
+  progressBar: {
+    height: "100%",
+    backgroundColor: colors.white,
+    borderRadius: 2,
   },
 
-  // Steps
+  // Scroll View
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: spacingX._20,
+    paddingBottom: 100,
+  },
+
+  // Step Container
   stepContainer: {
-    padding: 20,
+    flex: 1,
+  },
+  stepHeader: {
+    alignItems: "center",
+    marginBottom: spacingY._30,
+  },
+  stepIconContainer: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: colors.primarySoft,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: spacingY._16,
   },
   stepTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#1A1A1A",
-    marginBottom: 8,
+    fontSize: fontSize.xxl,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+    textAlign: "center",
+    marginBottom: spacingY._8,
   },
   stepDescription: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 24,
-  },
-
-  // Logo Section
-  logoSection: {
-    marginBottom: 24,
-  },
-  logoUpload: {
-    alignSelf: "center",
-    marginBottom: 8,
-  },
-  logoImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-  },
-  logoPlaceholder: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "#F5F5F5",
-    borderWidth: 2,
-    borderColor: "#E5E5E5",
-    borderStyle: "dashed",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  logoPlaceholderText: {
-    fontSize: 12,
-    color: "#999",
-    marginTop: 8,
+    fontSize: fontSize.md,
+    color: colors.textSecondary,
+    textAlign: "center",
   },
 
   // Input Group
   inputGroup: {
-    marginBottom: 20,
+    marginBottom: spacingY._24,
   },
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#1A1A1A",
-    marginBottom: 8,
+  inputLabel: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacingY._8,
   },
   required: {
-    color: "#E60549",
+    color: colors.error,
+  },
+  optional: {
+    color: colors.textMuted,
   },
   input: {
-    backgroundColor: "white",
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.md,
+    padding: spacingX._16,
+    fontSize: fontSize.md,
+    color: colors.textPrimary,
     borderWidth: 1,
-    borderColor: "#E5E5E5",
-    borderRadius: 10,
-    padding: 14,
-    fontSize: 15,
-    color: "#1A1A1A",
+    borderColor: colors.border,
   },
   inputError: {
-    borderColor: "#F44336",
+    borderColor: colors.error,
+    borderWidth: 1.5,
   },
   textArea: {
     height: 120,
-    paddingTop: 14,
+    paddingTop: spacingY._16,
   },
-  hint: {
-    fontSize: 12,
-    color: "#999",
-    marginTop: 6,
-  },
-  hintError: {
-    color: "#F44336",
+  helperText: {
+    fontSize: fontSize.sm,
+    color: colors.textMuted,
+    marginTop: spacingY._6,
   },
   errorText: {
-    fontSize: 12,
-    color: "#F44336",
-    marginTop: 6,
+    fontSize: fontSize.sm,
+    color: colors.error,
+    marginTop: spacingY._6,
   },
   characterCount: {
-    alignItems: "flex-end",
+    fontSize: fontSize.xs,
+    color: colors.textMuted,
+    textAlign: "right",
+    marginTop: spacingY._4,
   },
 
-  // Info Box
-  infoBox: {
+  // Select Input
+  selectInput: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    gap: 10,
-    backgroundColor: "#F5F5F5",
-    borderRadius: 10,
-    padding: 14,
-    marginTop: 8,
+    alignItems: "center",
+    justifyContent: "space-between",
   },
-  infoText: {
+  selectInputText: {
+    fontSize: fontSize.md,
+    color: colors.textPrimary,
     flex: 1,
-    fontSize: 13,
-    color: "#666",
-    lineHeight: 18,
+  },
+  selectInputPlaceholder: {
+    color: colors.textMuted,
   },
 
-  // Bottom Actions
-  bottomActions: {
+  // Image Upload
+  uploadButton: {
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: borderRadius.lg,
+    padding: spacingX._30,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: colors.border,
+    borderStyle: "dashed",
+  },
+  uploadButtonText: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+    marginTop: spacingY._12,
+  },
+  uploadButtonSubtext: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    marginTop: spacingY._4,
+  },
+  imagePreviewContainer: {
+    position: "relative",
+    alignItems: "center",
+  },
+  logoPreview: {
+    width: 150,
+    height: 150,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.backgroundSecondary,
+  },
+  coverPreview: {
+    width: "100%",
+    height: 200,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.backgroundSecondary,
+  },
+  removeImageButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: colors.white,
+    borderRadius: 14,
+  },
+
+  // Info Card
+  infoCard: {
+    flexDirection: "row",
+    backgroundColor: colors.primarySoft,
+    borderRadius: borderRadius.md,
+    padding: spacingX._16,
+    gap: 12,
+  },
+  infoCardText: {
+    flex: 1,
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+
+  // Review Section
+  reviewSection: {
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: borderRadius.lg,
+    padding: spacingX._16,
+    marginBottom: spacingY._16,
+  },
+  reviewSectionTitle: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: colors.textPrimary,
+    marginBottom: spacingY._12,
+  },
+  reviewItem: {
+    marginBottom: spacingY._12,
+  },
+  reviewLabel: {
+    fontSize: fontSize.sm,
+    color: colors.textMuted,
+    marginBottom: spacingY._4,
+  },
+  reviewValue: {
+    fontSize: fontSize.md,
+    color: colors.textPrimary,
+    lineHeight: 22,
+  },
+  reviewImages: {
+    gap: 12,
+  },
+  reviewImageContainer: {
+    alignItems: "center",
+  },
+  reviewImageLabel: {
+    fontSize: fontSize.sm,
+    color: colors.textMuted,
+    marginBottom: spacingY._8,
+  },
+  reviewImage: {
+    width: 120,
+    height: 120,
+    borderRadius: borderRadius.md,
+  },
+  reviewImageWide: {
+    width: "100%",
+    height: 150,
+    borderRadius: borderRadius.md,
+  },
+
+  // Verification Notice
+  verificationNotice: {
+    flexDirection: "row",
+    backgroundColor: colors.backgroundSecondary,
+    borderRadius: borderRadius.lg,
+    padding: spacingX._16,
+    borderLeftWidth: 4,
+    borderLeftColor: colors.warning,
+    gap: 12,
+  },
+  verificationNoticeContent: {
+    flex: 1,
+  },
+  verificationNoticeTitle: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.semibold,
+    color: colors.textPrimary,
+    marginBottom: spacingY._4,
+  },
+  verificationNoticeText: {
+    fontSize: fontSize.sm,
+    color: colors.textSecondary,
+    lineHeight: 20,
+  },
+
+  // Footer
+  footer: {
     position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: "white",
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    backgroundColor: colors.white,
     borderTopWidth: 1,
-    borderTopColor: "#F0F0F0",
+    borderTopColor: colors.border,
+    ...shadow.lg,
   },
-  actionButtons: {
+  footerButtons: {
     flexDirection: "row",
+    paddingHorizontal: spacingX._20,
+    paddingTop: spacingY._16,
+    paddingBottom: spacingY._8,
     gap: 12,
   },
-  backButton: {
+  primaryButton: {
     flex: 1,
+    backgroundColor: colors.primary,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacingY._16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingVertical: 14,
-    borderRadius: 10,
-    backgroundColor: "#F5F5F5",
+    ...shadow.primary,
   },
-  backButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "#666",
+  primaryButtonFull: {
+    flex: 1,
   },
-  nextButton: {
-    flex: 2,
+  primaryButtonDisabled: {
+    opacity: 0.6,
+  },
+  primaryButtonText: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: colors.white,
+  },
+  secondaryButton: {
+    flex: 1,
+    backgroundColor: colors.white,
+    borderRadius: borderRadius.lg,
+    paddingVertical: spacingY._16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    paddingVertical: 14,
-    borderRadius: 10,
-    backgroundColor: "#E60549",
+    borderWidth: 1,
+    borderColor: colors.border,
   },
-  nextButtonFull: {
-    flex: 1,
-  },
-  nextButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "white",
+  secondaryButtonText: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold,
+    color: colors.primary,
   },
 });
