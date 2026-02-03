@@ -26,10 +26,6 @@ interface Category {
   slug: string;
 }
 
-interface Tag {
-  id: number;
-  name: string;
-}
 
 export default function CaptureListingDetails() {
   const params = useLocalSearchParams();
@@ -51,7 +47,6 @@ export default function CaptureListingDetails() {
 
   // Data state
   const [categories, setCategories] = useState<Category[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -171,7 +166,6 @@ export default function CaptureListingDetails() {
         price_type: priceType,
         currency: "UGX",
         is_price_negotiable: isPriceNegotiable,
-        tag_ids: selectedTags,
       };
 
       // Add price fields based on price type
@@ -529,39 +523,7 @@ export default function CaptureListingDetails() {
             </TouchableOpacity>
           )}
 
-          {/* Tags */}
-          <View style={styles.formGroup}>
-            <Typo size={14} fontWeight="600" color={colors.black}>
-              Tags (Optional)
-            </Typo>
-            <Typo size={12} color={colors.neutral500} style={{ marginTop: 4 }}>
-              Select relevant tags to help buyers find your listing
-            </Typo>
-            <View style={styles.tagsContainer}>
-              {tags.map((tag) => (
-                <TouchableOpacity
-                  key={tag.id}
-                  style={[
-                    styles.tag,
-                    selectedTags.includes(tag.id) && styles.tagSelected,
-                  ]}
-                  onPress={() => toggleTag(tag.id)}
-                  disabled={isSubmitting}
-                >
-                  <Typo
-                    size={13}
-                    color={
-                      selectedTags.includes(tag.id)
-                        ? colors.white
-                        : colors.neutral600
-                    }
-                  >
-                    {tag.name}
-                  </Typo>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
+        
 
           {/* Info Box */}
           <View style={styles.infoBox}>

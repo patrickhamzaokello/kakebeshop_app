@@ -347,7 +347,13 @@ export default function AccountScreen() {
           </View>
           <TouchableOpacity
             style={styles.manageMerchantButton}
-            onPress={() => router.push("/merchant/dashboard" as any)}
+            onPress={() => {
+              if (profile?.merchant?.id) {
+                router.push(`/merchant/${profile.merchant.id}`);
+              } else {
+                Alert.alert("Error", "Merchant ID not found.");
+              }
+            }}
             activeOpacity={0.7}
           >
             <Text style={styles.manageMerchantText}>Manage Business</Text>
