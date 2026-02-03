@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -19,6 +19,7 @@ import { categoryService } from "@/utils/services/categoryService";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { SeparateCarouselType } from "@/components/test/SeparateCarouselType";
 import { ThrewColumnGridCategorySection } from "@/components/test/ThrewColumnGridCategorySection";
+import { CategorySubCategorySection } from "@/components/test/CategorySubCategorySection";
 
 export default function ExplorePage() {
   const router = useRouter();
@@ -36,8 +37,10 @@ export default function ExplorePage() {
     router.push("/(tabs)/(category)/search");
   };
 
+ 
+
   const {
-    data: listings,
+    data: categories,
     loading: listingsLoading,
     hasMore,
     loadMore,
@@ -115,6 +118,24 @@ export default function ExplorePage() {
                         }
                     />
 
+                    <CategorySubCategorySection
+                                    data={categories}
+                                    loading={listingsLoading}
+                                    hasMore={hasMore}
+                                    onLoadMore={loadMore}
+                                    onexplorePress={(category) =>  router.push({
+                                      pathname: '/category/[id]',
+                                      params: { id: category.id }
+                                  })
+                              }
+                                    onListingPress={(subcategory) =>
+                                        router.push({
+                                            pathname: '/category/[id]',
+                                            params: { id: subcategory.id }
+                                        })
+                                    }
+                                />
+
         {/* each category heading with grid of 4 cards showing sub categories (tile and image) */}
       </ScrollView>
     </View>
@@ -124,7 +145,7 @@ export default function ExplorePage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral50,
+    backgroundColor: colors.white,
   },
   safeArea: {
     backgroundColor: colors.white,

@@ -13,9 +13,10 @@ import {
 import { CarouselImage } from '@/utils/types/models';
 
 const { width } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.89; // 85% of screen width
-const CARD_SPACING = 12;
-const SIDE_PEEK = (width - CARD_WIDTH) / 2; // Space to show on sides
+const CARD_WIDTH = width * 0.85; // 85% of screen width
+const CARD_SPACING = 16; // Space between cards
+const LEFT_PADDING = 20; // Left padding as requested
+const PEEK_WIDTH = 10; // How much of the next card shows
 
 interface SeparateCarouselTypeProps {
     data: CarouselImage[] | null;
@@ -69,29 +70,14 @@ export const SeparateCarouselType: React.FC<SeparateCarouselTypeProps> = ({ data
             <View style={styles.container}>
                 <View style={styles.carouselWrapper}>
                     <View style={styles.loadingContainer}>
-                        {/* Center card */}
                         <ShimmerPlaceholder
                             style={{
                                 width: CARD_WIDTH,
-                                height: 200,
-                                borderRadius: 12,
+                                height: 150,
+                                borderRadius: 16,
+                                marginLeft: LEFT_PADDING,
                             }}
                         />
-                        
-                        {/* Pagination dots shimmer */}
-                        <View style={styles.pagination}>
-                            {[1, 2, 3].map((_, index) => (
-                                <ShimmerPlaceholder
-                                    key={index}
-                                    style={{
-                                        width: index === 0 ? 20 : 6,
-                                        height: 6,
-                                        borderRadius: 3,
-                                        marginHorizontal: 3,
-                                    }}
-                                />
-                            ))}
-                        </View>
                     </View>
                 </View>
             </View>
@@ -123,10 +109,10 @@ export const SeparateCarouselType: React.FC<SeparateCarouselTypeProps> = ({ data
                     scrollEventThrottle={16}
                     snapToInterval={CARD_WIDTH + CARD_SPACING}
                     decelerationRate="fast"
-                    contentContainerStyle={[
-                        styles.scrollContent,
-                        { paddingHorizontal: SIDE_PEEK - CARD_SPACING / 2 }
-                    ]}
+                    contentContainerStyle={{
+                        paddingLeft: LEFT_PADDING,
+                        paddingRight: PEEK_WIDTH,
+                    }}
                 >
                     {data?.map((item, index) => (
                         <TouchableOpacity
@@ -135,7 +121,7 @@ export const SeparateCarouselType: React.FC<SeparateCarouselTypeProps> = ({ data
                             onPress={() => goToSlide(index)}
                             style={[
                                 styles.cardWrapper,
-                                { marginRight: CARD_SPACING }
+                                { marginRight: index === data.length - 1 ? 0 : CARD_SPACING }
                             ]}
                         >
                             <View style={styles.card}>
@@ -144,31 +130,10 @@ export const SeparateCarouselType: React.FC<SeparateCarouselTypeProps> = ({ data
                                     style={styles.carouselImage}
                                     resizeMode="cover"
                                 />
-                                <View style={styles.imageOverlay} />
                             </View>
                         </TouchableOpacity>
                     ))}
                 </ScrollView>
-
-                {data && data.length > 1 && (
-                    <View style={styles.pagination}>
-                        {data.map((_, index) => (
-                            <TouchableOpacity
-                                key={index}
-                                onPress={() => goToSlide(index)}
-                                activeOpacity={0.7}
-                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                            >
-                                <View
-                                    style={[
-                                        styles.dot,
-                                        index === activeIndex && styles.activeDot,
-                                    ]}
-                                />
-                            </TouchableOpacity>
-                        ))}
-                    </View>
-                )}
             </View>
         </View>
     );
@@ -176,17 +141,15 @@ export const SeparateCarouselType: React.FC<SeparateCarouselTypeProps> = ({ data
 
 const styles = StyleSheet.create({
     container: {
-        paddingTop: 8,
+        paddingTop: 20,
+        paddingBottom: 16,
     },
     carouselWrapper: {
         position: 'relative',
-        
     },
     loadingContainer: {
-        height: 200,
-        alignItems: 'center',
+        height: 150,
         justifyContent: 'center',
-        position: 'relative',
     },
     scrollContent: {
         alignItems: 'center',
@@ -197,53 +160,20 @@ const styles = StyleSheet.create({
     card: {
         width: '100%',
         height: 150,
-        borderRadius: 12,
-        
+        borderRadius: 8,
         overflow: 'hidden',
         backgroundColor: '#f5f5f5',
-        // Add shadow for depth
         shadowColor: '#000',
         shadowOffset: {
             width: 0,
-            height: 2,
+            height: 4,
         },
-        shadowOpacity: 0.25,
-        shadowRadius: 3.84,
-        elevation: 5,
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 6,
     },
     carouselImage: {
         width: '100%',
         height: '100%',
-    },
-    imageOverlay: {
-        position: 'absolute',
-        bottom: 0,
-        left: 0,
-        right: 0,
-        height: 80,
-    },
-    pagination: {
-        position: 'absolute',
-        bottom: 16,
-        alignSelf: 'center',
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: 'rgba(0, 0, 0, 0.5)',
-        paddingHorizontal: 10,
-        paddingVertical: 6,
-        borderRadius: 12,
-    },
-    dot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: 'rgba(255, 255, 255, 0.5)',
-        marginHorizontal: 3,
-    },
-    activeDot: {
-        backgroundColor: '#fff',
-        width: 20,
-        height: 6,
-        borderRadius: 3,
     },
 });

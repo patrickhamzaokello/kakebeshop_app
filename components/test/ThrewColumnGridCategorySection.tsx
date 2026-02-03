@@ -7,13 +7,15 @@ import {
     StyleSheet,
     Animated,
     Dimensions,
+    Image,
 } from 'react-native';
+import { FontAwesome6, MaterialIcons } from '@expo/vector-icons';
 import { Category } from '@/utils/types/models';
 import { SectionHeader } from '@/components/test/common/SectionHeader';
 
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.42; // Responsive width (42% of screen)
-const CARD_HEIGHT = 50; // Fixed height - more compact
+const CARD_HEIGHT = 65; // Fixed height - more compact
 const CARD_SPACING = 10;
 
 interface ThrewColumnGridCategorySectionProps {
@@ -53,7 +55,7 @@ const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
         <Animated.View
             style={[
                 {
-                    backgroundColor: '#E0E0E0',
+                    backgroundColor: '#F0D8D1',
                     opacity,
                 },
                 style,
@@ -61,6 +63,13 @@ const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
         />
     );
 };
+
+// Default category icon component
+const DefaultCategoryIcon: React.FC = () => (
+    <View style={styles.defaultIconContainer}>
+        <FontAwesome6 name="layer-group" size={20} color="#E60549" />
+    </View>
+);
 
 export const ThrewColumnGridCategorySection: React.FC<ThrewColumnGridCategorySectionProps> = ({
     titleText,
@@ -154,6 +163,15 @@ export const ThrewColumnGridCategorySection: React.FC<ThrewColumnGridCategorySec
                                 onPress={() => onCategoryPress(category)}
                                 activeOpacity={0.7}
                             >
+                                {category.icon ? (
+                                    <Image
+                                        source={{ uri: category.icon }}
+                                        style={styles.categoryImage}
+                                        resizeMode="cover"
+                                    />
+                                ) : (
+                                    <DefaultCategoryIcon />
+                                )}
                                 <Text 
                                     style={styles.categoryTitle} 
                                     numberOfLines={2}
@@ -172,11 +190,11 @@ export const ThrewColumnGridCategorySection: React.FC<ThrewColumnGridCategorySec
 
 const styles = StyleSheet.create({
     container: {
-        paddingVertical: 16,
+        paddingVertical: 30,
     },
     scrollContent: {
         paddingHorizontal: 16,
-        gap: CARD_SPACING  + 5,
+        gap: CARD_SPACING + 5,
     },
     column: {
         gap: CARD_SPACING,
@@ -185,13 +203,14 @@ const styles = StyleSheet.create({
         width: CARD_WIDTH,
         height: CARD_HEIGHT,
         borderRadius: 8,
-        backgroundColor: '#F5F5F5',
-        justifyContent: 'center',
+        backgroundColor: '#fff',
+        flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
         borderWidth: 1,
         borderColor: '#E0E0E0',
+        overflow: 'hidden',
     },
     shimmerCard: {
         width: CARD_WIDTH,
@@ -199,11 +218,27 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         overflow: 'hidden',
     },
+    categoryImage: {
+        width: 34,
+        height: 34,
+        borderRadius: 6,
+        marginRight: 10,
+        backgroundColor: '#F0D8D1',
+    },
+    defaultIconContainer: {
+        width: 34,
+        height: 34,
+        borderRadius: 6,
+        marginRight: 10,
+        backgroundColor: '#F0D8D1',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     categoryTitle: {
-        fontSize: 14,
+        flex: 1,
+        fontSize: 13,
         fontWeight: '600',
         color: '#1A1A1A',
-        textAlign: 'center',
-        lineHeight: 18,
+        lineHeight: 16,
     },
 });
