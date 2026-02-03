@@ -112,6 +112,9 @@ export interface Category {
     created_at: string;
 }
 
+
+
+
 export interface Location {
     id: string;
     region: string;

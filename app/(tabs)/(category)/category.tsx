@@ -15,173 +15,54 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { colors, spacingX, spacingY, radius } from "@/constants/theme";
 import { useSectionData } from "@/hooks/useSectionData";
-import { homeService } from "@/utils/services/homeService";
-import { Listing } from "@/utils/types/models";
-import { ListingImage } from "@/components/test/common/ListingImage";
-import { MaterialIcons } from "@expo/vector-icons";
-import { QuickViewModal } from "@/components/test/common/QuickViewModal";
-
-const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
-  const animatedValue = React.useRef(new Animated.Value(0)).current;
-
-  React.useEffect(() => {
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(animatedValue, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(animatedValue, {
-          toValue: 0,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, [animatedValue]);
-
-  const opacity = animatedValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.3, 0.7],
-  });
-
-  return (
-    <Animated.View
-      style={[
-        {
-          backgroundColor: "#E0E0E0",
-          opacity,
-        },
-        style,
-      ]}
-    />
-  );
-};
-
-const ListingShimmerCard = () => (
-  <View style={styles.listingCard}>
-    <View style={styles.imageContainer}>
-      <ShimmerPlaceholder
-        style={{
-          width: "100%",
-          height: 180,
-          borderTopLeftRadius: 8,
-          borderTopRightRadius: 8,
-        }}
-      />
-    </View>
-    <View style={styles.listingDescription}>
-      <ShimmerPlaceholder
-        style={{
-          width: "90%",
-          height: 14,
-          borderRadius: 4,
-          marginBottom: 4,
-        }}
-      />
-      <ShimmerPlaceholder
-        style={{
-          width: "60%",
-          height: 12,
-          borderRadius: 4,
-          marginBottom: 8,
-        }}
-      />
-      <ShimmerPlaceholder
-        style={{
-          width: "50%",
-          height: 16,
-          borderRadius: 4,
-        }}
-      />
-    </View>
-  </View>
-);
+import { categoryService } from "@/utils/services/categoryService";
+import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
+import { SeparateCarouselType } from "@/components/test/SeparateCarouselType";
+import { ThrewColumnGridCategorySection } from "@/components/test/ThrewColumnGridCategorySection";
 
 export default function ExplorePage() {
   const router = useRouter();
-  const [refreshing, setRefreshing] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
 
-  const recommendedData = useSectionData(() =>
-    homeService.getAllListings()
+  // Section data hooks - inline functions are now safe
+  const carouselData = useSectionData(() =>
+    categoryService.getCurrentPromoAds()
+  );
+  const mainCategoriesData = useSectionData(() =>
+    categoryService.getMaincategories()
   );
 
-
-  const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await recommendedData.refetch();
-    setRefreshing(false);
-  }, [recommendedData.refetch]);
 
   const handleSearchPress = () => {
     router.push("/(tabs)/(category)/search");
   };
 
-  const handleListingPress = (listing: Listing) => {
-    router.push({
-      pathname: "/listing/[id]",
-      params: { id: listing.id },
-    });
-  };
-
-  const handleQuickView = (listing: Listing) => {
-    setSelectedListing(listing);
-    setModalVisible(true);
-  };
-
-  const renderListingItem = ({ item }: { item: Listing }) => (
-    <TouchableOpacity
-      style={styles.listingCard}
-      onPress={() => handleListingPress(item)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.imageContainer}>
-        <ListingImage
-          primaryImage={item.primary_image}
-          style={styles.listingImage}
-          fallbackSource={require("@/assets/images/placeholder.png")}
-        />
-        <TouchableOpacity
-          style={styles.quickViewButton}
-          onPress={() => handleQuickView(item)}
-          activeOpacity={0.8}
-        >
-          <MaterialIcons name="add" size={18} color="#fff" />
-        </TouchableOpacity>
-      </View>
-      <View style={styles.listingDescription}>
-        <Text style={styles.listingTitle} numberOfLines={2}>
-          {item.title}
-        </Text>
-        <Text style={styles.merchantName} numberOfLines={1}>
-          {item.merchant.business_name}
-        </Text>
-        <Text style={styles.listingPrice}>
-          {item.currency} {parseFloat(item.price).toLocaleString()}
-        </Text>
-      </View>
-    </TouchableOpacity>
+  const {
+    data: listings,
+    loading: listingsLoading,
+    hasMore,
+    loadMore,
+    refresh: refreshListings,
+  } = useInfiniteScroll(
+    (page, limit) => categoryService.getMainCategoriesandSubcategories(page, limit),
+    10
   );
 
-  const renderShimmerGrid = () => (
-    <View style={styles.shimmerContainer}>
-      <View style={styles.row}>
-        <ListingShimmerCard />
-        <ListingShimmerCard />
-      </View>
-      <View style={styles.row}>
-        <ListingShimmerCard />
-        <ListingShimmerCard />
-      </View>
-      <View style={styles.row}>
-        <ListingShimmerCard />
-        <ListingShimmerCard />
-      </View>
-    </View>
-  );
+  const [refreshing, setRefreshing] = useState<boolean>(false);
+
+  // Pull to refresh all sections
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await Promise.all([
+      carouselData.refetch(),
+      mainCategoriesData.refetch(),
+      refreshListings(),
+    ]);
+    setRefreshing(false);
+  }, [
+    carouselData.refetch,
+    mainCategoriesData.refetch,
+    refreshListings,
+  ]);
 
   return (
     <View style={styles.container}>
@@ -203,11 +84,14 @@ export default function ExplorePage() {
           <Text style={styles.searchPlaceholder}>
             Search products, brands...
           </Text>
-          <Ionicons name="options-outline" size={18} color={colors.neutral400} />
+          <Ionicons
+            name="options-outline"
+            size={18}
+            color={colors.neutral400}
+          />
         </TouchableOpacity>
       </SafeAreaView>
 
-      {/* Recommended Listings */}
       <ScrollView
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
@@ -215,38 +99,24 @@ export default function ExplorePage() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Recommended for you</Text>
+        {/* cards for promos, horizontal scroll */}
+          <SeparateCarouselType data={carouselData.data} loading={carouselData.loading} />
 
-          {recommendedData.loading && !recommendedData.data ? (
-            renderShimmerGrid()
-          ) : recommendedData.data && recommendedData.data.length > 0 ? (
-            <FlatList
-              data={recommendedData.data.results}
-              renderItem={renderListingItem}
-              keyExtractor={(item) => item.id}
-              numColumns={2}
-              columnWrapperStyle={styles.row}
-              scrollEnabled={false}
-            />
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Ionicons
-                name="cube-outline"
-                size={48}
-                color={colors.neutral300}
-              />
-              <Text style={styles.emptyText}>No recommendations available</Text>
-            </View>
-          )}
-        </View>
+        {/* shop by category section header and horizontal scroll of 3 rows */}
+        <ThrewColumnGridCategorySection
+                        data={mainCategoriesData.data}
+                        titleText={"Shop by Category"}
+                        loading={mainCategoriesData.loading}
+                        onCategoryPress={(category) => 
+                            router.push({
+                                pathname: '/category/[id]',
+                                params: { id: category.id }
+                            })
+                        }
+                    />
+
+        {/* each category heading with grid of 4 cards showing sub categories (tile and image) */}
       </ScrollView>
-
-      <QuickViewModal
-        visible={modalVisible}
-        listing={selectedListing}
-        onClose={() => setModalVisible(false)}
-      />
     </View>
   );
 }
@@ -290,78 +160,5 @@ const styles = StyleSheet.create({
   },
   scrollView: {
     flex: 1,
-  },
-  sectionContainer: {
-    padding: spacingX._16,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: colors.black,
-    marginBottom: spacingY._12,
-  },
-  shimmerContainer: {
-    gap: 8,
-  },
-  row: {
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  listingCard: {
-    width: "48.5%",
-    backgroundColor: colors.white,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: colors.neutral100,
-    overflow: "hidden",
-  },
-  imageContainer: {
-    position: "relative",
-  },
-  listingImage: {
-    width: "100%",
-    height: 180,
-    borderTopLeftRadius: 8,
-    borderTopRightRadius: 8,
-  },
-  quickViewButton: {
-    position: "absolute",
-    bottom: 8,
-    right: 8,
-    backgroundColor: "rgba(0, 0, 0, 0.9)",
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  listingDescription: {
-    padding: 10,
-  },
-  listingTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    marginBottom: 4,
-    color: colors.black,
-  },
-  merchantName: {
-    fontSize: 12,
-    color: colors.neutral500,
-    marginBottom: 6,
-  },
-  listingPrice: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: colors.black,
-  },
-  emptyContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: spacingY._60,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.neutral400,
-    marginTop: spacingY._12,
   },
 });
