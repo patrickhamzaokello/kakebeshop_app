@@ -7,7 +7,6 @@ import {
     StyleSheet,
     Animated,
     Dimensions,
-    Image,
 } from 'react-native';
 import { FontAwesome6, MaterialIcons } from '@expo/vector-icons';
 import { Category } from '@/utils/types/models';
@@ -163,15 +162,8 @@ export const ThrewColumnGridCategorySection: React.FC<ThrewColumnGridCategorySec
                                 onPress={() => onCategoryPress(category)}
                                 activeOpacity={0.7}
                             >
-                                {category.icon ? (
-                                    <Image
-                                        source={{ uri: category.icon }}
-                                        style={styles.categoryImage}
-                                        resizeMode="cover"
-                                    />
-                                ) : (
+                                
                                     <DefaultCategoryIcon />
-                                )}
                                 <Text 
                                     style={styles.categoryTitle} 
                                     numberOfLines={2}

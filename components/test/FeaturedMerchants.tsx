@@ -67,7 +67,7 @@ export const FeaturedMerchants: React.FC<FeaturedMerchantsProps> = ({
         return (
             <View style={styles.container}>
                 <SectionHeader
-                    title="Top Brands"
+                    title="Featured Merchants"
                     onSeeAll={onSeeAll}
                     showSeeAll={!!onSeeAll}
                 />
@@ -119,7 +119,7 @@ export const FeaturedMerchants: React.FC<FeaturedMerchantsProps> = ({
     return (
         <View style={styles.container}>
             <SectionHeader
-                title="Top Brands"
+                title="Featured Merchants"
                 onSeeAll={onSeeAll}
                 showSeeAll={!!onSeeAll}
             />

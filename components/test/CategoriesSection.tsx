@@ -1,23 +1,15 @@
-import React, { useEffect } from 'react';
-import {
-    View,
-    Text,
-    ScrollView,
-    TouchableOpacity,
-    StyleSheet,
-    Animated,
-} from 'react-native';
-import {
-    MaterialIcons,
-    FontAwesome5,
-    Ionicons,
-    Feather,
-    MaterialCommunityIcons,
-    AntDesign,
-    Entypo
-} from '@expo/vector-icons';
-import { Category } from '@/utils/types/models';
 import { SectionHeader } from '@/components/test/common/SectionHeader';
+import { Category } from '@/utils/types/models';
+import React, { useEffect, useRef } from 'react';
+import {
+    Animated,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 
 interface CategoriesSectionProps {
     data: Category[] | null;
@@ -27,19 +19,19 @@ interface CategoriesSectionProps {
 }
 
 const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
-    const animatedValue = new Animated.Value(0);
+    const animatedValue = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
         Animated.loop(
             Animated.sequence([
                 Animated.timing(animatedValue, {
                     toValue: 1,
-                    duration: 1000,
+                    duration: 1500,
                     useNativeDriver: true,
                 }),
                 Animated.timing(animatedValue, {
                     toValue: 0,
-                    duration: 1000,
+                    duration: 1500,
                     useNativeDriver: true,
                 }),
             ])
@@ -48,19 +40,155 @@ const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
 
     const opacity = animatedValue.interpolate({
         inputRange: [0, 1],
-        outputRange: [0.3, 0.7],
+        outputRange: [0.3, 0.6],
     });
 
     return (
         <Animated.View
             style={[
                 {
-                    backgroundColor: '#E0E0E0',
+                    backgroundColor: '#F5F5F7',
                     opacity,
                 },
                 style,
             ]}
         />
+    );
+};
+
+const CategoryChip: React.FC<{
+    category: Category;
+    onPress: (category: Category) => void;
+    index: number;
+}> = ({ category, onPress, index }) => {
+    const scaleAnim = useRef(new Animated.Value(1)).current;
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const slideAnim = useRef(new Animated.Value(15)).current;
+
+    useEffect(() => {
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 500,
+                delay: index * 40,
+                useNativeDriver: true,
+            }),
+            Animated.spring(slideAnim, {
+                toValue: 0,
+                delay: index * 40,
+                tension: 60,
+                friction: 8,
+                useNativeDriver: true,
+            }),
+        ]).start();
+    }, []);
+
+    const handlePressIn = () => {
+        Animated.spring(scaleAnim, {
+            toValue: 0.96,
+            useNativeDriver: true,
+        }).start();
+    };
+
+    const handlePressOut = () => {
+        Animated.spring(scaleAnim, {
+            toValue: 1,
+            useNativeDriver: true,
+        }).start();
+    };
+
+    const getCategoryStyle = (category: Category) => {
+        const styles: Record<string, {
+            gradient: string[],
+            textColor: string,
+        }> = {
+            'AGRO': {
+                gradient: ['#FFFFFF', '#F0FDF4'],
+                textColor: '#166534',
+            },
+            'BEAUTY': {
+                gradient: ['#FFFFFF', '#FDF2F8'],
+                textColor: '#9F1239',
+            },
+            'CRAFTS': {
+                gradient: ['#FFFFFF', '#FFF7ED'],
+                textColor: '#9A3412',
+            },
+            'ELECTRONICS': {
+                gradient: ['#FFFFFF', '#EFF6FF'],
+                textColor: '#1E40AF',
+            },
+            'FASHION': {
+                gradient: ['#FFFFFF', '#F5F3FF'],
+                textColor: '#6B21A8',
+            },
+            'FOOD': {
+                gradient: ['#FFFFFF', '#FEF2F2'],
+                textColor: '#991B1B',
+            },
+            'HEALTH': {
+                gradient: ['#FFFFFF', '#FFF1F2'],
+                textColor: '#BE123C',
+            },
+            'HOME': {
+                gradient: ['#FFFFFF', '#EEF2FF'],
+                textColor: '#3730A3',
+            },
+            'KIDS': {
+                gradient: ['#FFFFFF', '#FDF2F8'],
+                textColor: '#A21CAF',
+            },
+            'MARKET': {
+                gradient: ['#FFFFFF', '#F0FDFA'],
+                textColor: '#115E59',
+            },
+            'TVS': {
+                gradient: ['#FFFFFF', '#EFF6FF'],
+                textColor: '#1E3A8A',
+            },
+        };
+
+        let style = styles[category.name.toUpperCase()];
+
+        if (!style && category.parent === 'efd0b514-7dc9-4f18-abad-c3d1603a4f84') {
+            style = styles[category.name.toUpperCase()] || styles['ELECTRONICS'];
+        }
+
+        return style || {
+            gradient: ['#FFFFFF', '#F9FAFB'],
+            textColor: '#374151',
+        };
+    };
+
+    const style = getCategoryStyle(category);
+
+    return (
+        <Animated.View
+            style={[
+                {
+                    opacity: fadeAnim,
+                    transform: [
+                        { scale: scaleAnim },
+                        { translateY: slideAnim }
+                    ]
+                }
+            ]}
+        >
+            <TouchableOpacity
+                onPress={() => onPress(category)}
+                onPressIn={handlePressIn}
+                onPressOut={handlePressOut}
+                activeOpacity={1}
+            >
+                <View
+                    style={styles.chip}
+                >
+                    <Text style={[styles.chipText, { color: style.textColor }]}>
+                        {category.name}
+                    </Text>
+                </View>
+            </TouchableOpacity>
+        </Animated.View>
     );
 };
 
@@ -85,71 +213,31 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
                     contentContainerStyle={styles.scrollContent}
                     scrollEnabled={false}
                 >
-                    {[1, 2, 3, 4, 5, 6].map((item) => (
-                        <View key={item} style={styles.categoryItem}>
-                            {/* Icon container shimmer */}
-                            <ShimmerPlaceholder
-                                style={[styles.iconContainer, { borderRadius: 32 }]}
-                            />
-                            {/* Category name shimmer */}
-                            <ShimmerPlaceholder
-                                style={{
-                                    width: 60,
-                                    height: 10,
-                                    borderRadius: 4,
-                                    marginTop: 8,
-                                }}
-                            />
-                            {/* Second line of text (optional) */}
-                            <ShimmerPlaceholder
-                                style={{
-                                    width: 45,
-                                    height: 10,
-                                    borderRadius: 4,
-                                    marginTop: 4,
-                                }}
-                            />
-                        </View>
+                    {[1, 2, 3, 4, 5].map((item) => (
+                        <ShimmerPlaceholder
+                            key={item}
+                            style={styles.shimmerChip}
+                        />
                     ))}
                 </ScrollView>
             </View>
         );
     }
 
-    // Get icon component for each category
-    const getCategoryIcon = (category: Category) => {
-        const iconMap: Record<string, { Component: React.ComponentType<any>, name: string, library?: string }> = {
-            'AGRO': { Component: Entypo , name: 'leaf' },
-            'BEAUTY': { Component: MaterialIcons, name: 'spa' },
-            'CRAFTS': { Component: AntDesign , name: 'build' },
-            'ELECTRONICS': { Component: MaterialIcons, name: 'devices' },
-            'FASHION': { Component: MaterialCommunityIcons, name: 'hanger' },
-            'FOOD': { Component: MaterialCommunityIcons, name: 'food-apple' },
-            'HEALTH': { Component: FontAwesome5, name: 'heartbeat' },
-            'HOME': { Component: MaterialIcons, name: 'home-max' },
-            'KIDS': { Component: FontAwesome5, name: 'baby' },
-            'MARKET': { Component: MaterialCommunityIcons, name: 'shopping' },
-            'TVS': { Component: MaterialIcons, name: 'tv' },
-        };
-
-        // Try exact match first
-        let iconConfig = iconMap[category.name.toUpperCase()];
-
-        // If no exact match, check if it's a subcategory of ELECTRONICS
-        if (!iconConfig && category.parent) {
-            // Check parent category (ELECTRONICS has children)
-            if (category.parent === 'efd0b514-7dc9-4f18-abad-c3d1603a4f84') {
-                iconConfig = iconMap[category.name.toUpperCase()] || { Component: MaterialIcons, name: 'devices' };
-            }
-        }
-
-        // Default fallback icon
-        if (!iconConfig) {
-            iconConfig = { Component: MaterialIcons, name: 'category' };
-        }
-
-        return iconConfig;
-    };
+    if (!data || data.length === 0) {
+        return (
+            <View style={styles.container}>
+                <SectionHeader
+                    title="Categories"
+                    onSeeAll={onSeeAll}
+                    showSeeAll={false}
+                />
+                <View style={styles.emptyState}>
+                    <Text style={styles.emptyText}>No categories available</Text>
+                </View>
+            </View>
+        );
+    }
 
     return (
         <View style={styles.container}>
@@ -163,31 +251,16 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.scrollContent}
+                decelerationRate="fast"
             >
-                {data?.map((category) => {
-                    const iconConfig = getCategoryIcon(category);
-                    const IconComponent = iconConfig.Component;
-
-                    return (
-                        <TouchableOpacity
-                            key={category.id}
-                            style={styles.categoryItem}
-                            onPress={() => onCategoryPress(category)}
-                            activeOpacity={0.7}
-                        >
-                            <View style={styles.iconContainer}>
-                                <IconComponent
-                                    name={iconConfig.name}
-                                    size={32}
-                                    color="#000"
-                                />
-                            </View>
-                            <Text style={styles.categoryName} numberOfLines={3}>
-                                {category.name}
-                            </Text>
-                        </TouchableOpacity>
-                    );
-                })}
+                {data.map((category, index) => (
+                    <CategoryChip
+                        key={category.id}
+                        category={category}
+                        onPress={onCategoryPress}
+                        index={index}
+                    />
+                ))}
             </ScrollView>
         </View>
     );
@@ -195,29 +268,52 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
 
 const styles = StyleSheet.create({
     container: {
-        paddingVertical: 16,
+        paddingVertical: 20,
+        backgroundColor: '#FFFFFF',
     },
     scrollContent: {
         paddingHorizontal: 16,
+        paddingVertical: 4,
     },
-    categoryItem: {
-        alignItems: 'center',
+    chip: {
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 24,
         marginRight: 10,
-        width: 70,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.06)',
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 1 },
+                shadowOpacity: 0.04,
+                shadowRadius: 4,
+            },
+            android: {
+                elevation: 1,
+            },
+        }),
     },
-    iconContainer: {
-        width: 64,
-        height: 64,
-        borderRadius: 32,
-        backgroundColor: '#E0E8ED',
+    chipText: {
+        fontSize: 14,
+        fontWeight: '600',
+        letterSpacing: -0.2,
+    },
+    shimmerChip: {
+        height: 40,
+        width: 100,
+        borderRadius: 24,
+        marginRight: 10,
+    },
+    emptyState: {
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 8,
+        paddingVertical: 40,
+        paddingHorizontal: 24,
     },
-    categoryName: {
-        fontSize: 10,
-        textAlign: 'center',
-        color: '#000',
+    emptyText: {
+        fontSize: 14,
+        color: '#9CA3AF',
         fontWeight: '500',
     },
 });

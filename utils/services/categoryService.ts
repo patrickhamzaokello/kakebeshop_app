@@ -23,8 +23,8 @@ export const categoryService = {
     // Categories
     async getMaincategories(): Promise<Category[]> {
         try {
-            const response = await apiService.get<Category[]>('/api/v1/categories/featured/');
-            return response.data;
+            const response = await apiService.get<Category[]>('/api/v1/categories/parents/');
+            return response.data.results;
         } catch (error) {
             return [];
         }
@@ -327,7 +327,6 @@ export const categoryService = {
         }
     },
 
-    // Featured Merchants
     async getMainCategoriesandSubcategoriesReal(page: number, limit: number) {
         try {
             const response = await apiService.get<PaginatedResponse<Category>>('/api/v1/listings/', {
@@ -342,6 +341,46 @@ export const categoryService = {
                 next: response.data.next,
                 previous: response.data.previous,
             };
+        } catch (error) {
+            return {
+                results: [],
+                hasMore: false,
+                count: 0,
+                next: null,
+                previous: null,
+            };
+        }
+    },
+
+
+
+    // get Category details
+    async getCategoryDetails(categoryId: string): Promise<Category | null> {
+        try {
+            const response = await apiService.get<Category>(`/api/v1/categories/${categoryId}/details/`);
+            return response.data;
+        } catch (error) {
+            return null;
+        }
+    },
+
+    // get Category subcategories
+    async getCategorySubcategories(categoryId: string){
+        try {
+            const response = await apiService.get<Category[]>(`/api/v1/categories/${categoryId}/subcategories/`);
+            return response.data.subcategories;
+        } catch (error) {
+            return [];
+        }
+    },
+
+    // get category listings
+    async getCategoryListings(categoryId: string, page: number, limit: number){
+        try {
+            const response = await apiService.get<PaginatedResponse<Merchant>>(`/api/v1/categories/${categoryId}/listings/`, {
+                params: { page, limit },
+            });
+            return response.data;
         } catch (error) {
             return {
                 results: [],
