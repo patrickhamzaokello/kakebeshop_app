@@ -511,7 +511,7 @@ export default function SearchPage() {
 
   const renderMerchantItem = (item: MerchantResult) => (
     <TouchableOpacity
-      style={styles.merchantCard}
+      style={styles.merchantCardFullWidth}
       onPress={() => handleMerchantPress(item)}
       activeOpacity={0.7}
     >
@@ -552,11 +552,16 @@ export default function SearchPage() {
     </TouchableOpacity>
   );
 
-  const renderItem = ({ item }: { item: SearchResult }) => {
+  const renderItem = ({ item, index }: { item: SearchResult; index: number }) => {
     if (item.type === "listing") {
       return renderListingItem(item);
     } else {
-      return renderMerchantItem(item);
+      // Merchant cards should span full width in the grid
+      return (
+        <View style={styles.merchantWrapper}>
+          {renderMerchantItem(item)}
+        </View>
+      );
     }
   };
 
@@ -732,6 +737,9 @@ export default function SearchPage() {
             onEndReached={handleLoadMore}
             onEndReachedThreshold={0.5}
             ListFooterComponent={renderFooter}
+            numColumns={2}
+            columnWrapperStyle={styles.columnWrapper}
+            key="two-column-grid"
           />
         ) : (
           renderEmptyState()
@@ -914,6 +922,10 @@ const styles = StyleSheet.create({
     padding: spacingX._16,
     paddingBottom: spacingY._20,
   },
+  columnWrapper: {
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
   shimmerContainer: {
     padding: spacingX._16,
     gap: 12,
@@ -930,7 +942,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.neutral100,
     overflow: "hidden",
-    marginBottom: 12,
   },
   imageContainer: {
     position: "relative",
@@ -996,6 +1007,20 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "700",
     color: colors.black,
+  },
+  merchantWrapper: {
+    width: "100%",
+    marginBottom: 12,
+  },
+  merchantCardFullWidth: {
+    flexDirection: "row",
+    backgroundColor: colors.white,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.neutral100,
+    padding: 12,
+    gap: 12,
+    width: "100%",
   },
   merchantCard: {
     flexDirection: "row",
