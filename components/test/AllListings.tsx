@@ -135,6 +135,42 @@ export const AllListings: React.FC<AllListingsProps> = ({
         setModalVisible(true);
     };
 
+    const formatPrice = (listing: Listing): string => {
+        // Handle ON_REQUEST price type
+        if (listing.price_type === "ON_REQUEST") {
+            return "Price on request";
+        }
+
+        // Handle RANGE price type
+        if (listing.price_type === "RANGE") {
+            if (listing.price_min && listing.price_max) {
+                return `${listing.currency} ${listing.price_min.toLocaleString()} - ${listing.price_max.toLocaleString()}`;
+            }
+            return "Price on request";
+        }
+
+        // Handle FIXED price type
+        if (listing.price_type === "FIXED" && listing.price) {
+            return `${listing.currency} ${listing.price.toLocaleString()}`;
+        }
+
+        return "Price not available";
+    };
+
+    const getPriceStyle = (listing: Listing) => {
+        // Use smaller font for range prices since they're longer
+        if (listing.price_type === "RANGE") {
+            return [styles.listingPrice, styles.listingPriceSmall];
+        }
+        
+        // Use very small font for "Price on request"
+        if (listing.price_type === "ON_REQUEST") {
+            return [styles.listingPrice, styles.listingPriceRequest];
+        }
+
+        return styles.listingPrice;
+    };
+
     const renderItem: ListRenderItem<Listing> = ({ item }) => (
         <TouchableOpacity
             style={styles.listingCard}
@@ -147,6 +183,13 @@ export const AllListings: React.FC<AllListingsProps> = ({
                     style={styles.listingImage}
                     fallbackSource={require('@/assets/images/placeholder.png')}
                 />
+                {/* Featured badge for featured listings */}
+                {item.is_featured && (
+                    <View style={styles.featuredBadge}>
+                        <MaterialIcons name="star" size={12} color="#fff" />
+                        <Text style={styles.featuredText}>Featured</Text>
+                    </View>
+                )}
                 <TouchableOpacity
                     style={styles.quickViewButton}
                     onPress={(e) => handleQuickView(item, e)}
@@ -167,10 +210,12 @@ export const AllListings: React.FC<AllListingsProps> = ({
                 <Text style={styles.merchantName} numberOfLines={1}>
                     {item.merchant.business_name}
                 </Text>
-                <Text style={styles.listingPrice}>
-                    {item.currency}
-                    {item.price}
+                <Text style={getPriceStyle(item)} numberOfLines={2}>
+                    {formatPrice(item)}
                 </Text>
+                {item.is_price_negotiable && item.price_type === "FIXED" && (
+                    <Text style={styles.negotiableText}>Negotiable</Text>
+                )}
             </View>
         </TouchableOpacity>
     );
@@ -267,6 +312,23 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 8,
         borderTopRightRadius: 8,
     },
+    featuredBadge: {
+        position: 'absolute',
+        top: 8,
+        left: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#007AFF',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 4,
+        gap: 4,
+    },
+    featuredText: {
+        color: '#fff',
+        fontSize: 10,
+        fontWeight: '600',
+    },
     quickViewButton: {
         position: 'absolute',
         bottom: 8,
@@ -299,6 +361,21 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: 'bold',
         color: '#000',
+    },
+    listingPriceSmall: {
+        fontSize: 13,
+        lineHeight: 18,
+    },
+    listingPriceRequest: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#666',
+    },
+    negotiableText: {
+        fontSize: 11,
+        color: '#007AFF',
+        fontWeight: '600',
+        marginTop: 2,
     },
     footerLoader: {
         paddingVertical: 20,

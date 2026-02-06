@@ -752,69 +752,37 @@ export default function ListingDetailsScreen() {
 
       {/* Sticky Bottom Action Bar */}
       <SafeAreaView edges={["bottom"]} style={styles.bottomBarSafeArea}>
-        <View style={styles.bottomBar}>
-          <View style={styles.bottomPriceContainer}>
-            <Text style={styles.bottomPriceLabel}>
-              {listing.price_type === "RANGE" ? "Price Range" : "Price"}
-            </Text>
-            <Text style={[styles.bottomPrice, listing.price_type !== "FIXED" && styles.bottomPriceSmall]}>
-              {getDisplayPrice()}
-            </Text>
-          </View>
+  <View style={styles.bottomBar}>
+    {/* Price Section - Now takes more space */}
+    <View style={styles.priceSection}>
+      <Text style={styles.priceLabel}>
+        {listing.price_type === "RANGE" ? "Price Range" : 
+         listing.price_type === "ON_REQUEST" ? "Pricing" : "Price"}
+      </Text>
+      <Text style={styles.priceValue} numberOfLines={1}>
+        {getDisplayPrice()}
+      </Text>
+      {listing.is_price_negotiable && listing.price_type === "FIXED" && (
+        <Text style={styles.negotiableTag}>Negotiable</Text>
+      )}
+    </View>
 
-          {/* Show cart controls only for FIXED price */}
-          {isCartAllowed ? (
-            <>
-              {/* Quantity Selector (only show if not already in cart) */}
-              {!cartStatus?.in_cart && (
-                <View style={styles.quantitySelector}>
-                  <TouchableOpacity
-                    style={styles.quantityButton}
-                    onPress={() => setQuantity(Math.max(1, quantity - 1))}
-                    disabled={quantity <= 1}
-                  >
-                    <Ionicons
-                      name="remove"
-                      size={18}
-                      color={quantity <= 1 ? colors.gray400 : colors.black}
-                    />
-                  </TouchableOpacity>
-                  <Text style={styles.quantityText}>{quantity}</Text>
-                  <TouchableOpacity
-                    style={styles.quantityButton}
-                    onPress={() => setQuantity(quantity + 1)}
-                  >
-                    <Ionicons name="add" size={18} color={colors.black} />
-                  </TouchableOpacity>
-                </View>
-              )}
-
+    {/* Action Section */}
+    <View style={styles.actionSection}>
+      {isCartAllowed ? (
+        <>
+          {/* If item is already in cart */}
+          {cartStatus?.in_cart ? (
+            <View style={styles.cartActionsRow}>
               <TouchableOpacity
-                style={[
-                  styles.addToCartButton,
-                  cartStatus?.in_cart && styles.inCartButton,
-                ]}
-                onPress={cartStatus?.in_cart ? () => router.push("/(tabs)/(cart)/cart") : handleAddToCart}
-                disabled={addingToCart}
+                style={styles.viewCartButton}
+                onPress={() => router.push("/(tabs)/(cart)/cart")}
                 activeOpacity={0.8}
               >
-                {addingToCart ? (
-                  <ActivityIndicator size="small" color={colors.white} />
-                ) : (
-                  <>
-                    <Ionicons
-                      name={cartStatus?.in_cart ? "cart" : "cart-outline"}
-                      size={20}
-                      color={colors.white}
-                    />
-                    <Text style={styles.addToCartText}>
-                      {cartStatus?.in_cart ? "View Cart" : "Add to Cart"}
-                    </Text>
-                  </>
-                )}
+                <Ionicons name="cart" size={20} color={colors.white} />
+                <Text style={styles.viewCartText}>View Cart</Text>
               </TouchableOpacity>
-
-              {/* Contact button for fixed price items */}
+              
               <TouchableOpacity
                 style={styles.contactIconButton}
                 onPress={handleContactMerchant}
@@ -822,20 +790,73 @@ export default function ListingDetailsScreen() {
               >
                 <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.primary} />
               </TouchableOpacity>
-            </>
+            </View>
           ) : (
-            /* For RANGE or ON_REQUEST - show only contact button */
-            <TouchableOpacity
-              style={styles.contactMerchantButton}
-              onPress={handleContactMerchant}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="chatbubble-ellipses" size={20} color={colors.white} />
-              <Text style={styles.contactMerchantText}>Contact Merchant</Text>
-            </TouchableOpacity>
+            /* Item not in cart - show quantity selector and add to cart */
+            <View style={styles.cartActionsRow}>
+              <View style={styles.quantitySelector}>
+                <TouchableOpacity
+                  style={styles.quantityButton}
+                  onPress={() => setQuantity(Math.max(1, quantity - 1))}
+                  disabled={quantity <= 1}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name="remove"
+                    size={18}
+                    color={quantity <= 1 ? colors.neutral400 : colors.black}
+                  />
+                </TouchableOpacity>
+                <Text style={styles.quantityText}>{quantity}</Text>
+                <TouchableOpacity
+                  style={styles.quantityButton}
+                  onPress={() => setQuantity(quantity + 1)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="add" size={18} color={colors.black} />
+                </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                style={styles.addToCartButton}
+                onPress={handleAddToCart}
+                disabled={addingToCart}
+                activeOpacity={0.8}
+              >
+                {addingToCart ? (
+                  <ActivityIndicator size="small" color={colors.white} />
+                ) : (
+                  <>
+                    <Ionicons name="cart-outline" size={20} color={colors.white} />
+                    <Text style={styles.addToCartText}>Add to Cart</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.contactIconButton}
+                onPress={handleContactMerchant}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
           )}
-        </View>
-      </SafeAreaView>
+        </>
+      ) : (
+        /* For RANGE or ON_REQUEST - show only contact button */
+        <TouchableOpacity
+          style={styles.contactMerchantButtonFull}
+          onPress={handleContactMerchant}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="chatbubble-ellipses" size={20} color={colors.white} />
+          <Text style={styles.contactMerchantText}>Contact Merchant</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  </View>
+</SafeAreaView>
 
       {/* Contact Modal */}
       <Modal
@@ -1252,119 +1273,149 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.textPrimary,
   },
+  
   bottomBarSafeArea: {
     backgroundColor: colors.white,
-    ...shadow.lg,
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral100,
   },
   bottomBar: {
+    flexDirection: "column",
+    backgroundColor: colors.white,
+    paddingHorizontal: spacingX._16,
+    paddingTop: spacingY._12,
+    paddingBottom: spacingY._8,
+    gap: 12,
+  },
+
+  // Price Section - Now more spacious
+  priceSection: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: colors.gray200,
+    gap: 8,
   },
-  bottomPriceContainer: {
+  priceLabel: {
+    fontSize: 13,
+    color: colors.neutral600,
+    fontWeight: "500",
+  },
+  priceValue: {
     flex: 1,
-  },
-  bottomPriceLabel: {
-    fontSize: 12,
-    color: colors.gray500,
-  },
-  bottomPrice: {
     fontSize: 18,
     fontWeight: "700",
-    color: colors.textPrimary,
+    color: colors.black,
   },
-  bottomPriceSmall: {
-    fontSize: 15,
+  negotiableTag: {
+    fontSize: 11,
+    color: colors.primary,
+    fontWeight: "600",
+    backgroundColor: colors.primary + "15",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
   },
+
+  // Action Section
+  actionSection: {
+    width: "100%",
+  },
+  cartActionsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+
+  // Quantity Selector - Compact design
   quantitySelector: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.gray100,
+    backgroundColor: colors.neutral100,
     borderRadius: 8,
-    marginRight: 12,
+    borderWidth: 1,
+    borderColor: colors.neutral200,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
+    gap: 8,
   },
   quantityButton: {
-    width: 36,
-    height: 36,
-    justifyContent: "center",
+    width: 32,
+    height: 32,
     alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.white,
+    borderRadius: 6,
   },
   quantityText: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
-    color: colors.textPrimary,
+    color: colors.black,
     minWidth: 24,
     textAlign: "center",
   },
+
+  // Add to Cart Button - Takes remaining space
   addToCartButton: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primary,
-    paddingHorizontal: 20,
     paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 8,
     gap: 8,
   },
-  inCartButton: {
-    backgroundColor: colors.success,
-  },
   addToCartText: {
-    color: colors.white,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
+    color: colors.white,
   },
-  errorContainer: {
+
+  // View Cart Button (when item already in cart)
+  viewCartButton: {
     flex: 1,
-    justifyContent: "center",
+    flexDirection: "row",
     alignItems: "center",
-    padding: 20,
-    backgroundColor: colors.white,
-  },
-  errorText: {
-    fontSize: 18,
-    color: colors.gray600,
-    marginTop: 16,
-    marginBottom: 24,
-  },
-  errorButton: {
+    justifyContent: "center",
     backgroundColor: colors.primary,
-    paddingHorizontal: 24,
     paddingVertical: 12,
+    paddingHorizontal: 16,
     borderRadius: 8,
+    gap: 8,
   },
-  errorButtonText: {
-    color: colors.white,
-    fontSize: 16,
+  viewCartText: {
+    fontSize: 15,
     fontWeight: "600",
+    color: colors.white,
   },
-  // Contact button styles
+
+  // Contact Icon Button
   contactIconButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
-    backgroundColor: colors.primarySoft,
-    justifyContent: "center",
+    width: 48,
+    height: 48,
     alignItems: "center",
-    marginLeft: 8,
+    justifyContent: "center",
+    backgroundColor: colors.neutral50,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.neutral200,
   },
-  contactMerchantButton: {
-    flex: 1,
+
+  // Contact Merchant Button (full width for non-cart items)
+  contactMerchantButtonFull: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primary,
     paddingVertical: 14,
+    paddingHorizontal: 20,
     borderRadius: 8,
     gap: 8,
   },
   contactMerchantText: {
-    color: colors.white,
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "600",
+    color: colors.white,
   },
   // Modal styles
   modalOverlay: {

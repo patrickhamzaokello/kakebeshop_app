@@ -552,17 +552,48 @@ export default function SearchPage() {
     </TouchableOpacity>
   );
 
-  const renderItem = ({ item, index }: { item: SearchResult; index: number }) => {
-    if (item.type === "listing") {
-      return renderListingItem(item);
-    } else {
-      // Merchant cards should span full width in the grid
-      return (
-        <View style={styles.merchantWrapper}>
-          {renderMerchantItem(item)}
-        </View>
-      );
+  // Render items with proper grid layout for mixed listing/merchant results
+  const renderResultsList = () => {
+    const items = [];
+    let i = 0;
+
+    while (i < results.length) {
+      const item = results[i];
+
+      if (item.type === "merchant") {
+        // Merchant spans full width
+        items.push(
+          <View key={`merchant-${item.id}`} style={styles.merchantFullWidthWrapper}>
+            {renderMerchantItem(item)}
+          </View>
+        );
+        i++;
+      } else {
+        // Check if next item is also a listing to pair them
+        const nextItem = results[i + 1];
+        if (nextItem && nextItem.type === "listing") {
+          // Pair of listings in a row
+          items.push(
+            <View key={`row-${item.id}-${nextItem.id}`} style={styles.listingRow}>
+              {renderListingItem(item)}
+              {renderListingItem(nextItem)}
+            </View>
+          );
+          i += 2;
+        } else {
+          // Single listing (odd one out)
+          items.push(
+            <View key={`row-${item.id}`} style={styles.listingRow}>
+              {renderListingItem(item)}
+              <View style={{ width: "48%" }} />
+            </View>
+          );
+          i++;
+        }
+      }
     }
+
+    return items;
   };
 
   const renderShimmerGrid = () => (
@@ -727,20 +758,23 @@ export default function SearchPage() {
         {loading ? (
           renderShimmerGrid()
         ) : results.length > 0 ? (
-          <FlatList
-            data={results}
-            renderItem={renderItem}
-            keyExtractor={(item) => `${item.type}-${item.id}`}
+          <ScrollView
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            onEndReached={handleLoadMore}
-            onEndReachedThreshold={0.5}
-            ListFooterComponent={renderFooter}
-            numColumns={2}
-            columnWrapperStyle={styles.columnWrapper}
-            key="two-column-grid"
-          />
+            onScroll={({ nativeEvent }) => {
+              const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+              const isCloseToBottom =
+                layoutMeasurement.height + contentOffset.y >= contentSize.height - 100;
+              if (isCloseToBottom) {
+                handleLoadMore();
+              }
+            }}
+            scrollEventThrottle={400}
+          >
+            {renderResultsList()}
+            {renderFooter()}
+          </ScrollView>
         ) : (
           renderEmptyState()
         )}
@@ -922,6 +956,11 @@ const styles = StyleSheet.create({
     padding: spacingX._16,
     paddingBottom: spacingY._20,
   },
+  listingRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
   columnWrapper: {
     justifyContent: "space-between",
     marginBottom: 12,
@@ -1010,6 +1049,12 @@ const styles = StyleSheet.create({
   },
   merchantWrapper: {
     width: "100%",
+    marginBottom: 12,
+  },
+  merchantFullWidthWrapper: {
+    width: "100%",
+    marginLeft: 0,
+    marginRight: 0,
     marginBottom: 12,
   },
   merchantCardFullWidth: {
