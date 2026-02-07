@@ -36,10 +36,10 @@ export const moderateScale = (size: number, factor = 0.5) =>
 // Light Theme Colors
 export const lightColors = {
   // Brand Colors - Vibrant Red Accent
-  primary: "#E60549",
-  primaryLight: "#FF4D7A",
+  primary: "#d00000",
+  primaryLight: "#ff5400",
   primaryDark: "#B8003A",
-  primarySoft: "#FFEEF3",
+  primarySoft: "#344e41",
 
   // Secondary Accent
   secondary: "#FF6B6B",
@@ -122,7 +122,7 @@ export const lightColors = {
 
   // Special Colors
   star: "#FFB800",
-  heart: "#E60549",
+  heart: "#d00000",
   verified: "#2196F3",
   online: "#00C853",
   offline: "#9E9E9E",
@@ -144,7 +144,7 @@ export const lightColors = {
   // Tab Bar
   tabBarBackground: "#FFFFFF",
   tabBarBorder: "#E8E8E8",
-  tabBarActive: "#E60549",
+  tabBarActive: "#d00000",
   tabBarInactive: "#000000",
 
 };
@@ -152,10 +152,10 @@ export const lightColors = {
 // Dark Theme Colors
 export const darkColors: typeof lightColors = {
   // Brand Colors - Keep primary vibrant
-  primary: "#FF4D7A",
+  primary: "#ff5400",
   primaryLight: "#FF6B8E",
-  primaryDark: "#E60549",
-  primarySoft: "#3D1A24",
+  primaryDark: "#d00000",
+  primarySoft: "#344e41",
 
   // Secondary Accent
   secondary: "#FF8E8E",
@@ -238,7 +238,7 @@ export const darkColors: typeof lightColors = {
 
   // Special Colors
   star: "#FBBF24",
-  heart: "#FF4D7A",
+  heart: "#ff5400",
   verified: "#60A5FA",
   online: "#4ADE80",
   offline: "#757575",
@@ -260,7 +260,7 @@ export const darkColors: typeof lightColors = {
   // Tab Bar
   tabBarBackground: "#1E1E1E",
   tabBarBorder: "#333333",
-  tabBarActive: "#FF4D7A",
+  tabBarActive: "#ff5400",
   tabBarInactive: "#9E9E9E",
 
 };

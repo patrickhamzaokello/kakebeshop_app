@@ -14,17 +14,19 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useScrollToTop } from "@react-navigation/native";
-import { colors, spacingX, spacingY, radius } from "@/constants/theme";
+import {  spacingX, spacingY, radius } from "@/constants/theme";
 import { useSectionData } from "@/hooks/useSectionData";
 import { categoryService } from "@/utils/services/categoryService";
 import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { SeparateCarouselType } from "@/components/test/SeparateCarouselType";
 import { ThrewColumnGridCategorySection } from "@/components/test/ThrewColumnGridCategorySection";
 import { CategorySubCategorySection } from "@/components/test/CategorySubCategorySection";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export default function ExplorePage() {
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
+  const { colors } = useTheme();
 
   // Scroll to top when category tab is pressed
   useScrollToTop(scrollRef);
@@ -73,23 +75,22 @@ export default function ExplorePage() {
   ]);
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
 
-      <SafeAreaView edges={["top"]} style={styles.safeArea}>
+      <SafeAreaView edges={["top"]}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Explore</Text>
+          <Text style={[styles.headerTitle, {color: colors.textPrimary}]}>Explore</Text>
         </View>
 
         {/* Search Input */}
         <TouchableOpacity
-          style={styles.searchContainer}
+          style={[styles.searchContainer, { borderColor: colors.neutral100, backgroundColor: colors.neutral100 }]}
           onPress={handleSearchPress}
           activeOpacity={0.7}
         >
           <Ionicons name="search" size={20} color={colors.neutral400} />
-          <Text style={styles.searchPlaceholder}>
+          <Text style={[styles.searchPlaceholder, { color: colors.neutral400 }]}>
             Search products, brands...
           </Text>
           <Ionicons
@@ -151,10 +152,6 @@ export default function ExplorePage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
-  },
-  safeArea: {
-    backgroundColor: colors.white,
   },
   header: {
     paddingHorizontal: spacingX._16,
@@ -164,25 +161,21 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: "700",
-    color: colors.black,
   },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.neutral100,
     marginHorizontal: spacingX._16,
     marginBottom: spacingY._12,
     paddingHorizontal: spacingX._16,
     paddingVertical: spacingY._12,
     borderRadius: radius._8,
     borderWidth: 1,
-    borderColor: colors.neutral200,
   },
   searchPlaceholder: {
     flex: 1,
     marginLeft: spacingX._12,
     fontSize: 15,
-    color: colors.neutral400,
     fontWeight: "500",
   },
   scrollView: {

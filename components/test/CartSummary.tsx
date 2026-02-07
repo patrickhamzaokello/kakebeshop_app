@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/contexts/ThemeContext';
+
 
 interface CartSummaryProps {
   totalItems: number;
@@ -24,26 +26,27 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
   disabled = false,
 }) => {
   const priceValue = parseFloat(totalPrice);
+  const { colors } = useTheme();
 
   return (
-    <View style={styles.container}>
-      <View style={styles.summaryCard}>
+    <View style={[styles.container, { backgroundColor: colors.card }]}>
+      <View style={[styles.summaryCard, { backgroundColor: colors.card }]}>
         {/* Items Count */}
         <View style={styles.row}>
           <View style={styles.labelContainer}>
-            <Ionicons name="cart-outline" size={16} color="#666" />
-            <Text style={styles.label}>Items</Text>
+            <Ionicons name="cart-outline" size={16} color={colors.textSecondary} />
+            <Text style={[styles.label, {color: colors.textSecondary}]}>Items</Text>
           </View>
-          <Text style={styles.value}>{totalItems}</Text>
+          <Text style={[styles.value, {color: colors.textPrimary}]}>{totalItems}</Text>
         </View>
 
         {/* Divider */}
-        <View style={styles.divider} />
+        <View style={[styles.divider, {backgroundColor: colors.border}]} />
 
         {/* Total Price */}
-        <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>
+        <View style={[styles.totalRow, ]}>
+          <Text style={[styles.totalLabel, {color: colors.textSecondary}]}>Total</Text>
+          <Text style={[styles.totalValue, {color: colors.textPrimary}]}>
             UGX {priceValue.toLocaleString()}
           </Text>
         </View>
@@ -52,19 +55,18 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
       {/* Checkout Button */}
       <TouchableOpacity
         style={[
-          styles.checkoutButton,
-          (disabled || loading) && styles.disabledButton,
+          styles.checkoutButton, { backgroundColor: disabled || loading ? colors.primarySoft + '80' : colors.primary },
         ]}
         activeOpacity={0.8}
         onPress={onCheckout}
         disabled={disabled || loading}
       >
         {loading ? (
-          <ActivityIndicator color="#fff" />
+          <ActivityIndicator color={colors.white} />
         ) : (
           <>
-            <Text style={styles.checkoutText}>Proceed to Checkout</Text>
-            <Ionicons name="arrow-forward" size={20} color="#fff" />
+            <Text style={[styles.checkoutText, {color: colors.white}]}>Proceed to Checkout</Text>
+            <Ionicons name="arrow-forward" size={20} color={colors.white} />
           </>
         )}
       </TouchableOpacity>
@@ -81,13 +83,11 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#fff',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingHorizontal: 16,
     paddingTop: 20,
     paddingBottom: 24,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
@@ -95,7 +95,6 @@ const styles = StyleSheet.create({
   },
 
   summaryCard: {
-    backgroundColor: '#F8F8F8',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
@@ -116,19 +115,16 @@ const styles = StyleSheet.create({
 
   label: {
     fontSize: 14,
-    color: '#666',
     fontWeight: '500',
   },
 
   value: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#000',
   },
 
   divider: {
     height: 1,
-    backgroundColor: '#E0E0E0',
     marginVertical: 8,
   },
 
@@ -142,18 +138,15 @@ const styles = StyleSheet.create({
   totalLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000',
   },
 
   totalValue: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#000',
   },
 
   checkoutButton: {
     flexDirection: 'row',
-    backgroundColor: '#000',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',
@@ -162,18 +155,15 @@ const styles = StyleSheet.create({
   },
 
   disabledButton: {
-    backgroundColor: '#ccc',
   },
 
   checkoutText: {
-    color: '#fff',
     fontSize: 16,
     fontWeight: '600',
   },
 
   helperText: {
     fontSize: 12,
-    color: '#999',
     textAlign: 'center',
     marginTop: 8,
   },

@@ -14,7 +14,6 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useScrollToTop } from "@react-navigation/native";
 import {
-  colors,
   spacingX,
   spacingY,
   borderRadius,
@@ -24,12 +23,14 @@ import {
 } from "@/constants/theme";
 import apiService from "@/utils/apiBase";
 import { UserProfile } from "@/utils/types/models";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const useUserStatus = () => {
   const [loading, setLoading] = useState(true);
   const [isMerchant, setIsMerchant] = useState(false);
   const [hasListings, setHasListings] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const   {colors} = useTheme();
 
   const fetchUserProfile = async () => {
     try {
@@ -71,48 +72,51 @@ const QuickAction: React.FC<QuickActionProps> = ({
   subtitle,
   onPress,
   variant = "secondary",
-}) => (
-  <TouchableOpacity
-    style={[
-      styles.quickAction,
-      variant === "primary" && styles.quickActionPrimary,
-    ]}
-    onPress={onPress}
-    activeOpacity={0.7}
-  >
-    <View
+}) => {
+  const {colors} = useTheme();
+  return (
+    <TouchableOpacity
       style={[
-        styles.quickActionIcon,
-        variant === "primary" && styles.quickActionIconPrimary,
+        styles.quickAction,
+        variant === "primary" && styles.quickActionPrimary,
       ]}
+      onPress={onPress}
+      activeOpacity={0.7}
     >
-      {icon}
-    </View>
-    <View style={styles.quickActionContent}>
-      <Text
+      <View
         style={[
-          styles.quickActionTitle,
-          variant === "primary" && styles.quickActionTitlePrimary,
+          styles.quickActionIcon,
+          variant === "primary" && styles.quickActionIconPrimary,
         ]}
       >
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.quickActionSubtitle,
-          variant === "primary" && styles.quickActionSubtitlePrimary,
-        ]}
-      >
-        {subtitle}
-      </Text>
-    </View>
-    <Ionicons
-      name="chevron-forward"
-      size={20}
-      color={variant === "primary" ? colors.white : colors.textMuted}
-    />
-  </TouchableOpacity>
-);
+        {icon}
+      </View>
+      <View style={styles.quickActionContent}>
+        <Text
+          style={[
+            styles.quickActionTitle,
+            variant === "primary" && styles.quickActionTitlePrimary,
+          ]}
+        >
+          {title}
+        </Text>
+        <Text
+          style={[
+            styles.quickActionSubtitle,
+            variant === "primary" && styles.quickActionSubtitlePrimary,
+          ]}
+        >
+          {subtitle}
+        </Text>
+      </View>
+      <Ionicons
+        name="chevron-forward"
+        size={20}
+        color={variant === "primary" ? colors.white : colors.textMuted}
+      />
+    </TouchableOpacity>
+  );
+}
 
 interface BenefitCardProps {
   icon: string;
@@ -134,6 +138,7 @@ const BenefitCard: React.FC<BenefitCardProps> = ({
 
 // Merchant Dashboard View
 const MerchantView: React.FC<{ hasListings: boolean; scrollRef: React.RefObject<ScrollView> }> = ({ hasListings, scrollRef }) => {
+  const {colors} = useTheme();
   return (
     <ScrollView
       ref={scrollRef}
@@ -238,6 +243,8 @@ const OnboardingView: React.FC<{ scrollRef: React.RefObject<ScrollView> }> = ({ 
   const handleLearnMore = () => {
     router.push("/merchant/apply/benefits");
   };
+
+  const {colors} = useTheme();
 
   return (
     <ScrollView
@@ -384,6 +391,8 @@ const OnboardingView: React.FC<{ scrollRef: React.RefObject<ScrollView> }> = ({ 
 export default function SellScreen() {
   const { loading, isMerchant, hasListings } = useUserStatus();
   const scrollRef = useRef<ScrollView>(null);
+  const   {colors} = useTheme();
+
 
   // Scroll to top when sell tab is pressed
   useScrollToTop(scrollRef);
@@ -397,8 +406,7 @@ export default function SellScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
+    <View style={[styles.container, {backgroundColor: colors.background}]}>
       {isMerchant ? (
         <MerchantView hasListings={hasListings} scrollRef={scrollRef} />
       ) : (
@@ -411,7 +419,6 @@ export default function SellScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
   },
   scrollView: {
     flex: 1,
@@ -423,7 +430,6 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.white,
   },
 
   // Merchant View Styles
@@ -438,11 +444,9 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: fontSize.xxl,
     fontWeight: fontWeight.bold,
-    color: colors.textPrimary,
   },
   headerSubtitle: {
     fontSize: fontSize.md,
-    color: colors.textSecondary,
     marginTop: spacingY._2,
   },
   settingsButton: {
@@ -451,7 +455,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderRadius: borderRadius.md,
-    backgroundColor: colors.backgroundSecondary,
   },
 
   section: {
@@ -463,23 +466,18 @@ const styles = StyleSheet.create({
   quickAction: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.white,
     borderRadius: borderRadius.lg,
     padding: spacingX._16,
     marginBottom: spacingY._12,
     borderWidth: 1,
-    borderColor: colors.border,
   },
   quickActionPrimary: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
     ...shadow.md,
   },
   quickActionIcon: {
     width: 48,
     height: 48,
     borderRadius: borderRadius.md,
-    backgroundColor: colors.primarySoft,
     alignItems: "center",
     justifyContent: "center",
     marginRight: spacingX._12,
@@ -493,15 +491,12 @@ const styles = StyleSheet.create({
   quickActionTitle: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.semibold,
-    color: colors.textPrimary,
     marginBottom: spacingY._2,
   },
   quickActionTitlePrimary: {
-    color: colors.white,
   },
   quickActionSubtitle: {
     fontSize: fontSize.sm,
-    color: colors.textMuted,
   },
   quickActionSubtitlePrimary: {
     color: "rgba(255, 255, 255, 0.8)",
@@ -509,7 +504,6 @@ const styles = StyleSheet.create({
 
   // Tips Card
   tipsCard: {
-    backgroundColor: colors.backgroundSecondary,
     borderRadius: borderRadius.lg,
     padding: spacingX._16,
     marginTop: spacingY._12,
@@ -522,12 +516,10 @@ const styles = StyleSheet.create({
   tipsTitle: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.semibold,
-    color: colors.textPrimary,
     marginLeft: spacingX._8,
   },
   tipsText: {
     fontSize: fontSize.md,
-    color: colors.textSecondary,
     lineHeight: 22,
   },
 
@@ -542,7 +534,6 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: colors.white,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacingY._20,
@@ -551,13 +542,11 @@ const styles = StyleSheet.create({
   onboardingTitle: {
     fontSize: 32,
     fontWeight: fontWeight.bold,
-    color: colors.textPrimary,
     textAlign: "center",
     marginBottom: spacingY._12,
   },
   onboardingSubtitle: {
     fontSize: fontSize.lg,
-    color: colors.textSecondary,
     textAlign: "center",
     lineHeight: 24,
     paddingHorizontal: spacingX._10,
@@ -571,7 +560,6 @@ const styles = StyleSheet.create({
     marginTop: spacingY._24,
   },
   statBadge: {
-    backgroundColor: colors.white,
     borderRadius: borderRadius.md,
     paddingVertical: spacingY._12,
     paddingHorizontal: spacingX._20,
@@ -582,11 +570,9 @@ const styles = StyleSheet.create({
   statNumber: {
     fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
-    color: colors.primary,
   },
   statText: {
     fontSize: fontSize.xs,
-    color: colors.textMuted,
     marginTop: spacingY._2,
   },
 
@@ -594,7 +580,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: fontSize.xl,
     fontWeight: fontWeight.bold,
-    color: colors.textPrimary,
     marginBottom: spacingY._16,
   },
 
@@ -607,12 +592,10 @@ const styles = StyleSheet.create({
   benefitCard: {
     flex: 1,
     minWidth: "47%",
-    backgroundColor: colors.white,
     borderRadius: borderRadius.lg,
     padding: spacingX._16,
     alignItems: "center",
     borderWidth: 1,
-    borderColor: colors.border,
   },
   benefitIcon: {
     fontSize: 36,
@@ -621,20 +604,17 @@ const styles = StyleSheet.create({
   benefitTitle: {
     fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
-    color: colors.textPrimary,
     marginBottom: spacingY._4,
     textAlign: "center",
   },
   benefitDescription: {
     fontSize: fontSize.sm,
-    color: colors.textSecondary,
     textAlign: "center",
     lineHeight: 18,
   },
 
   // How It Works
   howItWorksSection: {
-    backgroundColor: colors.backgroundSecondary,
     marginTop: spacingY._20,
     paddingVertical: spacingY._24,
   },
@@ -649,7 +629,6 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
     marginRight: spacingX._12,
@@ -657,7 +636,6 @@ const styles = StyleSheet.create({
   stepNumberText: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.bold,
-    color: colors.white,
   },
   stepContent: {
     flex: 1,
@@ -666,12 +644,10 @@ const styles = StyleSheet.create({
   stepTitle: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.semibold,
-    color: colors.textPrimary,
     marginBottom: spacingY._4,
   },
   stepDescription: {
     fontSize: fontSize.md,
-    color: colors.textSecondary,
     lineHeight: 20,
   },
 
@@ -681,7 +657,6 @@ const styles = StyleSheet.create({
     paddingTop: spacingY._24,
   },
   primaryButton: {
-    backgroundColor: colors.primary,
     borderRadius: borderRadius.lg,
     paddingVertical: spacingY._16,
     flexDirection: "row",
@@ -693,26 +668,21 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.bold,
-    color: colors.white,
   },
   secondaryButton: {
-    backgroundColor: colors.white,
     borderRadius: borderRadius.lg,
     paddingVertical: spacingY._16,
     alignItems: "center",
     justifyContent: "center",
     marginTop: spacingY._12,
     borderWidth: 1,
-    borderColor: colors.border,
   },
   secondaryButtonText: {
     fontSize: fontSize.lg,
     fontWeight: fontWeight.semibold,
-    color: colors.primary,
   },
   ctaFootnote: {
     fontSize: fontSize.sm,
-    color: colors.textMuted,
     textAlign: "center",
     marginTop: spacingY._16,
   },

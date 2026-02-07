@@ -9,7 +9,9 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { colors, spacingX, spacingY, radius } from "@/constants/theme";
+import { spacingX, spacingY, radius } from "@/constants/theme";
+
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface Subcategory {
   id: number;
@@ -35,6 +37,9 @@ interface CategorySubCategorySectionProps {
 export const CategorySubCategorySection: React.FC<
   CategorySubCategorySectionProps
 > = ({ data, loading, hasMore, onLoadMore, onexplorePress, onListingPress }) => {
+
+    const { colors } = useTheme();
+
   const renderSubcategory = (subcategory: Subcategory) => (
     <TouchableOpacity
       key={subcategory.id}
@@ -47,7 +52,7 @@ export const CategorySubCategorySection: React.FC<
         style={styles.subcategoryImage}
         resizeMode="cover"
       />
-      <Text style={styles.subcategoryName} numberOfLines={2}>
+      <Text style={[styles.subcategoryName, {color: colors.textPrimary}]} numberOfLines={2}>
         {subcategory.name}
       </Text>
     </TouchableOpacity>
@@ -57,13 +62,13 @@ export const CategorySubCategorySection: React.FC<
     <View style={styles.categorySection}>
       {/* Category Header */}
       <View style={styles.categoryHeader}>
-        <Text style={styles.categoryTitle}>{category.name}</Text>
+        <Text style={[styles.categoryTitle, {color: colors.textPrimary}]}>{category.name}</Text>
         <TouchableOpacity
           onPress={() => onexplorePress(category)}
           activeOpacity={0.7}
           style={styles.exploreButton}
         >
-          <Text style={styles.exploreText}>Explore more</Text>
+          <Text style={[styles.exploreText,{color: colors.primary}]}>Explore more</Text>
           <Ionicons
             name="chevron-forward"
             size={16}
@@ -146,7 +151,6 @@ const styles = StyleSheet.create({
   categoryTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: colors.black,
   },
   exploreButton: {
     flexDirection: "row",
@@ -156,7 +160,6 @@ const styles = StyleSheet.create({
   exploreText: {
     fontSize: 14,
     fontWeight: "600",
-    color: colors.primary,
   },
   subcategoriesGrid: {
     flexDirection: "row",
@@ -170,7 +173,6 @@ const styles = StyleSheet.create({
     borderRadius: radius._12,
     overflow: "hidden",
     elevation: 2,
-    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -178,13 +180,11 @@ const styles = StyleSheet.create({
   subcategoryImage: {
     width: "100%",
     height: 140,
-    backgroundColor: colors.neutral100,
   },
   subcategoryName: {
     paddingVertical: spacingX._12,
     fontSize: 14,
     fontWeight: "600",
-    color: colors.neutral800,
   },
   
   footerLoader: {
@@ -199,7 +199,6 @@ const styles = StyleSheet.create({
   emptyText: {
     marginTop: spacingY._12,
     fontSize: 16,
-    color: colors.neutral400,
     fontWeight: "500",
   },
 });

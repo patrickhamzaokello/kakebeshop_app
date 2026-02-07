@@ -176,19 +176,19 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
 
           <View style={styles.actionButtons}>
             <TouchableOpacity
-              style={[styles.iconButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              style={[styles.iconButton, { }]}
               onPress={onWishlistPress}
             >
-              <Ionicons name="heart-outline" size={22} color={colors.iconColor} />
+              <Ionicons name="heart-outline" size={30} color={colors.iconColor} />
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.iconButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+              style={[styles.iconButton, { }]}
               onPress={onNotificationPress}
             >
-              <Ionicons name="notifications-outline" size={22} color={colors.iconColor} />
+              <Ionicons name="notifications-outline" size={30} color={colors.iconColor} />
               {(data?.notificationsCount ?? 0) > 0 && (
-                <View style={[styles.badge, { backgroundColor: colors.error }]}>
+                <View style={[styles.badge, { backgroundColor: colors.primary }]}>
                   <Text style={[styles.badgeText, { color: colors.textInverse }]}>
                     {data?.notificationsCount}
                   </Text>
@@ -270,7 +270,6 @@ const styles = StyleSheet.create({
   actionButtons: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
   },
   iconButton: {
     position: "relative",
@@ -278,8 +277,6 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: "center",
     justifyContent: "center",
-    borderRadius: 4,
-    borderWidth: 1,
   },
   badge: {
     position: "absolute",

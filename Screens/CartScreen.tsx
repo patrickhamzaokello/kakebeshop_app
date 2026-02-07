@@ -5,10 +5,13 @@ import { useScrollToTop } from "@react-navigation/native";
 import { CartItems } from "@/components/test/CartItemListing";
 import { CartSummary } from "@/components/test/CartSummary";
 import { useCartStore } from "@/utils/stores/useCartStore";
+import { useTheme } from "@/contexts/ThemeContext";
 
 export const CartScreen: React.FC = () => {
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
+
+  const {colors } = useTheme();
 
   // Scroll to top when cart tab is pressed
   useScrollToTop(scrollRef);

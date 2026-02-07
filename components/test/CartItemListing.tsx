@@ -12,6 +12,8 @@ import { Ionicons } from '@expo/vector-icons';
 
 import { ListingImage } from '@/components/test/common/ListingImage';
 import { CartItem } from '@/utils/types/models';
+import { useTheme } from '@/contexts/ThemeContext';
+import { colors } from '@/constants/theme';
 
 interface CartItemsProps {
   items: CartItem[] | null;
@@ -46,11 +48,13 @@ const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
     outputRange: [0.3, 0.7],
   });
 
+  const { colors } = useTheme();
+
   return (
     <Animated.View
       style={[
         {
-          backgroundColor: '#E0E0E0',
+          backgroundColor: colors.card,
           opacity,
         },
         style,
@@ -123,8 +127,10 @@ const CartItemCard: React.FC<{
     );
   };
 
+  const { colors } = useTheme();
+
   return (
-    <View style={[styles.cartCard, updating && styles.cardUpdating]}>
+    <View style={[styles.cartCard, updating && styles.cardUpdating, {backgroundColor: colors.card}]}>
       {/* Image and Main Info */}
       <TouchableOpacity
         style={styles.cardMain}
@@ -135,27 +141,28 @@ const CartItemCard: React.FC<{
         <ListingImage
           primaryImage={item.listing.primary_image}
           style={styles.image}
-          fallbackSource={require('@/assets/images/placeholder.png')}
         />
 
         <View style={styles.content}>
-          <Text style={styles.title} numberOfLines={2}>
+          <Text style={[styles.title, {color: colors.textPrimary}]} numberOfLines={2}>
             {item.listing.title}
           </Text>
 
-          <Text style={styles.price}>
-            UGX {parseFloat(item.listing.price).toLocaleString()}
+          <View >
+          <Text style={[styles.price, {color: colors.textSecondary}]}>
+            Each: {parseFloat(item.listing.price).toLocaleString()} UGX
           </Text>
 
-          <Text style={styles.subtotal}>
-            UGX {parseFloat(item.subtotal).toLocaleString()}
+          <Text style={[styles.subtotal, {color: colors.textPrimary}]}>
+            Subtotal: {parseFloat(item.subtotal).toLocaleString()} UGX
           </Text>
+          </View>
         </View>
       </TouchableOpacity>
 
       {/* Quantity Controls */}
-      <View style={styles.controls}>
-        <View style={styles.quantityContainer}>
+      <View style={[styles.controls, {borderTopColor: colors.border}]}>
+        <View style={[styles.quantityContainer, {backgroundColor: colors.border}]}>
           <TouchableOpacity
             style={[
               styles.quantityButton,
@@ -167,11 +174,11 @@ const CartItemCard: React.FC<{
             <Ionicons
               name="remove"
               size={18}
-              color={localQuantity <= 1 || updating ? '#ccc' : '#000'}
+              color={localQuantity <= 1 || updating ? colors.primarySoft : colors.primary}
             />
           </TouchableOpacity>
 
-          <Text style={styles.quantityText}>{localQuantity}</Text>
+          <Text style={[styles.quantityText, {color: colors.textPrimary}]}>{localQuantity}</Text>
 
           <TouchableOpacity
             style={[styles.quantityButton, updating && styles.quantityButtonDisabled]}
@@ -181,7 +188,7 @@ const CartItemCard: React.FC<{
             <Ionicons
               name="add"
               size={18}
-              color={updating ? '#ccc' : '#000'}
+              color={updating ? colors.primarySoft : colors.primary}
             />
           </TouchableOpacity>
         </View>
@@ -245,10 +252,12 @@ export const CartItems: React.FC<CartItemsProps> = ({
     );
   }
 
+  const { colors } = useTheme();
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>
+      <View style={[styles.header, {borderBottomColor: colors.border}]}>
+        <Text style={[styles.headerText, {color: colors.textPrimary}]}>
           {items.length} {items.length === 1 ? 'Item' : 'Items'}
         </Text>
       </View>
@@ -279,15 +288,12 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
   },
 
   headerText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#000',
   },
 
   scrollContent: {
@@ -304,22 +310,18 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '600',
-    color: '#333',
     marginTop: 16,
   },
 
   emptySubtext: {
     fontSize: 14,
-    color: '#999',
     marginTop: 4,
   },
 
   /* Card */
   cartCard: {
-    backgroundColor: '#fff',
     borderRadius: 12,
     padding: 12,
-    shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 2,
@@ -351,26 +353,23 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     marginLeft: 12,
-    justifyContent: 'space-between',
+    gap: 8
   },
 
   title: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#000',
-    marginBottom: 4,
+    marginTop: 4
   },
 
   price: {
     fontSize: 13,
-    color: '#666',
     marginBottom: 4,
   },
 
   subtotal: {
     fontSize: 16,
     fontWeight: '700',
-    color: '#000',
   },
 
   /* Controls */
@@ -381,13 +380,11 @@ const styles = StyleSheet.create({
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: '#f0f0f0',
   },
 
   quantityContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#F5F5F5',
     borderRadius: 8,
     paddingHorizontal: 4,
   },
@@ -407,7 +404,6 @@ const styles = StyleSheet.create({
   quantityText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#000',
     marginHorizontal: 16,
     minWidth: 24,
     textAlign: 'center',
@@ -419,7 +415,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 8,
-    backgroundColor: '#FFF5F5',
   },
 
   /* Shimmer lines */
