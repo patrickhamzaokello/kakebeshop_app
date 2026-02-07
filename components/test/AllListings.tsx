@@ -111,7 +111,6 @@ export const AllListings: React.FC<AllListingsProps> = ({
 }) => {
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
-    const [loadingMore, setLoadingMore] = useState(false);
 
     const handleQuickView = (listing: Listing, event: any) => {
         event.stopPropagation();
@@ -136,19 +135,6 @@ export const AllListings: React.FC<AllListingsProps> = ({
         }
 
         return "Price not available";
-    };
-
-    const handleScroll = async (event: any) => {
-        const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-        const paddingToBottom = 100;
-        const isCloseToBottom =
-            layoutMeasurement.height + contentOffset.y >= contentSize.height - paddingToBottom;
-
-        if (isCloseToBottom && hasMore && !loading && !loadingMore) {
-            setLoadingMore(true);
-            await onLoadMore();
-            setLoadingMore(false);
-        }
     };
 
     // Bento grid pattern: alternating sizes for visual interest
@@ -340,20 +326,38 @@ export const AllListings: React.FC<AllListingsProps> = ({
     return (
         <View style={styles.container}>
             <Text style={styles.sectionTitle}>All Listings</Text>
-            <ScrollView
-                style={styles.bentoContainer}
-                showsVerticalScrollIndicator={false}
-                onScroll={handleScroll}
-                scrollEventThrottle={400}
-            >
+            <View style={styles.bentoContainer}>
                 {renderBentoGrid()}
                 
-                {loadingMore && (
+                {/* Load More Button */}
+                {hasMore && !loading && data.length > 0 && (
+                    <TouchableOpacity
+                        style={styles.loadMoreButton}
+                        onPress={onLoadMore}
+                        activeOpacity={0.8}
+                    >
+                        <Text style={styles.loadMoreText}>Load More</Text>
+                        <Ionicons name="chevron-down" size={20} color="#007AFF" />
+                    </TouchableOpacity>
+                )}
+
+                {/* Loading Indicator */}
+                {loading && data.length > 0 && (
                     <View style={styles.footerLoader}>
                         <ActivityIndicator size="small" color="#007AFF" />
+                        <Text style={styles.loadingText}>Loading more...</Text>
                     </View>
                 )}
-            </ScrollView>
+
+                {/* End of Results */}
+                {!hasMore && data.length > 0 && (
+                    <View style={styles.endOfResults}>
+                        <View style={styles.endLine} />
+                        <Text style={styles.endText}>You've reached the end</Text>
+                        <View style={styles.endLine} />
+                    </View>
+                )}
+            </View>
 
             <QuickViewModal
                 visible={modalVisible}
@@ -366,7 +370,6 @@ export const AllListings: React.FC<AllListingsProps> = ({
 
 const styles = StyleSheet.create({
     container: {
-        flex: 1,
         padding: CARD_PADDING,
     },
     sectionTitle: {
@@ -376,7 +379,7 @@ const styles = StyleSheet.create({
         color: '#000',
     },
     bentoContainer: {
-        flex: 1,
+        width: '100%',
     },
     bentoRow: {
         flexDirection: 'row',
@@ -573,5 +576,47 @@ const styles = StyleSheet.create({
     footerLoader: {
         paddingVertical: 24,
         alignItems: 'center',
+        gap: 8,
+    },
+    loadingText: {
+        fontSize: 13,
+        color: '#666',
+        fontWeight: '500',
+    },
+    loadMoreButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 8,
+        paddingVertical: 16,
+        paddingHorizontal: 24,
+        marginVertical: 20,
+        backgroundColor: '#F0F8FF',
+        borderRadius: 12,
+        borderWidth: 1.5,
+        borderColor: '#007AFF',
+        borderStyle: 'dashed',
+    },
+    loadMoreText: {
+        fontSize: 15,
+        color: '#007AFF',
+        fontWeight: '600',
+    },
+    endOfResults: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 32,
+        gap: 12,
+    },
+    endLine: {
+        height: 1,
+        flex: 1,
+        backgroundColor: '#E0E0E0',
+    },
+    endText: {
+        fontSize: 13,
+        color: '#999',
+        fontWeight: '500',
     },
 });
