@@ -5,7 +5,7 @@ import React, { useCallback, useRef, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from "expo-router";
 import { useScrollToTop } from '@react-navigation/native';
-import { colors } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 import { AllListings } from "@/components/test/AllListings";
 import { CarouselSection } from "@/components/test/CarouselSection";
@@ -17,6 +17,7 @@ import { HeaderSection } from "@/components/test/HeaderSection";
 export const HomeScreen: React.FC = () => {
     const router = useRouter();
     const scrollRef = useRef<ScrollView>(null);
+    const { colors } = useTheme();
 
     // Scroll to top when home tab is pressed
     useScrollToTop(scrollRef);
@@ -61,11 +62,11 @@ export const HomeScreen: React.FC = () => {
     ]);
 
     return (
-        <View style={styles.outerContainer}>
+        <View style={[styles.outerContainer, { backgroundColor: colors.primarySoft }]}>
             <ScrollView
                 ref={scrollRef}
                 style={styles.scrollView}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
             >
                 <HeaderSection
                     data={headerData.data}
@@ -75,7 +76,7 @@ export const HomeScreen: React.FC = () => {
                     onNotificationPress={() => router.push('/notification/notifications')}
                 />
 
-                <View style={styles.contentContainer}>
+                <View style={[styles.contentContainer, { backgroundColor: colors.background }]}>
                     <CarouselSection data={carouselData.data} loading={carouselData.loading} />
 
                     <CategoriesSection
@@ -132,12 +133,9 @@ export const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
     outerContainer: {
         flex: 1,
-        backgroundColor: colors.primarySoft,
     },
     scrollView: {
         flex: 1,
     },
-    contentContainer: {
-        backgroundColor: '#FFF',
-    },
+    contentContainer: {},
 });

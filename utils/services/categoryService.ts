@@ -3,6 +3,7 @@ import apiService from "@/utils/apiBase";
 import {
     CarouselImage,
     Category,
+    Listing,
     Merchant,
     PaginatedResponse
 } from '@/utils/types/models';
@@ -23,7 +24,7 @@ export const categoryService = {
     // Categories
     async getMaincategories(): Promise<Category[]> {
         try {
-            const response = await apiService.get<Category[]>('/api/v1/categories/parents/');
+            const response = await apiService.get<any>('/api/v1/categories/parents/');
             return response.data.results;
         } catch (error) {
             return [];
@@ -367,7 +368,7 @@ export const categoryService = {
     // get Category subcategories
     async getCategorySubcategories(categoryId: string){
         try {
-            const response = await apiService.get<Category[]>(`/api/v1/categories/${categoryId}/subcategories/`);
+            const response = await apiService.get<any>(`/api/v1/categories/${categoryId}/subcategories/`);
             return response.data.subcategories;
         } catch (error) {
             return [];
@@ -377,7 +378,7 @@ export const categoryService = {
     // get category listings
     async getCategoryListings(categoryId: string, page: number, limit: number){
         try {
-            const response = await apiService.get<PaginatedResponse<Merchant>>(`/api/v1/categories/${categoryId}/listings/`, {
+            const response = await apiService.get<PaginatedResponse<Listing>>(`/api/v1/categories/${categoryId}/listings/`, {
                 params: { page, limit },
             });
             return response.data;

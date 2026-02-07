@@ -12,6 +12,8 @@ import {
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import apiService from "@/utils/apiBase";
+import { useTheme } from "@/contexts/ThemeContext";
+import { colors } from "@/constants/theme";
 
 interface Notification {
   id: string;
@@ -29,6 +31,7 @@ interface Notification {
 
 export default function NotificationsScreen() {
   const router = useRouter();
+  const {colors} = useTheme();
   
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -176,31 +179,31 @@ export default function NotificationsScreen() {
     return (
       <TouchableOpacity
         style={[
-          styles.notificationCard,
+          styles.notificationCard, { backgroundColor: colors.card, borderBottomColor: colors.cardBorder },
           !item.is_read && styles.unreadCard,
         ]}
         onPress={() => handleNotificationPress(item)}
         activeOpacity={0.7}
       >
-        <View style={styles.notificationContent}>
+        <View style={[styles.notificationContent]}>
           <View style={[styles.iconContainer, { backgroundColor: `${iconColor}15` }]}>
             <Ionicons name={iconName} size={24} color={iconColor} />
           </View>
 
           <View style={styles.textContainer}>
             <View style={styles.headerRow}>
-              <Text style={styles.notificationTitle} numberOfLines={1}>
+              <Text style={[styles.notificationTitle, {color: colors.textPrimary}]} numberOfLines={1}>
                 {item.title}
               </Text>
               {!item.is_read && <View style={styles.unreadDot} />}
             </View>
 
-            <Text style={styles.notificationMessage} numberOfLines={2}>
+            <Text style={[styles.notificationMessage,{color: colors.textSecondary}]} numberOfLines={2}>
               {item.message}
             </Text>
 
             <View style={styles.metaRow}>
-              <Text style={styles.timeAgo}>
+              <Text style={[styles.timeAgo, {color: colors.textPrimary}]}>
                 {formatTimeAgo(item.created_at)}
               </Text>
               
@@ -225,7 +228,7 @@ export default function NotificationsScreen() {
     const unreadCount = notifications.filter(n => !n.is_read).length;
 
     return (
-      <View style={styles.header}>
+      <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
         <View style={styles.filterRow}>
           <TouchableOpacity
             style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
@@ -292,7 +295,7 @@ export default function NotificationsScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <FlatList
         data={notifications}
         renderItem={renderNotificationItem}
@@ -316,7 +319,6 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FAFAFA",
   },
   listContent: {
     paddingBottom: 20,
@@ -324,7 +326,6 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    backgroundColor: "white",
     paddingTop: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
@@ -370,14 +371,11 @@ const styles = StyleSheet.create({
   notificationCard: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "white",
     paddingVertical: 16,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: "#F5F5F5",
   },
   unreadCard: {
-    backgroundColor: "#FFF5F8",
   },
   notificationContent: {
     flex: 1,
@@ -404,7 +402,6 @@ const styles = StyleSheet.create({
   notificationTitle: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#1A1A1A",
     flex: 1,
   },
   unreadDot: {
@@ -426,7 +423,6 @@ const styles = StyleSheet.create({
   },
   timeAgo: {
     fontSize: 12,
-    color: "#999",
   },
   metaBadge: {
     flexDirection: "row",
@@ -440,7 +436,6 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "#666",
   },
 
   // Empty State
@@ -454,13 +449,11 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#1A1A1A",
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: "#999",
     textAlign: "center",
     lineHeight: 20,
   },

@@ -31,7 +31,6 @@ export default function NotificationMain() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
   },
 
 });

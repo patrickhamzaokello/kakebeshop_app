@@ -1,5 +1,6 @@
 // TabsLayout.tsx
 import { useCartStore } from "@/utils/stores/useCartStore";
+import { useTheme } from "@/contexts/ThemeContext";
 import {
   AntDesign,
   Feather,
@@ -13,6 +14,7 @@ import { View, Text } from "react-native";
 
 const CartTabIcon = ({ color, size }: { color: string; size: number }) => {
   const cartCount = useCartStore((state) => state.cartCount);
+  const { colors } = useTheme();
 
   return (
     <View>
@@ -24,7 +26,7 @@ const CartTabIcon = ({ color, size }: { color: string; size: number }) => {
             position: "absolute",
             right: -12,
             top: -6,
-            backgroundColor: "red",
+            backgroundColor: colors.error,
             borderRadius: 12,
             minWidth: 20,
             height: 20,
@@ -33,7 +35,7 @@ const CartTabIcon = ({ color, size }: { color: string; size: number }) => {
             paddingHorizontal: 4,
           }}
         >
-          <Text style={{ color: "white", fontSize: 12, fontWeight: "bold" }}>
+          <Text style={{ color: colors.textInverse, fontSize: 12, fontWeight: "bold" }}>
             {cartCount > 99 ? "99+" : cartCount}
           </Text>
         </View>
@@ -43,13 +45,19 @@ const CartTabIcon = ({ color, size }: { color: string; size: number }) => {
 };
 
 export default function TabsLayout() {
+  const { colors } = useTheme();
+
   return (
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: "#E60549",
-        tabBarInactiveTintColor: "#000",
-        tabBarStyle: { backgroundColor: "#fff", paddingTop: 8 },
+        tabBarActiveTintColor: colors.tabBarActive,
+        tabBarInactiveTintColor: colors.tabBarInactive,
+        tabBarStyle: {
+          backgroundColor: colors.tabBarBackground,
+          borderTopColor: colors.tabBarBorder,
+          paddingTop: 8,
+        },
       }}
       initialRouteName="(home)"
     >

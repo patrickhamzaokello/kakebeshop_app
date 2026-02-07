@@ -33,7 +33,8 @@ export const moderateScale = (size: number, factor = 0.5) =>
 // COLOR PALETTE
 // =============================================================================
 
-export const colors = {
+// Light Theme Colors
+export const lightColors = {
   // Brand Colors - Vibrant Red Accent
   primary: "#E60549",
   primaryLight: "#FF4D7A",
@@ -131,7 +132,144 @@ export const colors = {
   green: "#00C853",
   matteBlack: "#1A1A1A",
   lineseparator: "#EEEEEE",
+
+  // Card & Input specific
+  card: "#FFFFFF",
+  cardBorder: "#E8E8E8",
+  inputBackground: "#FFFFFF",
+  inputBorder: "#E8E8E8",
+  iconColor: "#000000",
+  iconColorMuted: "#6B6B6B",
+
+  // Tab Bar
+  tabBarBackground: "#FFFFFF",
+  tabBarBorder: "#E8E8E8",
+  tabBarActive: "#E60549",
+  tabBarInactive: "#000000",
+
 };
+
+// Dark Theme Colors
+export const darkColors: typeof lightColors = {
+  // Brand Colors - Keep primary vibrant
+  primary: "#FF4D7A",
+  primaryLight: "#FF6B8E",
+  primaryDark: "#E60549",
+  primarySoft: "#3D1A24",
+
+  // Secondary Accent
+  secondary: "#FF8E8E",
+  secondaryLight: "#FFA5A5",
+  secondaryDark: "#FF6B6B",
+
+  // Text Colors - Light text on dark backgrounds
+  text: "#FFFFFF",
+  textPrimary: "#FFFFFF",
+  textSecondary: "#B0B0B0",
+  textMuted: "#808080",
+  textPlaceholder: "#606060",
+  textInverse: "#1A1A1A",
+
+  // Background Colors - Dark base
+  background: "#121212",
+  backgroundSecondary: "#1E1E1E",
+  backgroundTertiary: "#2A2A2A",
+  surface: "#1E1E1E",
+  surfaceElevated: "#2A2A2A",
+
+  // Core Colors (swapped for dark mode context)
+  white: "#121212",
+  black: "#FFFFFF",
+
+  // Gray Scale - Inverted for dark mode
+  gray50: "#212121",
+  gray100: "#2A2A2A",
+  gray200: "#333333",
+  gray300: "#424242",
+  gray400: "#616161",
+  gray500: "#757575",
+  gray600: "#9E9E9E",
+  gray700: "#BDBDBD",
+  gray800: "#E0E0E0",
+  gray900: "#F5F5F5",
+
+  // Neutral Scale (inverted)
+  neutral50: "#212121",
+  neutral100: "#2A2A2A",
+  neutral200: "#333333",
+  neutral300: "#424242",
+  neutral350: "#4A4A4A",
+  neutral400: "#616161",
+  neutral500: "#757575",
+  neutral600: "#9E9E9E",
+  neutral700: "#BDBDBD",
+  neutral800: "#E0E0E0",
+  neutral900: "#F5F5F5",
+
+  // Semantic Colors - Slightly brighter for dark mode
+  success: "#4ADE80",
+  successLight: "#1A3D2A",
+  successDark: "#22C55E",
+
+  error: "#F87171",
+  errorLight: "#3D1A1A",
+  errorDark: "#EF4444",
+
+  warning: "#FBBF24",
+  warningLight: "#3D3010",
+  warningDark: "#F59E0B",
+
+  info: "#60A5FA",
+  infoLight: "#1A2A3D",
+  infoDark: "#3B82F6",
+
+  // UI Elements
+  border: "#333333",
+  borderLight: "#2A2A2A",
+  borderDark: "#424242",
+  divider: "#333333",
+  separator: "#333333",
+
+  // Interactive States
+  ripple: "rgba(255, 77, 122, 0.2)",
+  overlay: "rgba(0, 0, 0, 0.7)",
+  overlayLight: "rgba(0, 0, 0, 0.5)",
+  backdrop: "rgba(0, 0, 0, 0.8)",
+
+  // Special Colors
+  star: "#FBBF24",
+  heart: "#FF4D7A",
+  verified: "#60A5FA",
+  online: "#4ADE80",
+  offline: "#757575",
+
+  // Legacy aliases
+  rose: "#F87171",
+  green: "#4ADE80",
+  matteBlack: "#FFFFFF",
+  lineseparator: "#333333",
+
+  // Card & Input specific
+  card: "#1E1E1E",
+  cardBorder: "#333333",
+  inputBackground: "#2A2A2A",
+  inputBorder: "#424242",
+  iconColor: "#FFFFFF",
+  iconColorMuted: "#9E9E9E",
+
+  // Tab Bar
+  tabBarBackground: "#1E1E1E",
+  tabBarBorder: "#333333",
+  tabBarActive: "#FF4D7A",
+  tabBarInactive: "#9E9E9E",
+
+};
+
+// Default export (light colors for backward compatibility)
+export const colors = lightColors;
+
+// Type for theme colors
+export type ThemeColors = typeof lightColors;
 
 // =============================================================================
 // SPACING SYSTEM

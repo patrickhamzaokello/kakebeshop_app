@@ -16,6 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "@/utils/authStore";
 import apiService from "@/utils/apiBase";
 import { MenuItem, UserProfile } from "@/utils/types/models";
+import { useTheme } from "@/contexts/ThemeContext";
 
 
 
@@ -26,6 +27,7 @@ export default function AccountScreen() {
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const { logout } = useAuthStore();
+  const { colors } = useTheme();
 
   // Scroll to top when accounts tab is pressed
   useScrollToTop(scrollRef);
@@ -207,7 +209,7 @@ export default function AccountScreen() {
   const renderMenuItem = (item: MenuItem) => (
     <TouchableOpacity
       key={item.id}
-      style={styles.menuItem}
+      style={[styles.menuItem, { borderBottomColor: colors.border }]}
       onPress={() => {
         if (item.onPress) {
           item.onPress();
@@ -221,7 +223,7 @@ export default function AccountScreen() {
         <View style={[styles.menuIcon, { backgroundColor: `${item.color}15` }]}>
           <Ionicons name={item.icon} size={22} color={item.color} />
         </View>
-        <Text style={styles.menuItemText}>{item.title}</Text>
+        <Text style={[styles.menuItemText, {color: colors.textPrimary}]}>{item.title}</Text>
       </View>
       <View style={styles.menuItemRight}>
         {item.badge && (
@@ -234,8 +236,8 @@ export default function AccountScreen() {
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#E60549" />
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -243,18 +245,18 @@ export default function AccountScreen() {
   return (
     <ScrollView
       ref={scrollRef}
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          tintColor="#E60549"
+          tintColor={colors.primary}
         />
       }
     >
       {/* Profile Header */}
-      <View style={styles.profileHeader}>
+      <View style={[styles.profileHeader, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
         <View style={styles.profileImageContainer}>
           {profile?.profile_image ? (
             <Image
@@ -262,22 +264,22 @@ export default function AccountScreen() {
               style={styles.profileImage}
             />
           ) : (
-            <View style={styles.profileImagePlaceholder}>
-              <Ionicons name="person" size={40} color="#999" />
+            <View style={[styles.profileImagePlaceholder, { backgroundColor: colors.backgroundTertiary }]}>
+              <Ionicons name="person" size={40} color={colors.textMuted} />
             </View>
           )}
           {profile?.is_verified && (
-            <View style={styles.verifiedBadge}>
-              <Ionicons name="checkmark-circle" size={20} color="#4CAF50" />
+            <View style={[styles.verifiedBadge, { backgroundColor: colors.surface }]}>
+              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
             </View>
           )}
         </View>
 
         <View style={styles.profileInfo}>
-          <Text style={styles.profileName}>
+          <Text style={[styles.profileName,  {color: colors.textPrimary}]}>
             {profile?.name || profile?.username || "Guest User"}
           </Text>
-          <Text style={styles.profileEmail}>{profile?.email || ""}</Text>
+          <Text style={[styles.profileEmail,  {color: colors.textPrimary}]}>{profile?.email || ""}</Text>
           {profile?.phone && (
             <Text style={styles.profilePhone}>{profile.phone}</Text>
           )}
@@ -310,7 +312,7 @@ export default function AccountScreen() {
 
       {/* Merchant Status Card */}
       {profile?.is_merchant && profile.merchant ? (
-        <View style={styles.merchantCard}>
+        <View style={[styles.merchantCard, { borderColor: profile.merchant.verified ? "#4CAF50" : colors.cardBorder, backgroundColor: colors.card }]}>
           <View style={styles.merchantHeader}>
             <View style={styles.merchantLogoContainer}>
               {profile.merchant.logo ? (
@@ -330,8 +332,8 @@ export default function AccountScreen() {
               )}
             </View>
             <View style={styles.merchantInfo}>
-              <Text style={styles.merchantName}>{profile.merchant.display_name}</Text>
-              <Text style={styles.businessName}>{profile.merchant.business_name}</Text>
+              <Text style={[styles.merchantName, {color: colors.textPrimary}]}>{profile.merchant.display_name}</Text>
+              <Text style={[styles.businessName, {color: colors.textPrimary}]}>{profile.merchant.business_name}</Text>
               <View style={styles.merchantStats}>
                 <View style={styles.statItem}>
                   <Ionicons name="star" size={14} color="#FF9800" />
@@ -390,7 +392,7 @@ export default function AccountScreen() {
       {profile?.is_merchant && profile?.merchant?.verified && profile?.merchant?.is_active && (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Merchant</Text>
-          <View style={styles.menuCard}>
+          <View style={[styles.menuCard, { backgroundColor: colors.card }]}>
             {merchantMenuItems.map(renderMenuItem)}
           </View>
         </View>
@@ -399,7 +401,7 @@ export default function AccountScreen() {
       {/* Account Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Account</Text>
-        <View style={styles.menuCard}>
+        <View style={[styles.menuCard, { backgroundColor: colors.card }]}>
           {accountMenuItems.map(renderMenuItem)}
         </View>
       </View>
@@ -407,7 +409,7 @@ export default function AccountScreen() {
       {/* Settings Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Settings</Text>
-        <View style={styles.menuCard}>
+        <View style={[styles.menuCard, { backgroundColor: colors.card }]}>
           {settingsMenuItems.map(renderMenuItem)}
         </View>
       </View>
@@ -415,7 +417,7 @@ export default function AccountScreen() {
       {/* Support Section */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Support</Text>
-        <View style={styles.menuCard}>
+        <View style={[styles.menuCard, { backgroundColor: colors.card }]}>
           {supportMenuItems.map(renderMenuItem)}
         </View>
       </View>
@@ -423,12 +425,12 @@ export default function AccountScreen() {
       {/* Logout Section */}
       <View style={styles.section}>
         <TouchableOpacity
-          style={styles.logoutButton}
+          style={[styles.logoutButton, { backgroundColor: colors.black }]}
           onPress={handleLogout}
           activeOpacity={0.7}
         >
-          <Ionicons name="log-out-outline" size={22} color="#E60549" />
-          <Text style={styles.logoutText}>Logout</Text>
+          <Ionicons name="log-out-outline" size={22} color={colors.white} />
+          <Text style={[styles.logoutText,, { color: colors.white }]}>Logout</Text>
         </TouchableOpacity>
       </View>
 
@@ -533,11 +535,9 @@ const styles = StyleSheet.create({
   // Merchant Card
   merchantCard: {
     margin: 20,
-    backgroundColor: "white",
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#E8F5E9",
   },
   merchantHeader: {
     flexDirection: "row",
@@ -676,7 +676,6 @@ const styles = StyleSheet.create({
 
   // Menu Card
   menuCard: {
-    backgroundColor: "white",
     borderRadius: 12,
     overflow: "hidden",
   },
@@ -687,7 +686,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#F5F5F5",
   },
   menuItemLeft: {
     flexDirection: "row",
@@ -705,7 +703,6 @@ const styles = StyleSheet.create({
   menuItemText: {
     fontSize: 15,
     fontWeight: "500",
-    color: "#1A1A1A",
     flex: 1,
   },
   menuItemRight: {
@@ -723,7 +720,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "white",
     paddingVertical: 16,
     borderRadius: 12,
     gap: 10,
@@ -731,7 +727,6 @@ const styles = StyleSheet.create({
   logoutText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#E60549",
   },
 
   // Version

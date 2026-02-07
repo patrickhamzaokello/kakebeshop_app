@@ -1,4 +1,5 @@
 import { SectionHeader } from '@/components/test/common/SectionHeader';
+import { borderRadius } from '@/constants/theme';
 import { Category } from '@/utils/types/models';
 import React, { useEffect, useRef } from 'react';
 import {
@@ -10,6 +11,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface CategoriesSectionProps {
     data: Category[] | null;
@@ -19,6 +21,7 @@ interface CategoriesSectionProps {
 }
 
 const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
+    const { colors } = useTheme();
     const animatedValue = useRef(new Animated.Value(0)).current;
 
     useEffect(() => {
@@ -47,7 +50,7 @@ const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
         <Animated.View
             style={[
                 {
-                    backgroundColor: '#F5F5F7',
+                    backgroundColor: colors.gray300,
                     opacity,
                 },
                 style,
@@ -61,6 +64,7 @@ const CategoryChip: React.FC<{
     onPress: (category: Category) => void;
     index: number;
 }> = ({ category, onPress, index }) => {
+    const { colors, isDark } = useTheme();
     const scaleAnim = useRef(new Animated.Value(1)).current;
     const fadeAnim = useRef(new Animated.Value(0)).current;
     const slideAnim = useRef(new Animated.Value(15)).current;
@@ -97,70 +101,8 @@ const CategoryChip: React.FC<{
         }).start();
     };
 
-    const getCategoryStyle = (category: Category) => {
-        const styles: Record<string, {
-            gradient: string[],
-            textColor: string,
-        }> = {
-            'AGRO': {
-                gradient: ['#FFFFFF', '#F0FDF4'],
-                textColor: '#166534',
-            },
-            'BEAUTY': {
-                gradient: ['#FFFFFF', '#FDF2F8'],
-                textColor: '#9F1239',
-            },
-            'CRAFTS': {
-                gradient: ['#FFFFFF', '#FFF7ED'],
-                textColor: '#9A3412',
-            },
-            'ELECTRONICS': {
-                gradient: ['#FFFFFF', '#EFF6FF'],
-                textColor: '#1E40AF',
-            },
-            'FASHION': {
-                gradient: ['#FFFFFF', '#F5F3FF'],
-                textColor: '#6B21A8',
-            },
-            'FOOD': {
-                gradient: ['#FFFFFF', '#FEF2F2'],
-                textColor: '#991B1B',
-            },
-            'HEALTH': {
-                gradient: ['#FFFFFF', '#FFF1F2'],
-                textColor: '#BE123C',
-            },
-            'HOME': {
-                gradient: ['#FFFFFF', '#EEF2FF'],
-                textColor: '#3730A3',
-            },
-            'KIDS': {
-                gradient: ['#FFFFFF', '#FDF2F8'],
-                textColor: '#A21CAF',
-            },
-            'MARKET': {
-                gradient: ['#FFFFFF', '#F0FDFA'],
-                textColor: '#115E59',
-            },
-            'TVS': {
-                gradient: ['#FFFFFF', '#EFF6FF'],
-                textColor: '#1E3A8A',
-            },
-        };
+   
 
-        let style = styles[category.name.toUpperCase()];
-
-        if (!style && category.parent === 'efd0b514-7dc9-4f18-abad-c3d1603a4f84') {
-            style = styles[category.name.toUpperCase()] || styles['ELECTRONICS'];
-        }
-
-        return style || {
-            gradient: ['#FFFFFF', '#F9FAFB'],
-            textColor: '#374151',
-        };
-    };
-
-    const style = getCategoryStyle(category);
 
     return (
         <Animated.View
@@ -181,9 +123,9 @@ const CategoryChip: React.FC<{
                 activeOpacity={1}
             >
                 <View
-                    style={styles.chip}
+                    style={[styles.chip, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}
                 >
-                    <Text style={[styles.chipText, { color: style.textColor }]}>
+                    <Text style={[styles.chipText, { color: colors.textPrimary }]}>
                         {category.name}
                     </Text>
                 </View>
@@ -198,6 +140,8 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
     onCategoryPress,
     onSeeAll,
 }) => {
+    const { colors } = useTheme();
+
     if (loading) {
         return (
             <View style={styles.container}>
@@ -233,7 +177,7 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
                     showSeeAll={false}
                 />
                 <View style={styles.emptyState}>
-                    <Text style={styles.emptyText}>No categories available</Text>
+                    <Text style={[styles.emptyText, { color: colors.textMuted }]}>No categories available</Text>
                 </View>
             </View>
         );
@@ -269,7 +213,6 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
 const styles = StyleSheet.create({
     container: {
         paddingVertical: 20,
-        backgroundColor: '#FFFFFF',
     },
     scrollContent: {
         paddingHorizontal: 16,
@@ -278,10 +221,9 @@ const styles = StyleSheet.create({
     chip: {
         paddingHorizontal: 20,
         paddingVertical: 12,
-        borderRadius: 24,
+        borderRadius: 5,
         marginRight: 10,
         borderWidth: 1,
-        borderColor: 'rgba(0, 0, 0, 0.06)',
         ...Platform.select({
             ios: {
                 shadowColor: '#000',
@@ -313,7 +255,6 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         fontSize: 14,
-        color: '#9CA3AF',
         fontWeight: '500',
     },
 });

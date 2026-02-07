@@ -4,11 +4,13 @@ import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
-import { GestureHandlerRootView } from "react-native-gesture-handler"; // ← already imported
-import { StyleSheet } from "react-native"; // ← add this
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { StyleSheet } from "react-native";
 import { useCartStore } from "@/utils/stores/useCartStore";
+import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 
-const RootLayout = () => {
+// Inner layout component that uses theme
+const RootLayoutContent = () => {
   const {
     isLoggedIn,
     hasCompletedOnboarding,
@@ -17,7 +19,7 @@ const RootLayout = () => {
   } = useAuthStore();
 
   const { fetchCartCount } = useCartStore();
-  
+  const { colors, isDark } = useTheme();
 
   useEffect(() => {
     checkAuthState();
@@ -36,8 +38,8 @@ const RootLayout = () => {
 
   if (authLoading) {
     return (
-      <GestureHandlerRootView style={styles.container}>
-        <StatusBar style="light" />
+      <GestureHandlerRootView style={[styles.container, { backgroundColor: colors.background }]}>
+        <StatusBar style={isDark ? "light" : "dark"} />
         <Stack>
           <Stack.Screen name="loading" options={{ headerShown: false }} />
         </Stack>
@@ -46,10 +48,14 @@ const RootLayout = () => {
   }
 
   return (
-    <GestureHandlerRootView style={styles.container}>
+    <GestureHandlerRootView style={[styles.container, { backgroundColor: colors.background }]}>
       <PushNotificationManager>
-        <StatusBar style="auto" />
-        <Stack>
+        <StatusBar style={isDark ? "light" : "dark"} />
+        <Stack
+          screenOptions={{
+            contentStyle: { backgroundColor: colors.background },
+          }}
+        >
           <Stack.Protected
             guard={isLoggedIn && hasCompletedOnboarding}
           >
@@ -67,6 +73,15 @@ const RootLayout = () => {
         </Stack>
       </PushNotificationManager>
     </GestureHandlerRootView>
+  );
+};
+
+// Root layout with ThemeProvider wrapper
+const RootLayout = () => {
+  return (
+    <ThemeProvider>
+      <RootLayoutContent />
+    </ThemeProvider>
   );
 };
 

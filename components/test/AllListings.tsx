@@ -13,6 +13,9 @@ import { Listing } from '@/utils/types/models';
 import { ListingImage } from '@/components/test/common/ListingImage';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { QuickViewModal } from '@/components/test/common/QuickViewModal';
+import { useTheme } from '@/contexts/ThemeContext';
+import { JSX } from 'react/jsx-runtime';
+import { colors } from '@/constants/theme';
 
 interface AllListingsProps {
     data: Listing[];
@@ -27,8 +30,12 @@ const CARD_PADDING = 16;
 const CARD_GAP = 12;
 const COLUMN_WIDTH = (width - (CARD_PADDING * 2) - CARD_GAP) / 2;
 
+
+
+// Step 2: Call useTheme() hook to get the colors object
 const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
     const animatedValue = new Animated.Value(0);
+    const { colors } = useTheme(); // Get colors from theme
 
     useEffect(() => {
         Animated.loop(
@@ -52,11 +59,12 @@ const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
         outputRange: [0.3, 0.7],
     });
 
+    // Step 3: Replace hardcoded '#E0E0E0' with colors.gray300
     return (
         <Animated.View
             style={[
                 {
-                    backgroundColor: '#E0E0E0',
+                    backgroundColor: colors.gray300,
                     opacity,
                 },
                 style,
@@ -65,42 +73,46 @@ const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
     );
 };
 
-const BentoShimmerCard: React.FC<{ isLarge?: boolean }> = ({ isLarge = false }) => (
-    <View style={[styles.bentoCard, isLarge && styles.bentoCardLarge]}>
-        <ShimmerPlaceholder
-            style={{
-                width: '100%',
-                height: isLarge ? 320 : 240,
-                borderRadius: 16,
-            }}
-        />
-        <View style={styles.bentoContent}>
+const BentoShimmerCard: React.FC<{ isLarge?: boolean }> = ({ isLarge = false }) => {
+    const { colors } = useTheme(); // Each component that needs colors calls the hook
+
+    return (
+        <View style={[ isLarge && styles.bentoCardLarge, { backgroundColor: colors.card }]}>
             <ShimmerPlaceholder
                 style={{
-                    width: '80%',
-                    height: 16,
-                    borderRadius: 4,
-                    marginBottom: 6,
+                    width: '100%',
+                    height: isLarge ? 320 : 240,
+                    borderRadius: 16,
                 }}
             />
-            <ShimmerPlaceholder
-                style={{
-                    width: '60%',
-                    height: 14,
-                    borderRadius: 4,
-                    marginBottom: 8,
-                }}
-            />
-            <ShimmerPlaceholder
-                style={{
-                    width: '50%',
-                    height: 18,
-                    borderRadius: 4,
-                }}
-            />
+            <View >
+                <ShimmerPlaceholder
+                    style={{
+                        width: '80%',
+                        height: 16,
+                        borderRadius: 4,
+                        marginBottom: 6,
+                    }}
+                />
+                <ShimmerPlaceholder
+                    style={{
+                        width: '60%',
+                        height: 14,
+                        borderRadius: 4,
+                        marginBottom: 8,
+                    }}
+                />
+                <ShimmerPlaceholder
+                    style={{
+                        width: '50%',
+                        height: 18,
+                        borderRadius: 4,
+                    }}
+                />
+            </View>
         </View>
-    </View>
-);
+    );
+};
 
 export const AllListings: React.FC<AllListingsProps> = ({
     data,
@@ -109,6 +121,9 @@ export const AllListings: React.FC<AllListingsProps> = ({
     onLoadMore,
     onListingPress,
 }) => {
+    // Step 2: Call the hook at the TOP of your component
+    const { colors } = useTheme();
+
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -134,18 +149,18 @@ export const AllListings: React.FC<AllListingsProps> = ({
         if (listing.price_type === "ON_REQUEST") {
             return "Price on request";
         }
-
+    
         if (listing.price_type === "RANGE") {
             if (listing.price_min && listing.price_max) {
-                return `${listing.currency} ${listing.price_min.toLocaleString()} - ${listing.price_max.toLocaleString()}`;
+                return `${listing.currency} ${parseInt(listing.price_min).toLocaleString()} - ${parseInt(listing.price_max).toLocaleString()}`;
             }
             return "Price on request";
         }
-
+    
         if (listing.price_type === "FIXED" && listing.price) {
-            return `${listing.currency} ${listing.price.toLocaleString()}`;
+            return `${listing.currency} ${parseInt(listing.price).toLocaleString()}`;
         }
-
+    
         return "Price not available";
     };
 
@@ -157,6 +172,7 @@ export const AllListings: React.FC<AllListingsProps> = ({
         return 'small';
     };
 
+    // Step 4: Use colors inside render functions - colors is available from the hook above
     const renderBentoGrid = () => {
         const rows: JSX.Element[] = [];
         let i = 0;
@@ -170,7 +186,7 @@ export const AllListings: React.FC<AllListingsProps> = ({
                 rows.push(
                     <TouchableOpacity
                         key={`large-${item.id}`}
-                        style={styles.bentoCardLarge}
+                        style={[styles.bentoCardLarge, { backgroundColor: colors.card }]}
                         onPress={() => onListingPress(item)}
                         activeOpacity={0.95}
                     >
@@ -178,18 +194,17 @@ export const AllListings: React.FC<AllListingsProps> = ({
                             <ListingImage
                                 primaryImage={item.primary_image}
                                 style={styles.bentoImageLarge}
-                                fallbackSource={require('@/assets/images/placeholder.png')}
-                            />
+                                                            />
                             {item.is_featured && (
-                                <View style={styles.featuredBadgeLarge}>
-                                    <Ionicons name="star" size={14} color="#fff" />
+                                <View style={[styles.featuredBadgeLarge, { backgroundColor: colors.info }]}>
+                                    <Ionicons name="star" size={14} color={colors.textInverse} />
                                     <Text style={styles.featuredTextLarge}>Featured</Text>
                                 </View>
                             )}
                             <View style={styles.gradientOverlay} />
                             <View style={styles.bentoContentOverlay}>
                                 <View style={styles.merchantBadge}>
-                                    <Ionicons name="storefront" size={12} color="#fff" />
+                                    <Ionicons name="storefront" size={12} color={colors.textInverse} />
                                     <Text style={styles.merchantNameOverlay} numberOfLines={1}>
                                         {item.merchant.business_name}
                                     </Text>
@@ -201,7 +216,7 @@ export const AllListings: React.FC<AllListingsProps> = ({
                                     <Text style={styles.bentoPriceLarge} numberOfLines={1}>
                                         {formatPrice(item)}
                                     </Text>
-                                    {item.is_price_negotiable && item.price_type === "FIXED" && (
+                                    {item.price_type === "RANGE" && (
                                         <View style={styles.negotiableBadge}>
                                             <Text style={styles.negotiableTextBadge}>Negotiable</Text>
                                         </View>
@@ -209,11 +224,11 @@ export const AllListings: React.FC<AllListingsProps> = ({
                                 </View>
                             </View>
                             <TouchableOpacity
-                                style={styles.quickViewButtonLarge}
+                                style={[styles.quickViewButtonLarge, { backgroundColor: colors.primary }]}
                                 onPress={(e) => handleQuickView(item, e)}
                                 activeOpacity={0.8}
                             >
-                                <MaterialIcons name="add" size={20} color="#fff" />
+                                <MaterialIcons name="add" size={20} color={colors.textInverse} />
                             </TouchableOpacity>
                         </View>
                     </TouchableOpacity>
@@ -228,7 +243,7 @@ export const AllListings: React.FC<AllListingsProps> = ({
                     <View key={`row-${i}`} style={styles.bentoRow}>
                         {/* Left small card */}
                         <TouchableOpacity
-                            style={styles.bentoCardSmall}
+                            style={[styles.bentoCardSmall, { backgroundColor: colors.card }]}
                             onPress={() => onListingPress(leftItem)}
                             activeOpacity={0.95}
                         >
@@ -236,33 +251,32 @@ export const AllListings: React.FC<AllListingsProps> = ({
                                 <ListingImage
                                     primaryImage={leftItem.primary_image}
                                     style={styles.bentoImageSmall}
-                                    fallbackSource={require('@/assets/images/placeholder.png')}
-                                />
+                                                                    />
                                 {leftItem.is_featured && (
-                                    <View style={styles.featuredBadgeSmall}>
-                                        <Ionicons name="star" size={10} color="#fff" />
+                                    <View style={[styles.featuredBadgeSmall, { backgroundColor: colors.info }]}>
+                                        <Ionicons name="star" size={10} color={colors.textInverse} />
                                     </View>
                                 )}
                                 <TouchableOpacity
-                                    style={styles.quickViewButtonSmall}
+                                    style={[styles.quickViewButtonSmall, { backgroundColor: colors.primary }]}
                                     onPress={(e) => handleQuickView(leftItem, e)}
                                     activeOpacity={0.8}
                                 >
-                                    <MaterialIcons name="add" size={16} color="#fff" />
+                                    <MaterialIcons name="add" size={16} color={colors.textInverse} />
                                 </TouchableOpacity>
                             </View>
                             <View style={styles.bentoContentSmall}>
-                                <Text style={styles.bentoTitleSmall} numberOfLines={2}>
+                                <Text style={[styles.bentoTitleSmall, { color: colors.textPrimary }]} numberOfLines={2}>
                                     {leftItem.title}
                                 </Text>
-                                <Text style={styles.merchantNameSmall} numberOfLines={1}>
+                                <Text style={[styles.merchantNameSmall, { color: colors.textMuted }]} numberOfLines={1}>
                                     {leftItem.merchant.business_name}
                                 </Text>
-                                <Text style={styles.bentoPriceSmall} numberOfLines={1}>
+                                <Text style={[styles.bentoPriceSmall, { color: colors.textPrimary }]} numberOfLines={1}>
                                     {formatPrice(leftItem)}
                                 </Text>
-                                {leftItem.is_price_negotiable && leftItem.price_type === "FIXED" && (
-                                    <Text style={styles.negotiableTextSmall}>Negotiable</Text>
+                                {leftItem.price_type === "RANGE" && (
+                                    <Text style={[styles.negotiableTextSmall, { color: colors.info }]}>Negotiable</Text>
                                 )}
                             </View>
                         </TouchableOpacity>
@@ -270,7 +284,7 @@ export const AllListings: React.FC<AllListingsProps> = ({
                         {/* Right small card (if exists) */}
                         {rightItem && (
                             <TouchableOpacity
-                                style={styles.bentoCardSmall}
+                                style={[styles.bentoCardSmall, { backgroundColor: colors.card }]}
                                 onPress={() => onListingPress(rightItem)}
                                 activeOpacity={0.95}
                             >
@@ -278,33 +292,32 @@ export const AllListings: React.FC<AllListingsProps> = ({
                                     <ListingImage
                                         primaryImage={rightItem.primary_image}
                                         style={styles.bentoImageSmall}
-                                        fallbackSource={require('@/assets/images/placeholder.png')}
-                                    />
+                                                                            />
                                     {rightItem.is_featured && (
-                                        <View style={styles.featuredBadgeSmall}>
-                                            <Ionicons name="star" size={10} color="#fff" />
+                                        <View style={[styles.featuredBadgeSmall, { backgroundColor: colors.info }]}>
+                                            <Ionicons name="star" size={10} color={colors.textInverse} />
                                         </View>
                                     )}
                                     <TouchableOpacity
-                                        style={styles.quickViewButtonSmall}
+                                        style={[styles.quickViewButtonSmall, { backgroundColor: colors.primary }]}
                                         onPress={(e) => handleQuickView(rightItem, e)}
                                         activeOpacity={0.8}
                                     >
-                                        <MaterialIcons name="add" size={16} color="#fff" />
+                                        <MaterialIcons name="add" size={16} color={colors.textInverse} />
                                     </TouchableOpacity>
                                 </View>
                                 <View style={styles.bentoContentSmall}>
-                                    <Text style={styles.bentoTitleSmall} numberOfLines={2}>
+                                    <Text style={[styles.bentoTitleSmall, { color: colors.textPrimary }]} numberOfLines={2}>
                                         {rightItem.title}
                                     </Text>
-                                    <Text style={styles.merchantNameSmall} numberOfLines={1}>
+                                    <Text style={[styles.merchantNameSmall, { color: colors.textMuted }]} numberOfLines={1}>
                                         {rightItem.merchant.business_name}
                                     </Text>
-                                    <Text style={styles.bentoPriceSmall} numberOfLines={1}>
+                                    <Text style={[styles.bentoPriceSmall, { color: colors.textPrimary }]} numberOfLines={1}>
                                         {formatPrice(rightItem)}
                                     </Text>
-                                    {rightItem.is_price_negotiable && rightItem.price_type === "FIXED" && (
-                                        <Text style={styles.negotiableTextSmall}>Negotiable</Text>
+                                    {rightItem.price_type === "RANGE" && (
+                                        <Text style={[styles.negotiableTextSmall, { color: colors.info }]}>Negotiable</Text>
                                     )}
                                 </View>
                             </TouchableOpacity>
@@ -322,7 +335,7 @@ export const AllListings: React.FC<AllListingsProps> = ({
     if (loading && data.length === 0) {
         return (
             <View style={styles.container}>
-                <Text style={styles.sectionTitle}>All Listings</Text>
+                {/* Step 3: Use style array to merge static styles with dynamic theme colors */}
                 <View style={styles.bentoContainer}>
                     <BentoShimmerCard isLarge />
                     <View style={styles.bentoRow}>
@@ -337,31 +350,31 @@ export const AllListings: React.FC<AllListingsProps> = ({
 
     return (
         <View style={styles.container}>
-            <Text style={styles.sectionTitle}>All Listings</Text>
+            {/* Step 3: Apply theme color to text */}
             <View style={styles.bentoContainer}>
                 {renderBentoGrid()}
-                
+
                 {/* Auto-load trigger - loads more when this view appears */}
                 {hasMore && !loading && data.length > 0 && (
-                    <View 
+                    <View
                         style={styles.loadTrigger}
                         onLayout={handleLayout}
                     />
                 )}
 
-                {/* Loading Indicator */}
+                {/* Loading Indicator - use theme primary color */}
                 {(loading || isLoadingMore) && data.length > 0 && (
                     <View style={styles.footerLoader}>
-                        <ActivityIndicator size="small" color="#007AFF" />
+                        <ActivityIndicator size="small" color={colors.primary} />
                     </View>
                 )}
 
-                {/* End of Results */}
+                {/* End of Results - use theme colors */}
                 {!hasMore && data.length > 0 && (
                     <View style={styles.endOfResults}>
-                        <View style={styles.endLine} />
-                        <Text style={styles.endText}>You've seen it all</Text>
-                        <View style={styles.endLine} />
+                        <View style={[styles.endLine, { backgroundColor: colors.border }]} />
+                        <Text style={[styles.endText, { color: colors.textMuted }]}>You've seen it all</Text>
+                        <View style={[styles.endLine, { backgroundColor: colors.border }]} />
                     </View>
                 )}
             </View>
@@ -375,15 +388,10 @@ export const AllListings: React.FC<AllListingsProps> = ({
     );
 };
 
+// Step 5: Remove hardcoded colors from styles - they're now applied inline
 const styles = StyleSheet.create({
     container: {
         padding: CARD_PADDING,
-    },
-    sectionTitle: {
-        fontSize: 22,
-        fontWeight: 'bold',
-        marginBottom: 16,
-        color: '#000',
     },
     bentoContainer: {
         width: '100%',
@@ -399,7 +407,7 @@ const styles = StyleSheet.create({
         width: '100%',
         marginBottom: CARD_GAP,
         borderRadius: 20,
-        backgroundColor: '#fff',
+        // backgroundColor removed - applied inline with colors.card
         overflow: 'hidden',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
@@ -423,7 +431,6 @@ const styles = StyleSheet.create({
         right: 0,
         height: 180,
         backgroundColor: 'transparent',
-        background: 'linear-gradient(to bottom, transparent, rgba(0,0,0,0.8))',
     },
     bentoContentOverlay: {
         position: 'absolute',
@@ -472,7 +479,7 @@ const styles = StyleSheet.create({
         left: 12,
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: '#007AFF',
+        // backgroundColor removed - applied inline
         paddingHorizontal: 10,
         paddingVertical: 6,
         borderRadius: 8,
@@ -487,7 +494,6 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: 12,
         right: 12,
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
         width: 40,
         height: 40,
         borderRadius: 20,
@@ -500,7 +506,7 @@ const styles = StyleSheet.create({
     bentoCardSmall: {
         width: COLUMN_WIDTH,
         borderRadius: 16,
-        backgroundColor: '#fff',
+        // backgroundColor removed - applied inline
         overflow: 'hidden',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 1 },
@@ -523,25 +529,25 @@ const styles = StyleSheet.create({
     bentoTitleSmall: {
         fontSize: 13,
         fontWeight: '600',
-        color: '#000',
+        // color removed - applied inline
         marginBottom: 4,
         lineHeight: 18,
     },
     merchantNameSmall: {
         fontSize: 11,
-        color: '#666',
+        // color removed - applied inline
         marginBottom: 6,
     },
     bentoPriceSmall: {
         fontSize: 14,
         fontWeight: 'bold',
-        color: '#000',
+        // color removed - applied inline
     },
     featuredBadgeSmall: {
         position: 'absolute',
         top: 8,
         left: 8,
-        backgroundColor: '#007AFF',
+        // backgroundColor removed - applied inline
         width: 24,
         height: 24,
         borderRadius: 12,
@@ -552,7 +558,6 @@ const styles = StyleSheet.create({
         position: 'absolute',
         bottom: 8,
         right: 8,
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
         width: 32,
         height: 32,
         borderRadius: 16,
@@ -575,7 +580,7 @@ const styles = StyleSheet.create({
     },
     negotiableTextSmall: {
         fontSize: 10,
-        color: '#007AFF',
+        // color removed - applied inline
         fontWeight: '600',
         marginTop: 3,
     },
@@ -600,11 +605,11 @@ const styles = StyleSheet.create({
     endLine: {
         height: 1,
         flex: 1,
-        backgroundColor: '#E0E0E0',
+        // backgroundColor removed - applied inline
     },
     endText: {
         fontSize: 13,
-        color: '#999',
+        // color removed - applied inline
         fontWeight: '500',
     },
 });

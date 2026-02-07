@@ -9,7 +9,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
-import { colors } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface HeaderSectionProps {
   title: string;
@@ -25,6 +25,7 @@ export const DetailHeaderSection: React.FC<HeaderSectionProps> = ({
   onBackPress,
 }) => {
   const router = useRouter();
+  const { colors } = useTheme();
 
   const handleBackPress = () => {
     if (onBackPress) {
@@ -35,23 +36,23 @@ export const DetailHeaderSection: React.FC<HeaderSectionProps> = ({
   };
 
   return (
-    <LinearGradient colors={[colors.primarySoft, colors.white]} style={styles.container}>
+    <LinearGradient colors={[colors.primarySoft, colors.background]} style={styles.container}>
       <SafeAreaView edges={["top"]} />
-      
+
       <View style={styles.content}>
         {showBackButton && (
           <TouchableOpacity
-            style={styles.backButton}
+            style={[styles.backButton, { backgroundColor: colors.surface }]}
             onPress={handleBackPress}
             activeOpacity={0.7}
           >
-            <Ionicons name="arrow-back" size={24} color="#000" />
+            <Ionicons name="arrow-back" size={24} color={colors.iconColor} />
           </TouchableOpacity>
         )}
 
         <View style={[styles.topRow, showBackButton && styles.topRowWithBack]}>
-          <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subheading}>{subheading}</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{title}</Text>
+          <Text style={[styles.subheading, { color: colors.textSecondary }]}>{subheading}</Text>
         </View>
       </View>
     </LinearGradient>
@@ -69,11 +70,10 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.9)",
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,
-    marginTop: 20
+    marginTop: 20,
   },
   topRow: {
     justifyContent: "space-between",
@@ -84,12 +84,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 30,
     fontWeight: "bold",
-    color: "#000",
     marginBottom: 4,
   },
   subheading: {
     fontSize: 16,
-    color: "#000",
     opacity: 0.8,
   },
 });

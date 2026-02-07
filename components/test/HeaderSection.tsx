@@ -10,7 +10,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { HeaderData } from "@/utils/types/models";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { colors } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface HeaderSectionProps {
   data: HeaderData | null;
@@ -76,6 +76,7 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
   onNotificationPress,
   onWishlistPress,
 }) => {
+  const { colors } = useTheme();
   const [searchPlaceholder, setSearchPlaceholder] = useState(SEARCH_TERMS[0]);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
 
@@ -94,7 +95,7 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
 
   if (loading) {
     return (
-      <LinearGradient colors={[colors.primarySoft, colors.white]} style={styles.container}>
+      <LinearGradient colors={[colors.primarySoft, colors.background]} style={styles.container}>
         <View style={{ flex: 1 }}>
           <SafeAreaView />
 
@@ -151,14 +152,14 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
   }
 
   return (
-    <LinearGradient colors={[colors.primarySoft, colors.white]} style={styles.container}>
+    <LinearGradient colors={[colors.primarySoft, colors.background]} style={styles.container}>
       <View style={{ flex: 1 }}>
         <SafeAreaView />
 
         <View style={styles.topRow}>
           <View style={styles.userInfo}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
+            <View style={[styles.avatar, { backgroundColor: colors.textPrimary }]}>
+              <Text style={[styles.avatarText, { color: colors.textInverse }]}>
                 {data?.profile.name
                   ?.split(" ")
                   .map((word) => word[0])
@@ -168,27 +169,27 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
               </Text>
             </View>
             <View>
-              <Text style={styles.welcomeText}>Hey, Welcome back,</Text>
-              <Text style={styles.userName}>{data?.profile.name}</Text>
+              <Text style={[styles.welcomeText, { color: colors.textSecondary }]}>Hey, Welcome back,</Text>
+              <Text style={[styles.userName, { color: colors.textPrimary }]}>{data?.profile.name}</Text>
             </View>
           </View>
 
           <View style={styles.actionButtons}>
             <TouchableOpacity
-              style={styles.iconButton}
+              style={[styles.iconButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
               onPress={onWishlistPress}
             >
-              <Ionicons name="heart-outline" size={22} color="#000" />
+              <Ionicons name="heart-outline" size={22} color={colors.iconColor} />
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.iconButton}
+              style={[styles.iconButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
               onPress={onNotificationPress}
             >
-              <Ionicons name="notifications-outline" size={22} color="#000" />
+              <Ionicons name="notifications-outline" size={22} color={colors.iconColor} />
               {(data?.notificationsCount ?? 0) > 0 && (
-                <View style={styles.badge}>
-                  <Text style={styles.badgeText}>
+                <View style={[styles.badge, { backgroundColor: colors.error }]}>
+                  <Text style={[styles.badgeText, { color: colors.textInverse }]}>
                     {data?.notificationsCount}
                   </Text>
                 </View>
@@ -201,9 +202,9 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
           style={{
             flexDirection: "row",
             alignItems: "center",
-            backgroundColor: "#FFFFFF",
+            backgroundColor: colors.inputBackground,
             borderRadius: 4,
-            borderColor: "#2F4F4F",
+            borderColor: colors.inputBorder,
             borderWidth: 1,
             paddingHorizontal: 16,
             paddingVertical: 14,
@@ -211,20 +212,20 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
           onPress={onSearch}
           activeOpacity={0.7}
         >
-          <Ionicons name="search" size={20} color="#999" />
+          <Ionicons name="search" size={20} color={colors.textPlaceholder} />
           <Text
             style={{
               flex: 1,
               marginLeft: 12,
               fontSize: 15,
-              color: "#999",
+              color: colors.textPlaceholder,
               fontWeight: "500",
             }}
             numberOfLines={1}
           >
             {searchPlaceholder}
           </Text>
-          <Ionicons name="options-outline" size={18} color="#999" />
+          <Ionicons name="options-outline" size={18} color={colors.textPlaceholder} />
         </TouchableOpacity>
       </View>
     </LinearGradient>
@@ -252,23 +253,19 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     marginRight: 12,
-    backgroundColor: "#000",
     alignItems: "center",
     justifyContent: "center",
   },
   avatarText: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#fff",
   },
   welcomeText: {
     fontSize: 14,
-    color: "#666",
   },
   userName: {
     fontSize: 20,
     fontWeight: "bold",
-    color: "#000",
   },
   actionButtons: {
     flexDirection: "row",
@@ -281,16 +278,13 @@ const styles = StyleSheet.create({
     height: 40,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
     borderRadius: 4,
-    borderColor: "#2F4F4F",
     borderWidth: 1,
   },
   badge: {
     position: "absolute",
     top: 0,
     right: 0,
-    backgroundColor: "#FF3B30",
     borderRadius: 10,
     minWidth: 20,
     height: 20,
@@ -299,7 +293,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   badgeText: {
-    color: "#fff",
     fontSize: 12,
     fontWeight: "bold",
   },
