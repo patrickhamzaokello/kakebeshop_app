@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
     Text,
@@ -111,6 +111,18 @@ export const AllListings: React.FC<AllListingsProps> = ({
 }) => {
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const containerRef = useRef<View>(null);
+
+    // Trigger load more when user scrolls near the end
+    const handleLayout = async () => {
+        // Check if we should load more data
+        if (hasMore && !loading && !isLoadingMore && data.length > 0) {
+            setIsLoadingMore(true);
+            await onLoadMore();
+            setIsLoadingMore(false);
+        }
+    };
 
     const handleQuickView = (listing: Listing, event: any) => {
         event.stopPropagation();
@@ -329,23 +341,18 @@ export const AllListings: React.FC<AllListingsProps> = ({
             <View style={styles.bentoContainer}>
                 {renderBentoGrid()}
                 
-                {/* Load More Button */}
+                {/* Auto-load trigger - loads more when this view appears */}
                 {hasMore && !loading && data.length > 0 && (
-                    <TouchableOpacity
-                        style={styles.loadMoreButton}
-                        onPress={onLoadMore}
-                        activeOpacity={0.8}
-                    >
-                        <Text style={styles.loadMoreText}>Load More</Text>
-                        <Ionicons name="chevron-down" size={20} color="#007AFF" />
-                    </TouchableOpacity>
+                    <View 
+                        style={styles.loadTrigger}
+                        onLayout={handleLayout}
+                    />
                 )}
 
                 {/* Loading Indicator */}
-                {loading && data.length > 0 && (
+                {(loading || isLoadingMore) && data.length > 0 && (
                     <View style={styles.footerLoader}>
                         <ActivityIndicator size="small" color="#007AFF" />
-                        <Text style={styles.loadingText}>Loading more...</Text>
                     </View>
                 )}
 
@@ -353,7 +360,7 @@ export const AllListings: React.FC<AllListingsProps> = ({
                 {!hasMore && data.length > 0 && (
                     <View style={styles.endOfResults}>
                         <View style={styles.endLine} />
-                        <Text style={styles.endText}>You've reached the end</Text>
+                        <Text style={styles.endText}>You've seen it all</Text>
                         <View style={styles.endLine} />
                     </View>
                 )}
@@ -574,39 +581,20 @@ const styles = StyleSheet.create({
     },
 
     footerLoader: {
-        paddingVertical: 24,
+        paddingVertical: 32,
         alignItems: 'center',
         gap: 8,
     },
-    loadingText: {
-        fontSize: 13,
-        color: '#666',
-        fontWeight: '500',
-    },
-    loadMoreButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-        paddingVertical: 16,
-        paddingHorizontal: 24,
-        marginVertical: 20,
-        backgroundColor: '#F0F8FF',
-        borderRadius: 12,
-        borderWidth: 1.5,
-        borderColor: '#007AFF',
-        borderStyle: 'dashed',
-    },
-    loadMoreText: {
-        fontSize: 15,
-        color: '#007AFF',
-        fontWeight: '600',
+    loadTrigger: {
+        height: 1,
+        width: '100%',
+        marginTop: 20,
     },
     endOfResults: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 32,
+        paddingVertical: 40,
         gap: 12,
     },
     endLine: {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -12,6 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router } from "expo-router";
+import { useScrollToTop } from "@react-navigation/native";
 import {
   colors,
   spacingX,
@@ -132,9 +133,10 @@ const BenefitCard: React.FC<BenefitCardProps> = ({
 );
 
 // Merchant Dashboard View
-const MerchantView: React.FC<{ hasListings: boolean }> = ({ hasListings }) => {
+const MerchantView: React.FC<{ hasListings: boolean; scrollRef: React.RefObject<ScrollView> }> = ({ hasListings, scrollRef }) => {
   return (
     <ScrollView
+      ref={scrollRef}
       style={styles.scrollView}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.scrollContent}
@@ -228,7 +230,7 @@ const MerchantView: React.FC<{ hasListings: boolean }> = ({ hasListings }) => {
 };
 
 // Non-Merchant Onboarding View
-const OnboardingView: React.FC = () => {
+const OnboardingView: React.FC<{ scrollRef: React.RefObject<ScrollView> }> = ({ scrollRef }) => {
   const handleGetStarted = () => {
     router.push("/merchant/apply/signup");
   };
@@ -239,6 +241,7 @@ const OnboardingView: React.FC = () => {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={styles.scrollView}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.scrollContent}
@@ -380,6 +383,10 @@ const OnboardingView: React.FC = () => {
 // Main Component
 export default function SellScreen() {
   const { loading, isMerchant, hasListings } = useUserStatus();
+  const scrollRef = useRef<ScrollView>(null);
+
+  // Scroll to top when sell tab is pressed
+  useScrollToTop(scrollRef);
 
   if (loading) {
     return (
@@ -393,9 +400,9 @@ export default function SellScreen() {
     <View style={styles.container}>
       <StatusBar style="dark" />
       {isMerchant ? (
-        <MerchantView hasListings={hasListings} />
+        <MerchantView hasListings={hasListings} scrollRef={scrollRef} />
       ) : (
-        <OnboardingView />
+        <OnboardingView scrollRef={scrollRef} />
       )}
     </View>
   );

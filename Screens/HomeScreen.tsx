@@ -1,9 +1,11 @@
 import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useSectionData } from '@/hooks/useSectionData';
 import { homeService } from '@/utils/services/homeService';
-import React, { useCallback, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
+import React, { useCallback, useRef, useState } from 'react';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from "expo-router";
+import { useScrollToTop } from '@react-navigation/native';
+import { colors } from '@/constants/theme';
 
 import { AllListings } from "@/components/test/AllListings";
 import { CarouselSection } from "@/components/test/CarouselSection";
@@ -14,6 +16,10 @@ import { HeaderSection } from "@/components/test/HeaderSection";
 
 export const HomeScreen: React.FC = () => {
     const router = useRouter();
+    const scrollRef = useRef<ScrollView>(null);
+
+    // Scroll to top when home tab is pressed
+    useScrollToTop(scrollRef);
 
     // Section data hooks - inline functions are now safe
     const headerData = useSectionData(() => homeService.getHeaderData());
@@ -55,72 +61,83 @@ export const HomeScreen: React.FC = () => {
     ]);
 
     return (
-        <ScrollView
-            style={styles.container}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-        >
-            <HeaderSection
-                data={headerData.data}
-                loading={headerData.loading}
-                onSearch={() => router.push('/category')}
-                onWishlistPress={() => router.push('/wishlist/wishlist')}
-                onNotificationPress={() => router.push('/notification/notifications')}
-            />
+        <View style={styles.outerContainer}>
+            <ScrollView
+                ref={scrollRef}
+                style={styles.scrollView}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            >
+                <HeaderSection
+                    data={headerData.data}
+                    loading={headerData.loading}
+                    onSearch={() => router.push('/category')}
+                    onWishlistPress={() => router.push('/wishlist/wishlist')}
+                    onNotificationPress={() => router.push('/notification/notifications')}
+                />
 
-            <CarouselSection data={carouselData.data} loading={carouselData.loading} />
+                <View style={styles.contentContainer}>
+                    <CarouselSection data={carouselData.data} loading={carouselData.loading} />
 
-            <CategoriesSection
-                data={categoriesData.data}
-                loading={categoriesData.loading}
-                onCategoryPress={(category) => 
-                    router.push({
-                        pathname: '/category/[id]',
-                        params: { id: category.id }
-                    })
-                }
-            />
+                    <CategoriesSection
+                        data={categoriesData.data}
+                        loading={categoriesData.loading}
+                        onCategoryPress={(category) =>
+                            router.push({
+                                pathname: '/category/[id]',
+                                params: { id: category.id }
+                            })
+                        }
+                    />
 
-            <FeaturedMerchants
-                data={merchantsData.data}
-                loading={merchantsData.loading}
-                onMerchantPress={(merchant) => 
-                    router.push({
-                        pathname: '/merchant/[id]',
-                        params: { id: merchant.id }
-                    })
-                }
-            />
+                    <FeaturedMerchants
+                        data={merchantsData.data}
+                        loading={merchantsData.loading}
+                        onMerchantPress={(merchant) =>
+                            router.push({
+                                pathname: '/merchant/[id]',
+                                params: { id: merchant.id }
+                            })
+                        }
+                    />
 
-            <FeaturedListings
-                data={featuredData.data}
-                loading={featuredData.loading}
-                onListingPress={(listing) =>
-                    router.push({
-                        pathname: '/listing/[id]',
-                        params: { id: listing.id }
-                    })
-                }
-            />
+                    <FeaturedListings
+                        data={featuredData.data}
+                        loading={featuredData.loading}
+                        onListingPress={(listing) =>
+                            router.push({
+                                pathname: '/listing/[id]',
+                                params: { id: listing.id }
+                            })
+                        }
+                    />
 
-            <AllListings
-                data={listings}
-                loading={listingsLoading}
-                hasMore={hasMore}
-                onLoadMore={loadMore}
-                onListingPress={(listing) =>
-                    router.push({
-                        pathname: '/listing/[id]',
-                        params: { id: listing.id }
-                    })
-                }
-            />
-        </ScrollView>
+                    <AllListings
+                        data={listings}
+                        loading={listingsLoading}
+                        hasMore={hasMore}
+                        onLoadMore={loadMore}
+                        onListingPress={(listing) =>
+                            router.push({
+                                pathname: '/listing/[id]',
+                                params: { id: listing.id }
+                            })
+                        }
+                    />
+                </View>
+            </ScrollView>
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
+    outerContainer: {
         flex: 1,
+        backgroundColor: colors.primarySoft,
+    },
+    scrollView: {
+        flex: 1,
+    },
+    contentContainer: {
         backgroundColor: '#FFF',
     },
 });

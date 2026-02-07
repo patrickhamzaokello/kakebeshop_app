@@ -1,12 +1,17 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
 import { RefreshControl, ScrollView, StyleSheet, View } from "react-native";
 import { useRouter } from "expo-router";
+import { useScrollToTop } from "@react-navigation/native";
 import { CartItems } from "@/components/test/CartItemListing";
 import { CartSummary } from "@/components/test/CartSummary";
 import { useCartStore } from "@/utils/stores/useCartStore";
 
 export const CartScreen: React.FC = () => {
   const router = useRouter();
+  const scrollRef = useRef<ScrollView>(null);
+
+  // Scroll to top when cart tab is pressed
+  useScrollToTop(scrollRef);
 
   const {
     cart,
@@ -43,6 +48,7 @@ export const CartScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <ScrollView
+        ref={scrollRef}
         style={styles.scrollView}
         refreshControl={
           <RefreshControl refreshing={isLoading} onRefresh={onRefresh} />

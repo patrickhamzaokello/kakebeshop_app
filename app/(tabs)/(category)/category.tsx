@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   StyleSheet,
   View,
@@ -13,6 +13,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
+import { useScrollToTop } from "@react-navigation/native";
 import { colors, spacingX, spacingY, radius } from "@/constants/theme";
 import { useSectionData } from "@/hooks/useSectionData";
 import { categoryService } from "@/utils/services/categoryService";
@@ -23,6 +24,10 @@ import { CategorySubCategorySection } from "@/components/test/CategorySubCategor
 
 export default function ExplorePage() {
   const router = useRouter();
+  const scrollRef = useRef<ScrollView>(null);
+
+  // Scroll to top when category tab is pressed
+  useScrollToTop(scrollRef);
 
   // Section data hooks - inline functions are now safe
   const carouselData = useSectionData(() =>
@@ -96,6 +101,7 @@ export default function ExplorePage() {
       </SafeAreaView>
 
       <ScrollView
+        ref={scrollRef}
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         refreshControl={

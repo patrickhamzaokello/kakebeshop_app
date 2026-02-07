@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { useScrollToTop } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAuthStore } from "@/utils/authStore";
 import apiService from "@/utils/apiBase";
@@ -20,10 +21,14 @@ import { MenuItem, UserProfile } from "@/utils/types/models";
 
 export default function AccountScreen() {
   const router = useRouter();
+  const scrollRef = useRef<ScrollView>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const { logout } = useAuthStore();
+
+  // Scroll to top when accounts tab is pressed
+  useScrollToTop(scrollRef);
 
   useEffect(() => {
     fetchUserProfile();
@@ -237,6 +242,7 @@ export default function AccountScreen() {
 
   return (
     <ScrollView
+      ref={scrollRef}
       style={styles.container}
       showsVerticalScrollIndicator={false}
       refreshControl={
