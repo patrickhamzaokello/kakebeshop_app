@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -20,18 +20,29 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { colors, radius, shadow, spacingX, spacingY } from "@/constants/theme";
+import {
+  radius,
+  shadow,
+  spacingX,
+  spacingY,
+  fontSize,
+  fontWeight,
+  typography,
+  components,
+  scale,
+  verticalScale,
+  ThemeColors,
+} from "@/constants/theme";
 import { listingDetailsService } from "@/utils/services/listingDetailsService";
 import { useCartStore } from "@/utils/stores/useCartStore";
+import { useListingDetailStore } from "@/utils/stores/useListingDetailStore";
 import { useAuthStore } from "@/utils/authStore";
 import {
-  ListingDetail,
   CartCheckResponse,
   WishlistCheckResponse,
-  SimilarFromMerchantResponse,
-  SimilarFromMarketplaceResponse,
   SimilarListingItem,
 } from "@/utils/types/models";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const IMAGE_HEIGHT = SCREEN_WIDTH * 0.9;
@@ -39,6 +50,7 @@ const IMAGE_HEIGHT = SCREEN_WIDTH * 0.9;
 // Shimmer Placeholder Component
 const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
   const animatedValue = new Animated.Value(0);
+  const { colors } = useTheme();
 
   useEffect(() => {
     Animated.loop(
@@ -66,7 +78,7 @@ const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
     <Animated.View
       style={[
         {
-          backgroundColor: "#E0E0E0",
+          backgroundColor: colors.gray300,
           opacity,
         },
         style,
@@ -76,13 +88,17 @@ const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
 };
 
 // Loading Skeleton Component
-const ListingDetailsSkeleton = () => (
+const ListingDetailsSkeleton = () => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  return (
   <View style={styles.container}>
     <SafeAreaView edges={["top"]} style={styles.safeArea}>
       {/* Header skeleton */}
       <View style={styles.header}>
-        <ShimmerPlaceholder style={{ width: 40, height: 40, borderRadius: 20 }} />
-        <ShimmerPlaceholder style={{ width: 40, height: 40, borderRadius: 20 }} />
+        <ShimmerPlaceholder style={{ width: scale(40), height: scale(40), borderRadius: radius._20 }} />
+        <ShimmerPlaceholder style={{ width: scale(40), height: scale(40), borderRadius: radius._20 }} />
       </View>
     </SafeAreaView>
 
@@ -93,43 +109,48 @@ const ListingDetailsSkeleton = () => (
       <View style={styles.contentContainer}>
         {/* Title skeleton */}
         <ShimmerPlaceholder
-          style={{ width: "80%", height: 24, borderRadius: 4, marginBottom: 8 }}
+          style={{ width: "80%", height: verticalScale(24), borderRadius: radius._4, marginBottom: spacingY._8 }}
         />
         <ShimmerPlaceholder
-          style={{ width: "60%", height: 24, borderRadius: 4, marginBottom: 16 }}
+          style={{ width: "60%", height: verticalScale(24), borderRadius: radius._4, marginBottom: spacingY._16 }}
         />
 
         {/* Price skeleton */}
         <ShimmerPlaceholder
-          style={{ width: "40%", height: 32, borderRadius: 4, marginBottom: 24 }}
+          style={{ width: "40%", height: verticalScale(32), borderRadius: radius._4, marginBottom: spacingY._24 }}
         />
 
         {/* Seller card skeleton */}
         <View style={styles.sellerCard}>
-          <ShimmerPlaceholder style={{ width: 50, height: 50, borderRadius: 25 }} />
-          <View style={{ flex: 1, marginLeft: 12 }}>
+          <ShimmerPlaceholder style={{ width: scale(50), height: scale(50), borderRadius: scale(25) }} />
+          <View style={{ flex: 1, marginLeft: spacingX._12 }}>
             <ShimmerPlaceholder
-              style={{ width: "70%", height: 16, borderRadius: 4, marginBottom: 8 }}
+              style={{ width: "70%", height: verticalScale(16), borderRadius: radius._4, marginBottom: spacingY._8 }}
             />
-            <ShimmerPlaceholder style={{ width: "50%", height: 12, borderRadius: 4 }} />
+            <ShimmerPlaceholder style={{ width: "50%", height: verticalScale(12), borderRadius: radius._4 }} />
           </View>
         </View>
 
         {/* Description skeleton */}
         <ShimmerPlaceholder
-          style={{ width: "100%", height: 80, borderRadius: 8, marginTop: 16 }}
+          style={{ width: "100%", height: verticalScale(80), borderRadius: radius._8, marginTop: spacingY._16 }}
         />
       </View>
     </ScrollView>
   </View>
-);
+  );
+};
 
 // Similar Listing Card Component
 const SimilarListingCard: React.FC<{
   item: SimilarListingItem;
   onPress: () => void;
   showMerchant?: boolean;
-}> = ({ item, onPress, showMerchant = false }) => (
+}> = ({ item, onPress, showMerchant = false }) => {
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
+
+  return (
   <TouchableOpacity style={styles.similarCard} onPress={onPress} activeOpacity={0.7}>
     <Image
       source={
@@ -154,7 +175,8 @@ const SimilarListingCard: React.FC<{
       </Text>
     </View>
   </TouchableOpacity>
-);
+  );
+};
 
 // Main Component
 export default function ListingDetailsScreen() {
@@ -163,15 +185,22 @@ export default function ListingDetailsScreen() {
   const { isLoggedIn } = useAuthStore();
   const { addToCart, fetchCart } = useCartStore();
 
-  // State
-  const [listing, setListing] = useState<ListingDetail | null>(null);
+  // Listing cache store
+  const {
+    fetchAllCacheableData,
+    getCachedListing,
+    getCachedSimilarMerchant,
+    getCachedSimilarMarketplace,
+  } = useListingDetailStore();
+
+  // Derived state from cache store
+  const listing = getCachedListing(id ?? "");
+  const similarMerchant = getCachedSimilarMerchant(id ?? "");
+  const similarMarketplace = getCachedSimilarMarketplace(id ?? "");
+
+  // Local state (user-specific, not cached)
   const [cartStatus, setCartStatus] = useState<CartCheckResponse | null>(null);
   const [wishlistStatus, setWishlistStatus] = useState<WishlistCheckResponse | null>(null);
-  const [similarMerchant, setSimilarMerchant] = useState<SimilarFromMerchantResponse | null>(
-    null
-  );
-  const [similarMarketplace, setSimilarMarketplace] =
-    useState<SimilarFromMarketplaceResponse | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -183,49 +212,36 @@ export default function ListingDetailsScreen() {
 
   // Check if cart is allowed (only for FIXED price type)
   const isCartAllowed = listing?.price_type === "FIXED";
+  const { colors } = useTheme();
+  const styles = useMemo(() => createStyles(colors), [colors]);
 
-  // Fetch all data
-  const fetchAllData = useCallback(async () => {
+  // Fetch all data (cacheable data via store, user-specific data fresh)
+  const fetchAllData = useCallback(async (forceRefresh = false) => {
     if (!id) return;
 
     try {
-      // Fetch listing details first (required)
-      const listingData = await listingDetailsService.getListingDetails(id);
+      // Fetch cacheable data through the store
+      const cacheResult = await fetchAllCacheableData(id, forceRefresh);
 
-      if (!listingData) {
+      if (!cacheResult) {
         Alert.alert("Error", "Listing not found");
         router.back();
         return;
       }
 
-      setListing(listingData);
-
-      // Fetch additional data in parallel
-      const promises: Promise<any>[] = [
-        listingDetailsService.getSimilarFromMerchant(id, 6),
-        listingDetailsService.getSimilarFromMarketplace(id, 12),
-      ];
-
-      // Only fetch cart/wishlist status if logged in
+      // Fetch user-specific data directly (not cached)
       if (isLoggedIn) {
-        promises.push(
+        const [cartResult, wishlistResult] = await Promise.all([
           listingDetailsService.checkCartStatus(id),
-          listingDetailsService.checkWishlistStatus(id)
-        );
-      }
+          listingDetailsService.checkWishlistStatus(id),
+        ]);
 
-      const results = await Promise.all(promises);
-
-      setSimilarMerchant(results[0]);
-      setSimilarMarketplace(results[1]);
-
-      if (isLoggedIn) {
-        setCartStatus(results[2]);
-        setWishlistStatus(results[3]);
+        setCartStatus(cartResult);
+        setWishlistStatus(wishlistResult);
 
         // Pre-fill quantity if item is already in cart
-        if (results[2]?.in_cart && results[2]?.quantity) {
-          setQuantity(results[2].quantity);
+        if (cartResult?.in_cart && cartResult?.quantity) {
+          setQuantity(cartResult.quantity);
         }
       }
     } catch (error) {
@@ -235,16 +251,16 @@ export default function ListingDetailsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [id, isLoggedIn, router]);
+  }, [id, isLoggedIn, router, fetchAllCacheableData]);
 
   useEffect(() => {
-    fetchAllData();
+    fetchAllData(false); // Uses cache if available
   }, [fetchAllData]);
 
   // Handle refresh
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchAllData();
+    fetchAllData(true); // Force bypass cache
   }, [fetchAllData]);
 
   // Handle add to cart
@@ -653,7 +669,7 @@ export default function ListingDetailsScreen() {
                     name="checkmark-circle"
                     size={16}
                     color={colors.verified}
-                    style={{ marginLeft: 4 }}
+                    style={{ marginLeft: spacingX._4 }}
                   />
                 )}
               </View>
@@ -746,7 +762,7 @@ export default function ListingDetailsScreen() {
           )}
 
           {/* Bottom spacing for sticky bar */}
-          <View style={{ height: 100 }} />
+          <View style={{ height: verticalScale(100) }} />
         </View>
       </ScrollView>
 
@@ -925,7 +941,7 @@ export default function ListingDetailsScreen() {
               }}
               activeOpacity={0.7}
             >
-              <View style={[styles.contactOptionIcon, { backgroundColor: "#E7F5E9" }]}>
+              <View style={[styles.contactOptionIcon, { backgroundColor: colors.successLight }]}>
                 <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
               </View>
               <View style={styles.contactOptionInfo}>
@@ -952,7 +968,7 @@ export default function ListingDetailsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.white,
@@ -965,13 +981,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: spacingX._16,
+    paddingVertical: spacingY._8,
   },
   headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: scale(40),
+    height: scale(40),
+    borderRadius: radius._20,
     backgroundColor: colors.white,
     justifyContent: "center",
     alignItems: "center",
@@ -979,7 +995,7 @@ const styles = StyleSheet.create({
   },
   headerActions: {
     flexDirection: "row",
-    gap: 8,
+    gap: spacingX._8,
   },
   imageContainer: {
     position: "relative",
@@ -991,18 +1007,18 @@ const styles = StyleSheet.create({
   },
   thumbnailContainer: {
     backgroundColor: colors.white,
-    paddingVertical: 12,
+    paddingVertical: spacingY._12,
     borderBottomWidth: 1,
     borderBottomColor: colors.gray200,
   },
   thumbnailScrollContent: {
-    paddingHorizontal: 16,
-    gap: 8,
+    paddingHorizontal: spacingX._16,
+    gap: spacingX._8,
   },
   thumbnailWrapper: {
-    width: 60,
-    height: 60,
-    borderRadius: 8,
+    width: scale(60),
+    height: scale(60),
+    borderRadius: radius._8,
     overflow: "hidden",
     borderWidth: 2,
     borderColor: "transparent",
@@ -1016,32 +1032,32 @@ const styles = StyleSheet.create({
   },
   imageCounter: {
     position: "absolute",
-    bottom: 16,
-    right: 16,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
+    bottom: spacingY._16,
+    right: spacingX._16,
+    backgroundColor: colors.backdrop,
+    paddingHorizontal: spacingX._10,
+    paddingVertical: spacingY._4,
+    borderRadius: radius._12,
   },
   imageCounterText: {
     color: colors.white,
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
   },
   badgesContainer: {
     position: "absolute",
-    top: 16,
-    left: 16,
+    top: spacingY._16,
+    left: spacingX._16,
     flexDirection: "row",
-    gap: 8,
+    gap: spacingX._8,
   },
   badge: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    gap: 4,
+    paddingHorizontal: spacingX._8,
+    paddingVertical: spacingY._4,
+    borderRadius: radius._4,
+    gap: spacingX._4,
   },
   featuredBadge: {
     backgroundColor: colors.star,
@@ -1051,54 +1067,53 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     color: colors.white,
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
   },
   contentContainer: {
-    padding: 16,
+    padding: spacingX._16,
   },
   metaRow: {
     flexDirection: "row",
-    gap: 8,
-    marginBottom: 12,
+    gap: spacingX._8,
+    marginBottom: spacingY._12,
   },
   categoryChip: {
     backgroundColor: colors.primarySoft,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: spacingX._12,
+    paddingVertical: spacingY._6,
+    borderRadius: radius._16,
   },
   categoryText: {
     color: colors.primary,
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
   },
   typeChip: {
     backgroundColor: colors.gray100,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    paddingHorizontal: spacingX._12,
+    paddingVertical: spacingY._6,
+    borderRadius: radius._16,
   },
   typeText: {
     color: colors.gray700,
-    fontSize: 12,
-    fontWeight: "500",
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.medium,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "700",
+    ...typography.title,
     color: colors.textPrimary,
-    marginBottom: 8,
+    marginBottom: spacingY._8,
   },
   priceSection: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
-    marginBottom: 12,
+    gap: spacingX._12,
+    marginBottom: spacingY._12,
   },
   price: {
     fontSize: 28,
-    fontWeight: "700",
+    fontWeight: fontWeight.bold,
     color: colors.primary,
   },
   priceRange: {
@@ -1106,56 +1121,56 @@ const styles = StyleSheet.create({
   },
   rangeBadge: {
     backgroundColor: colors.infoLight,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingHorizontal: spacingX._8,
+    paddingVertical: spacingY._4,
+    borderRadius: radius._4,
   },
   rangeText: {
     color: colors.info,
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
   },
   negotiableBadge: {
     backgroundColor: colors.successLight,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingHorizontal: spacingX._8,
+    paddingVertical: spacingY._4,
+    borderRadius: radius._4,
   },
   negotiableText: {
     color: colors.success,
-    fontSize: 12,
-    fontWeight: "600",
+    fontSize: fontSize.sm,
+    fontWeight: fontWeight.semibold,
   },
   statsRow: {
     flexDirection: "row",
-    gap: 16,
-    marginBottom: 16,
+    gap: spacingX._16,
+    marginBottom: spacingY._16,
   },
   statItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: spacingX._4,
   },
   statText: {
-    fontSize: 14,
+    fontSize: fontSize.md,
     color: colors.gray600,
   },
   divider: {
-    height: 1,
-    backgroundColor: colors.gray200,
-    marginVertical: 16,
+    ...components.divider,
+    backgroundColor: colors.divider,
+    marginVertical: spacingY._16,
   },
   sellerCard: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: colors.gray50,
-    padding: 12,
-    borderRadius: 12,
+    padding: spacingX._12,
+    borderRadius: radius._12,
   },
   sellerAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: scale(50),
+    height: scale(50),
+    borderRadius: scale(25),
     overflow: "hidden",
   },
   sellerAvatarImage: {
@@ -1171,35 +1186,34 @@ const styles = StyleSheet.create({
   },
   sellerInfo: {
     flex: 1,
-    marginLeft: 12,
+    marginLeft: spacingX._12,
   },
   sellerNameRow: {
     flexDirection: "row",
     alignItems: "center",
   },
   sellerName: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
   },
   sellerStats: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 4,
-    gap: 4,
+    marginTop: spacingY._4,
+    gap: spacingX._4,
   },
   sellerRating: {
-    fontSize: 14,
+    fontSize: fontSize.md,
     color: colors.gray600,
   },
   descriptionSection: {
-    marginBottom: 16,
+    marginBottom: spacingY._16,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+    ...typography.subtitle,
     color: colors.textPrimary,
-    marginBottom: 8,
+    marginBottom: spacingY._8,
   },
   description: {
     fontSize: 15,
@@ -1207,70 +1221,67 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   tagsSection: {
-    marginBottom: 16,
+    marginBottom: spacingY._16,
   },
   tagsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 8,
+    gap: spacingX._8,
   },
   tag: {
-    backgroundColor: colors.gray100,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
+    ...components.chip,
+    backgroundColor: colors.backgroundTertiary,
   },
   tagText: {
-    fontSize: 13,
-    color: colors.gray700,
+    ...components.chipText,
+    color: colors.textSecondary,
   },
   similarSection: {
-    marginTop: 16,
+    marginTop: spacingY._16,
   },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: spacingY._12,
   },
   seeAllText: {
-    fontSize: 14,
+    fontSize: fontSize.md,
     color: colors.primary,
-    fontWeight: "600",
+    fontWeight: fontWeight.semibold,
   },
   similarScrollContent: {
-    paddingRight: 16,
+    paddingRight: spacingX._16,
   },
   similarCard: {
-    width: 140,
-    marginRight: 12,
+    width: scale(140),
+    marginRight: spacingX._12,
     backgroundColor: colors.white,
-    borderRadius: 8,
+    borderRadius: radius._8,
     borderWidth: 1,
     borderColor: colors.gray200,
     overflow: "hidden",
   },
   similarCardImage: {
     width: "100%",
-    height: 140,
+    height: verticalScale(140),
   },
   similarCardContent: {
-    padding: 8,
+    padding: spacingX._8,
   },
   similarCardTitle: {
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: fontWeight.medium,
     color: colors.textPrimary,
-    marginBottom: 4,
+    marginBottom: spacingY._4,
   },
   similarCardMerchant: {
     fontSize: 11,
     color: colors.gray500,
-    marginBottom: 4,
+    marginBottom: spacingY._4,
   },
   similarCardPrice: {
-    fontSize: 14,
-    fontWeight: "700",
+    ...typography.priceSmall,
     color: colors.textPrimary,
   },
   
@@ -1285,34 +1296,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacingX._16,
     paddingTop: spacingY._12,
     paddingBottom: spacingY._8,
-    gap: 12,
-  },
-
-  // Price Section - Now more spacious
-  priceSection: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    gap: spacingY._12,
   },
   priceLabel: {
     fontSize: 13,
     color: colors.neutral600,
-    fontWeight: "500",
+    fontWeight: fontWeight.medium,
   },
   priceValue: {
     flex: 1,
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: fontSize.xl,
+    fontWeight: fontWeight.bold,
     color: colors.black,
   },
   negotiableTag: {
     fontSize: 11,
     color: colors.primary,
-    fontWeight: "600",
+    fontWeight: fontWeight.semibold,
     backgroundColor: colors.primary + "15",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 4,
+    paddingHorizontal: spacingX._8,
+    paddingVertical: spacingY._3,
+    borderRadius: radius._4,
   },
 
   // Action Section
@@ -1322,170 +1326,180 @@ const styles = StyleSheet.create({
   cartActionsRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: spacingX._8,
   },
-
-  // Quantity Selector - Compact design
   quantitySelector: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: colors.neutral100,
-    borderRadius: 8,
+    borderRadius: radius._8,
     borderWidth: 1,
     borderColor: colors.neutral200,
-    paddingHorizontal: 4,
-    paddingVertical: 4,
-    gap: 8,
+    paddingHorizontal: spacingX._4,
+    paddingVertical: spacingY._4,
+    gap: spacingX._8,
   },
   quantityButton: {
-    width: 32,
-    height: 32,
+    width: scale(32),
+    height: scale(32),
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.white,
-    borderRadius: 6,
+    borderRadius: radius._6,
   },
   quantityText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: fontWeight.semibold,
     color: colors.black,
-    minWidth: 24,
+    minWidth: scale(24),
     textAlign: "center",
   },
-
-  // Add to Cart Button - Takes remaining space
   addToCartButton: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    gap: 8,
+    paddingVertical: spacingY._12,
+    paddingHorizontal: spacingX._16,
+    borderRadius: radius._8,
+    gap: spacingX._8,
   },
   addToCartText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: fontWeight.semibold,
     color: colors.white,
   },
-
-  // View Cart Button (when item already in cart)
   viewCartButton: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primary,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    gap: 8,
+    paddingVertical: spacingY._12,
+    paddingHorizontal: spacingX._16,
+    borderRadius: radius._8,
+    gap: spacingX._8,
   },
   viewCartText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: fontWeight.semibold,
     color: colors.white,
   },
-
-  // Contact Icon Button
   contactIconButton: {
-    width: 48,
-    height: 48,
+    width: scale(48),
+    height: scale(48),
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.neutral50,
-    borderRadius: 8,
+    borderRadius: radius._8,
     borderWidth: 1,
     borderColor: colors.neutral200,
   },
-
-  // Contact Merchant Button (full width for non-cart items)
   contactMerchantButtonFull: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: colors.primary,
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    gap: 8,
+    paddingVertical: spacingY._14,
+    paddingHorizontal: spacingX._20,
+    borderRadius: radius._8,
+    gap: spacingX._8,
   },
   contactMerchantText: {
     fontSize: 15,
-    fontWeight: "600",
+    fontWeight: fontWeight.semibold,
     color: colors.white,
   },
-  // Modal styles
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    backgroundColor: colors.overlay,
     justifyContent: "flex-end",
   },
   modalContent: {
     backgroundColor: colors.white,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    paddingBottom: 34,
-    paddingTop: 12,
+    borderTopLeftRadius: radius._24,
+    borderTopRightRadius: radius._24,
+    paddingHorizontal: spacingX._20,
+    paddingBottom: spacingY._35,
+    paddingTop: spacingY._12,
   },
   modalHandle: {
-    width: 40,
-    height: 4,
+    width: scale(40),
+    height: verticalScale(4),
     backgroundColor: colors.gray300,
     borderRadius: 2,
     alignSelf: "center",
-    marginBottom: 20,
+    marginBottom: spacingY._20,
   },
   modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
+    fontSize: fontSize.xxl,
+    fontWeight: fontWeight.bold,
     color: colors.textPrimary,
-    marginBottom: 4,
+    marginBottom: spacingY._4,
   },
   modalSubtitle: {
-    fontSize: 14,
+    fontSize: fontSize.md,
     color: colors.gray600,
-    marginBottom: 20,
+    marginBottom: spacingY._20,
   },
   contactOption: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
+    paddingVertical: spacingY._14,
     borderBottomWidth: 1,
     borderBottomColor: colors.gray100,
   },
   contactOptionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: scale(48),
+    height: scale(48),
+    borderRadius: scale(24),
     justifyContent: "center",
     alignItems: "center",
   },
   contactOptionInfo: {
     flex: 1,
-    marginLeft: 14,
+    marginLeft: spacingX._15,
   },
   contactOptionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold,
     color: colors.textPrimary,
-    marginBottom: 2,
+    marginBottom: spacingY._2,
   },
   contactOptionDescription: {
     fontSize: 13,
     color: colors.gray500,
   },
   cancelButton: {
-    marginTop: 16,
-    paddingVertical: 14,
+    marginTop: spacingY._16,
+    paddingVertical: spacingY._14,
     alignItems: "center",
   },
   cancelButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.semibold,
     color: colors.gray600,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: colors.white,
+    padding: spacingX._16,
+  },
+  errorText: {
+    ...typography.subtitle,
+    color: colors.gray600,
+    marginTop: spacingY._16,
+  },
+  errorButton: {
+    ...components.buttonPrimary,
+    backgroundColor: colors.primary,
+    marginTop: spacingY._16,
+  },
+  errorButtonText: {
+    ...typography.button,
+    color: colors.white,
   },
 });

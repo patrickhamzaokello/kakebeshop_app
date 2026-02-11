@@ -15,6 +15,7 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import apiService from "@/utils/apiBase";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
@@ -79,6 +80,7 @@ export default function ListingDetailPage() {
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [imageIndex, setImageIndex] = useState(0);
+  const { colors, isDark } = useTheme();
 
   useEffect(() => {
     fetchListing();
@@ -125,20 +127,20 @@ export default function ListingDetailPage() {
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <StatusBar style="dark" />
-        <ActivityIndicator size="small" color="#000" />
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <StatusBar style={isDark ? "light" : "dark"} />
+        <ActivityIndicator size="small" color={colors.textPrimary} />
       </View>
     );
   }
 
   if (!listing) {
     return (
-      <View style={styles.centered}>
-        <StatusBar style="dark" />
-        <Text style={styles.errorText}>Listing not found</Text>
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <StatusBar style={isDark ? "light" : "dark"} />
+        <Text style={[styles.errorText, { color: colors.textMuted }]}>Listing not found</Text>
         <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.linkText}>Go back</Text>
+          <Text style={[styles.linkText, { color: colors.textPrimary }]}>Go back</Text>
         </TouchableOpacity>
       </View>
     );
@@ -148,20 +150,20 @@ export default function ListingDetailPage() {
   const status = STATUS_MAP[listing.status] || STATUS_MAP.DRAFT;
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="dark" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
-      <SafeAreaView edges={["top"]} style={styles.headerSafe}>
-        <View style={styles.header}>
+      <SafeAreaView edges={["top"]} style={[styles.headerSafe, { backgroundColor: colors.background }]}>
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <TouchableOpacity
             onPress={() => router.back()}
             style={styles.headerBtn}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Ionicons name="chevron-back" size={24} color="#000" />
+            <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Listing</Text>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Listing</Text>
           <View style={styles.headerBtn} />
         </View>
       </SafeAreaView>
@@ -185,7 +187,7 @@ export default function ListingDetailPage() {
                 <Image
                   key={i}
                   source={{ uri: getImageUrl(img) }}
-                  style={styles.image}
+                  style={[styles.image, { backgroundColor: colors.backgroundSecondary }]}
                   contentFit="cover"
                 />
               ))}
@@ -199,8 +201,8 @@ export default function ListingDetailPage() {
             )}
           </View>
         ) : (
-          <View style={styles.noImage}>
-            <Ionicons name="image-outline" size={40} color="#D1D5DB" />
+          <View style={[styles.noImage, { backgroundColor: colors.backgroundSecondary }]}>
+            <Ionicons name="image-outline" size={40} color={colors.neutral300} />
           </View>
         )}
 
@@ -212,85 +214,85 @@ export default function ListingDetailPage() {
               <Text style={styles.statusText}>{status.label}</Text>
             </View>
             {listing.is_featured && (
-              <View style={styles.featuredPill}>
-                <Text style={styles.featuredText}>Featured</Text>
+              <View style={[styles.featuredPill, { backgroundColor: colors.warningLight }]}>
+                <Text style={[styles.featuredText, { color: colors.warningDark }]}>Featured</Text>
               </View>
             )}
           </View>
 
           {/* Title */}
-          <Text style={styles.title}>{listing.title}</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{listing.title}</Text>
 
           {/* Price */}
-          <Text style={styles.price}>{formatPrice()}</Text>
+          <Text style={[styles.price, { color: colors.textPrimary }]}>{formatPrice()}</Text>
           {listing.is_price_negotiable && listing.price_type !== "ON_REQUEST" && (
-            <Text style={styles.negotiable}>Negotiable</Text>
+            <Text style={[styles.negotiable, { color: colors.textMuted }]}>Negotiable</Text>
           )}
 
           {/* Rejection reason */}
           {listing.status === "REJECTED" && listing.rejection_reason && (
-            <View style={styles.rejectionBox}>
-              <Text style={styles.rejectionTitle}>Rejection reason</Text>
-              <Text style={styles.rejectionText}>{listing.rejection_reason}</Text>
+            <View style={[styles.rejectionBox, { backgroundColor: colors.errorLight }]}>
+              <Text style={[styles.rejectionTitle, { color: colors.errorDark }]}>Rejection reason</Text>
+              <Text style={[styles.rejectionText, { color: colors.error }]}>{listing.rejection_reason}</Text>
             </View>
           )}
 
           {/* Stats */}
-          <View style={styles.statsRow}>
+          <View style={[styles.statsRow, { borderColor: colors.border }]}>
             <View style={styles.stat}>
-              <Text style={styles.statValue}>{listing.views_count}</Text>
-              <Text style={styles.statLabel}>Views</Text>
+              <Text style={[styles.statValue, { color: colors.textPrimary }]}>{listing.views_count}</Text>
+              <Text style={[styles.statLabel, { color: colors.textMuted }]}>Views</Text>
             </View>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
             <View style={styles.stat}>
-              <Text style={styles.statValue}>{listing.contact_count}</Text>
-              <Text style={styles.statLabel}>Inquiries</Text>
+              <Text style={[styles.statValue, { color: colors.textPrimary }]}>{listing.contact_count}</Text>
+              <Text style={[styles.statLabel, { color: colors.textMuted }]}>Inquiries</Text>
             </View>
           </View>
 
           {/* Details */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Details</Text>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Category</Text>
-              <Text style={styles.detailValue}>{listing.category.name}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Details</Text>
+            <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.detailLabel, { color: colors.textMuted }]}>Category</Text>
+              <Text style={[styles.detailValue, { color: colors.textPrimary }]}>{listing.category.name}</Text>
             </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Type</Text>
-              <Text style={styles.detailValue}>
+            <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.detailLabel, { color: colors.textMuted }]}>Type</Text>
+              <Text style={[styles.detailValue, { color: colors.textPrimary }]}>
                 {listing.listing_type === "PRODUCT" ? "Product" : "Service"}
               </Text>
             </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Created</Text>
-              <Text style={styles.detailValue}>{formatDate(listing.created_at)}</Text>
+            <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.detailLabel, { color: colors.textMuted }]}>Created</Text>
+              <Text style={[styles.detailValue, { color: colors.textPrimary }]}>{formatDate(listing.created_at)}</Text>
             </View>
-            <View style={styles.detailRow}>
-              <Text style={styles.detailLabel}>Updated</Text>
-              <Text style={styles.detailValue}>{formatDate(listing.updated_at)}</Text>
+            <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.detailLabel, { color: colors.textMuted }]}>Updated</Text>
+              <Text style={[styles.detailValue, { color: colors.textPrimary }]}>{formatDate(listing.updated_at)}</Text>
             </View>
             {listing.is_verified && (
-              <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Verified</Text>
-                <Text style={styles.detailValue}>Yes</Text>
+              <View style={[styles.detailRow, { borderBottomColor: colors.border }]}>
+                <Text style={[styles.detailLabel, { color: colors.textMuted }]}>Verified</Text>
+                <Text style={[styles.detailValue, { color: colors.textPrimary }]}>Yes</Text>
               </View>
             )}
           </View>
 
           {/* Description */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.description}>{listing.description}</Text>
+            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Description</Text>
+            <Text style={[styles.description, { color: colors.textSecondary }]}>{listing.description}</Text>
           </View>
 
           {/* Tags */}
           {listing.tags.length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Tags</Text>
+              <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Tags</Text>
               <View style={styles.tags}>
                 {listing.tags.map((tag) => (
-                  <View key={tag.id} style={styles.tag}>
-                    <Text style={styles.tagText}>{tag.name}</Text>
+                  <View key={tag.id} style={[styles.tag, { backgroundColor: colors.backgroundSecondary }]}>
+                    <Text style={[styles.tagText, { color: colors.textSecondary }]}>{tag.name}</Text>
                   </View>
                 ))}
               </View>
@@ -307,28 +309,22 @@ export default function ListingDetailPage() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
   },
   centered: {
     flex: 1,
-    backgroundColor: "#fff",
     justifyContent: "center",
     alignItems: "center",
   },
   errorText: {
     fontSize: 16,
-    color: "#6B7280",
   },
   linkText: {
     fontSize: 16,
-    color: "#000",
     marginTop: 12,
   },
 
   // Header
-  headerSafe: {
-    backgroundColor: "#fff",
-  },
+  headerSafe: {},
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -336,7 +332,6 @@ const styles = StyleSheet.create({
     height: 52,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
   },
   headerBtn: {
     width: 32,
@@ -347,7 +342,6 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 17,
     fontWeight: "600",
-    color: "#000",
   },
 
   // Scroll
@@ -359,12 +353,10 @@ const styles = StyleSheet.create({
   image: {
     width: SCREEN_WIDTH,
     height: SCREEN_WIDTH,
-    backgroundColor: "#F9FAFB",
   },
   noImage: {
     width: SCREEN_WIDTH,
     height: SCREEN_WIDTH * 0.6,
-    backgroundColor: "#F9FAFB",
     justifyContent: "center",
     alignItems: "center",
   },
@@ -409,30 +401,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 4,
-    backgroundColor: "#FEF3C7",
   },
   featuredText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#D97706",
   },
 
   // Title & Price
   title: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#000",
     lineHeight: 28,
   },
   price: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#000",
     marginTop: 8,
   },
   negotiable: {
     fontSize: 14,
-    color: "#6B7280",
     marginTop: 4,
   },
 
@@ -440,18 +427,15 @@ const styles = StyleSheet.create({
   rejectionBox: {
     marginTop: 16,
     padding: 14,
-    backgroundColor: "#FEF2F2",
     borderRadius: 8,
   },
   rejectionTitle: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#DC2626",
     marginBottom: 4,
   },
   rejectionText: {
     fontSize: 14,
-    color: "#7F1D1D",
     lineHeight: 20,
   },
 
@@ -462,7 +446,6 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderTopWidth: 1,
     borderBottomWidth: 1,
-    borderColor: "#F3F4F6",
   },
   stat: {
     flex: 1,
@@ -471,16 +454,13 @@ const styles = StyleSheet.create({
   statValue: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#000",
   },
   statLabel: {
     fontSize: 13,
-    color: "#6B7280",
     marginTop: 2,
   },
   statDivider: {
     width: 1,
-    backgroundColor: "#E5E7EB",
   },
 
   // Section
@@ -490,7 +470,6 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#000",
     marginBottom: 12,
   },
 
@@ -500,22 +479,18 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
   },
   detailLabel: {
     fontSize: 15,
-    color: "#6B7280",
   },
   detailValue: {
     fontSize: 15,
-    color: "#000",
     fontWeight: "500",
   },
 
   // Description
   description: {
     fontSize: 15,
-    color: "#374151",
     lineHeight: 22,
   },
 
@@ -528,11 +503,9 @@ const styles = StyleSheet.create({
   tag: {
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: "#F3F4F6",
     borderRadius: 4,
   },
   tagText: {
     fontSize: 14,
-    color: "#374151",
   },
 });

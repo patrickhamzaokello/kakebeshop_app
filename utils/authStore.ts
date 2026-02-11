@@ -1,5 +1,6 @@
 import apiService from "@/utils/apiBase";
 import { AuthVerificationResponse, UserType } from "@/utils/types/models";
+import { useListingDetailStore } from "@/utils/stores/useListingDetailStore";
 import { deleteItemAsync, getItemAsync, setItemAsync } from "expo-secure-store";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -509,6 +510,9 @@ export const useAuthStore = create<AuthState>()(
             hasCompletedOnboarding: false,
             isNewUser: false,
           });
+
+          // Clear listing cache
+          useListingDetailStore.getState().clearCache();
 
           return { success: true };
         } catch (error: any) {

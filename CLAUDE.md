@@ -27,7 +27,7 @@ eas build --profile preview        # Preview build (com.kakebe.shop.preview)
 eas build --profile production     # Production build (com.kakebe.shop)
 ```
 
-App variants use different bundle IDs to allow side-by-side installation.
+App variants use different bundle IDs (configured via `APP_VARIANT` env in `eas.json`) to allow side-by-side installation.
 
 ## Architecture
 
@@ -99,12 +99,41 @@ All stores use Zustand with persistence via `expo-secure-store`:
 - `Category`, `Location`, `Tag`
 - `AuthVerificationResponse`, `PaginatedResponse<T>`
 
+### Theming System
+
+**`constants/theme.ts`** - Comprehensive theme with light/dark color support and responsive scaling.
+
+**Color Palettes:** `lightColors` and `darkColors` (both exported). Default `colors` export is `lightColors`. Type: `ThemeColors`.
+
+**Responsive Scaling Utilities** (based on 375x812 guideline dimensions):
+- `scale(size)` - Width-based scaling
+- `verticalScale(size)` - Height-based scaling
+- `moderateScale(size, factor)` - Moderate scaling with factor
+
+**Spacing:** Use theme spacing values instead of raw numbers:
+- `spacingX` - Horizontal spacing: `spacingX._4`, `spacingX._8`, `spacingX._16`, etc.
+- `spacingY` - Vertical spacing: `spacingY._4`, `spacingY._8`, `spacingY._16`, etc.
+- `spacing` - Named spacing: `spacing.xs`, `spacing.sm`, `spacing.md`, `spacing.lg`, etc.
+
+**Border Radius:** `radius._8`, `radius._12`, etc. and `borderRadius.sm`, `borderRadius.md`, etc.
+
+**Typography:** Pre-defined text styles - `typography.title`, `typography.subtitle`, `typography.body`, `typography.bodySmall`, `typography.caption`, `typography.label`, `typography.button`, `typography.price`
+
+**Shadows:** `shadow.xs`, `shadow.sm`, `shadow.md`, `shadow.lg`, `shadow.card`, `shadow.fab`, `shadow.primary`
+
+**Pre-built Component Styles:** `components.card`, `components.cardElevated`, `components.input`, `components.buttonPrimary`, `components.buttonSecondary`, `components.screenContainer`, `components.divider`, `components.badge`, `components.chip`, `components.iconButton`
+
+**Usage pattern:**
+```typescript
+import { colors, spacingX, spacingY, radius, shadow, typography, components, fontSize, fontWeight } from "@/constants/theme";
+```
+
 ### Key Features
 
 **Authentication Flow:**
-1. User registers → email verification required → onboarding flow → main app
-2. Social login (Google/Apple) → auto-creates account → onboarding if new user
-3. Password reset: request email → verify code → set new password
+1. User registers -> email verification required -> onboarding flow -> main app
+2. Social login (Google/Apple) -> auto-creates account -> onboarding if new user
+3. Password reset: request email -> verify code -> set new password
 
 **Protected Routes:**
 - Uses `Stack.Protected` with `guard` prop to conditionally render routes
@@ -122,10 +151,6 @@ All stores use Zustand with persistence via `expo-secure-store`:
 **Push Notifications:**
 - Managed via `utils/PushNotificationManager.tsx` wrapper in root layout
 
-### Theming
-
-**`constants/theme.ts`** - Theme configuration with colors, spacing, typography
-
 ### Component Library
 
 **`components/`**
@@ -136,16 +161,6 @@ All stores use Zustand with persistence via `expo-secure-store`:
 - `Carousel.tsx` - Image carousel
 - `Typo.tsx` - Typography component
 - `header/` - Header components
-
-### Google Sign-In Configuration
-
-Google Sign-in is configured in `app/_layout.tsx`:
-```typescript
-GoogleSignin.configure({
-  iosClientId: "587787462511-lqie16rbc77p418sfpodcdffse0o8o3b.apps.googleusercontent.com",
-  profileImageSize: 120,
-});
-```
 
 ### Path Aliases
 
@@ -160,9 +175,12 @@ import { useAuthStore } from "@/utils/authStore";
 - **React Version:** 19.1.0
 - **React Native Version:** 0.81.5
 - **TypeScript:** Strict mode enabled
+- **New Architecture:** Enabled (`newArchEnabled: true`)
 - **Experiments enabled:** `typedRoutes` (for type-safe navigation), `reactCompiler` (for automatic optimizations)
 - **Deep linking scheme:** `kakebeshop://` (configured in `app.config.ts`)
 - All API responses should be typed using interfaces from `utils/types/models.ts`
 - Cart operations use optimistic updates for better UX (update UI immediately, revert on failure)
 - Auth tokens stored in SecureStore, never in AsyncStorage or plain state
 - Use `__DEV__` flag for development-only logging
+- Google Sign-in configured in `app/_layout.tsx` with iOS client ID
+- App supports `userInterfaceStyle: "automatic"` (light/dark mode)

@@ -9,7 +9,8 @@ import {
   ScrollView,
 } from "react-native";
 import Typo from "@/components/Typo";
-import { colors, spacingY, spacingX, borderRadius } from "@/constants/theme";
+import { spacingY, spacingX, borderRadius } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { router } from "expo-router";
 import Button from "@/components/CustomButton";
 import { useState } from "react";
@@ -51,6 +52,7 @@ interface ImageSlot {
 }
 
 export default function CaptureListingImages() {
+  const { colors, isDark } = useTheme();
   const [images, setImages] = useState<ImageSlot[]>(
     Array.from({ length: 6 }, (_, i) => ({
       id: `slot-${i}`,
@@ -409,8 +411,9 @@ export default function CaptureListingImages() {
         key={imageSlot.id}
         style={[
           styles.imageBox,
-          imageSlot.status === "uploaded" && styles.imageBoxUploaded,
-          imageSlot.status === "error" && styles.imageBoxError,
+          { backgroundColor: colors.neutral100, borderColor: colors.neutral200 },
+          imageSlot.status === "uploaded" && { borderColor: colors.success, borderStyle: "solid" },
+          imageSlot.status === "error" && { borderColor: colors.error, borderStyle: "solid" },
         ]}
         onPress={() => {
           if (imageSlot.status === "empty" || imageSlot.status === "selected") {
@@ -421,8 +424,8 @@ export default function CaptureListingImages() {
       >
         {/* Required badge */}
         {isRequired && (
-          <View style={styles.requiredBadge}>
-            <Typo size={10} color={colors.white} fontWeight="600">
+          <View style={[styles.requiredBadge, { backgroundColor: colors.primary }]}>
+            <Typo size={10} color="#FFFFFF" fontWeight="600">
               Required
             </Typo>
           </View>
@@ -458,8 +461,8 @@ export default function CaptureListingImages() {
               source={{ uri: imageSlot.uri }}
               style={[styles.imagePreview, styles.imageProcessing]}
             />
-            <View style={styles.statusOverlay}>
-              <Typo size={12} color={colors.neutral500}>
+            <View style={[styles.statusOverlay, { backgroundColor: colors.overlay }]}>
+              <Typo size={12} color={colors.textMuted}>
                 Pending
               </Typo>
             </View>
@@ -473,7 +476,7 @@ export default function CaptureListingImages() {
               source={{ uri: imageSlot.uri }}
               style={[styles.imagePreview, styles.imageProcessing]}
             />
-            <View style={styles.statusOverlay}>
+            <View style={[styles.statusOverlay, { backgroundColor: colors.overlay }]}>
               <ActivityIndicator color={colors.primary} size="small" />
               <Typo size={12} color={colors.primary} style={{ marginTop: 4 }}>
                 {imageSlot.currentVariant
@@ -488,7 +491,7 @@ export default function CaptureListingImages() {
         {imageSlot.status === "uploaded" && imageSlot.uri && (
           <>
             <Image source={{ uri: imageSlot.uri }} style={styles.imagePreview} />
-            <View style={styles.uploadedBadge}>
+            <View style={[styles.uploadedBadge, { backgroundColor: colors.surface }]}>
               <Ionicons name="checkmark-circle" size={20} color={colors.success} />
             </View>
           </>
@@ -501,7 +504,7 @@ export default function CaptureListingImages() {
               source={{ uri: imageSlot.uri }}
               style={[styles.imagePreview, styles.imageProcessing]}
             />
-            <View style={styles.statusOverlay}>
+            <View style={[styles.statusOverlay, { backgroundColor: colors.overlay }]}>
               <TouchableOpacity
                 style={styles.retryButton}
                 onPress={() => retryImage(index)}
@@ -525,16 +528,16 @@ export default function CaptureListingImages() {
   };
 
   return (
-    <View style={{flex: 1}}>
-      <StatusBar style="dark" />
-      <View style={styles.container}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
          <SafeAreaView edges={["top"]} />
         {/* Header */}
         <View style={styles.header}>
-          <Typo size={24} fontWeight="700" color={colors.black}>
+          <Typo size={24} fontWeight="700" color={colors.textPrimary}>
             Add Listing Photos
           </Typo>
-          <Typo size={14} color={colors.neutral500} style={{ marginTop: 4 }}>
+          <Typo size={14} color={colors.textMuted} style={{ marginTop: 4 }}>
             Add at least 3 photos to continue
           </Typo>
         </View>
@@ -549,20 +552,20 @@ export default function CaptureListingImages() {
           </View>
 
           {/* Instructions */}
-          <View style={styles.instructionsContainer}>
-            <Typo size={14} fontWeight="600" color={colors.black}>
+          <View style={[styles.instructionsContainer, { backgroundColor: colors.backgroundSecondary }]}>
+            <Typo size={14} fontWeight="600" color={colors.textPrimary}>
               Photo Tips:
             </Typo>
-            <Typo size={13} color={colors.neutral600} style={{ marginTop: 8 }}>
+            <Typo size={13} color={colors.textSecondary} style={{ marginTop: 8 }}>
               • Use good lighting and clear images
             </Typo>
-            <Typo size={13} color={colors.neutral600} style={{ marginTop: 4 }}>
+            <Typo size={13} color={colors.textSecondary} style={{ marginTop: 4 }}>
               • Show the product from different angles
             </Typo>
-            <Typo size={13} color={colors.neutral600} style={{ marginTop: 4 }}>
+            <Typo size={13} color={colors.textSecondary} style={{ marginTop: 4 }}>
               • Avoid blurry or low-quality photos
             </Typo>
-            <Typo size={13} color={colors.neutral600} style={{ marginTop: 4 }}>
+            <Typo size={13} color={colors.textSecondary} style={{ marginTop: 4 }}>
               • Images will be cropped to square (1:1) and resized
             </Typo>
           </View>
@@ -571,7 +574,7 @@ export default function CaptureListingImages() {
           <View style={styles.actionButtons}>
             {/* Clear Button */}
             <TouchableOpacity
-              style={styles.clearButton}
+              style={[styles.clearButton, { borderColor: colors.error }]}
               onPress={handleClear}
               disabled={
                 isProcessing ||
@@ -586,7 +589,7 @@ export default function CaptureListingImages() {
             {/* Process Button */}
             {!allImagesUploaded && (
               <Button
-                style={styles.processButton}
+                style={[styles.processButton, { backgroundColor: colors.primary }]}
                 onPress={handleProcessImages}
                 disabled={
                   isProcessing ||
@@ -594,7 +597,7 @@ export default function CaptureListingImages() {
                 }
                 loading={isProcessing}
               >
-                <Typo size={16} fontWeight="600" color={colors.white}>
+                <Typo size={16} fontWeight="600" color="#FFFFFF">
                   {isProcessing ? "Processing..." : "Process Images"}
                 </Typo>
               </Button>
@@ -602,8 +605,8 @@ export default function CaptureListingImages() {
 
             {/* Next Button */}
             {allImagesUploaded && (
-              <Button style={styles.nextButton} onPress={handleNext}>
-                <Typo size={16} fontWeight="600" color={colors.white}>
+              <Button style={[styles.nextButton, { backgroundColor: colors.success }]} onPress={handleNext}>
+                <Typo size={16} fontWeight="600" color="#FFFFFF">
                   Next
                 </Typo>
               </Button>
@@ -618,7 +621,6 @@ export default function CaptureListingImages() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
   },
   header: {
     paddingHorizontal: spacingX._16,
@@ -638,21 +640,11 @@ const styles = StyleSheet.create({
   imageBox: {
     width: "30%",
     aspectRatio: 1,
-    backgroundColor: colors.neutral100,
     borderRadius: borderRadius.md,
     marginBottom: spacingY._12,
     overflow: "hidden",
     borderWidth: 2,
-    borderColor: colors.neutral200,
     borderStyle: "dashed",
-  },
-  imageBoxUploaded: {
-    borderColor: colors.success,
-    borderStyle: "solid",
-  },
-  imageBoxError: {
-    borderColor: colors.error,
-    borderStyle: "solid",
   },
   emptyState: {
     flex: 1,
@@ -663,7 +655,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 8,
     left: 8,
-    backgroundColor: colors.primary,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 4,
@@ -690,20 +681,17 @@ const styles = StyleSheet.create({
     bottom: 0,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
   },
   uploadedBadge: {
     position: "absolute",
     bottom: 8,
     right: 8,
-    backgroundColor: colors.white,
     borderRadius: 20,
   },
   retryButton: {
     alignItems: "center",
   },
   instructionsContainer: {
-    backgroundColor: colors.neutral50,
     padding: spacingX._16,
     borderRadius: borderRadius.md,
     marginBottom: spacingY._20,
@@ -716,18 +704,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,
-    borderColor: colors.error,
     borderRadius: borderRadius.md,
   },
   processButton: {
-    backgroundColor: colors.primary,
     paddingVertical: spacingY._15,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: borderRadius.md,
   },
   nextButton: {
-    backgroundColor: colors.success,
     paddingVertical: spacingY._15,
     alignItems: "center",
     justifyContent: "center",

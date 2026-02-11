@@ -78,7 +78,8 @@ const QuickAction: React.FC<QuickActionProps> = ({
     <TouchableOpacity
       style={[
         styles.quickAction,
-        variant === "primary" && styles.quickActionPrimary,
+        { backgroundColor: colors.surface, borderColor: colors.border },
+        variant === "primary" && [styles.quickActionPrimary, { backgroundColor: colors.primary, borderColor: colors.primary }],
       ]}
       onPress={onPress}
       activeOpacity={0.7}
@@ -86,6 +87,7 @@ const QuickAction: React.FC<QuickActionProps> = ({
       <View
         style={[
           styles.quickActionIcon,
+          { backgroundColor: colors.backgroundSecondary },
           variant === "primary" && styles.quickActionIconPrimary,
         ]}
       >
@@ -95,7 +97,8 @@ const QuickAction: React.FC<QuickActionProps> = ({
         <Text
           style={[
             styles.quickActionTitle,
-            variant === "primary" && styles.quickActionTitlePrimary,
+            { color: colors.textPrimary },
+            variant === "primary" && { color: "#FFFFFF" },
           ]}
         >
           {title}
@@ -103,6 +106,7 @@ const QuickAction: React.FC<QuickActionProps> = ({
         <Text
           style={[
             styles.quickActionSubtitle,
+            { color: colors.textMuted },
             variant === "primary" && styles.quickActionSubtitlePrimary,
           ]}
         >
@@ -112,7 +116,7 @@ const QuickAction: React.FC<QuickActionProps> = ({
       <Ionicons
         name="chevron-forward"
         size={20}
-        color={variant === "primary" ? colors.white : colors.textMuted}
+        color={variant === "primary" ? "#FFFFFF" : colors.textMuted}
       />
     </TouchableOpacity>
   );
@@ -128,21 +132,24 @@ const BenefitCard: React.FC<BenefitCardProps> = ({
   icon,
   title,
   description,
-}) => (
-  <View style={styles.benefitCard}>
-    <Text style={styles.benefitIcon}>{icon}</Text>
-    <Text style={styles.benefitTitle}>{title}</Text>
-    <Text style={styles.benefitDescription}>{description}</Text>
-  </View>
-);
+}) => {
+  const { colors } = useTheme();
+  return (
+    <View style={[styles.benefitCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+      <Text style={styles.benefitIcon}>{icon}</Text>
+      <Text style={[styles.benefitTitle, { color: colors.textPrimary }]}>{title}</Text>
+      <Text style={[styles.benefitDescription, { color: colors.textMuted }]}>{description}</Text>
+    </View>
+  );
+};
 
 // Merchant Dashboard View
 const MerchantView: React.FC<{ hasListings: boolean; scrollRef: React.RefObject<ScrollView> }> = ({ hasListings, scrollRef }) => {
-  const {colors} = useTheme();
+  const { colors } = useTheme();
   return (
     <ScrollView
       ref={scrollRef}
-      style={styles.scrollView}
+      style={[styles.scrollView, { backgroundColor: colors.background }]}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.scrollContent}
     >
@@ -151,13 +158,13 @@ const MerchantView: React.FC<{ hasListings: boolean; scrollRef: React.RefObject<
       {/* Header */}
       <View style={styles.header}>
         <View>
-          <Text style={styles.greeting}>Ready to sell?</Text>
-          <Text style={styles.headerSubtitle}>
+          <Text style={[styles.greeting, { color: colors.textPrimary }]}>Ready to sell?</Text>
+          <Text style={[styles.headerSubtitle, { color: colors.textSecondary }]}>
             Manage your listings and orders
           </Text>
         </View>
         <TouchableOpacity
-          style={styles.settingsButton}
+          style={[styles.settingsButton, { backgroundColor: colors.backgroundSecondary }]}
           onPress={() => router.push("/merchant/mylistings")}
         >
           <Ionicons
@@ -217,12 +224,12 @@ const MerchantView: React.FC<{ hasListings: boolean; scrollRef: React.RefObject<
 
       {/* Tips Section */}
       <View style={styles.section}>
-        <View style={styles.tipsCard}>
+        <View style={[styles.tipsCard, { backgroundColor: colors.warningLight }]}>
           <View style={styles.tipsHeader}>
             <Ionicons name="bulb" size={20} color={colors.warning} />
-            <Text style={styles.tipsTitle}>Seller Tips</Text>
+            <Text style={[styles.tipsTitle, { color: colors.textPrimary }]}>Seller Tips</Text>
           </View>
-          <Text style={styles.tipsText}>
+          <Text style={[styles.tipsText, { color: colors.textSecondary }]}>
             • Use clear, well-lit photos from multiple angles{"\n"}• Write
             detailed, honest descriptions{"\n"}• Price competitively by checking
             similar items{"\n"}• Respond to buyer questions quickly
@@ -244,46 +251,46 @@ const OnboardingView: React.FC<{ scrollRef: React.RefObject<ScrollView> }> = ({ 
     router.push("/merchant/apply/benefits");
   };
 
-  const {colors} = useTheme();
+  const { colors } = useTheme();
 
   return (
     <ScrollView
       ref={scrollRef}
-      style={styles.scrollView}
+      style={[styles.scrollView, { backgroundColor: colors.background }]}
       showsVerticalScrollIndicator={false}
       contentContainerStyle={styles.scrollContent}
     >
       {/* Hero Section */}
       <LinearGradient
-        colors={[colors.primarySoft, colors.white]}
+        colors={[colors.primarySoft, colors.background]}
         style={styles.onboardingHero}
       >
         <SafeAreaView edges={["top"]} style={{ alignItems: "center" }}>
-          <View style={styles.heroIcon}>
+          <View style={[styles.heroIcon, { backgroundColor: colors.surface }]}>
             <MaterialCommunityIcons
               name="storefront"
               size={64}
               color={colors.primary}
             />
           </View>
-          <Text style={styles.onboardingTitle}>Start Selling Today</Text>
-          <Text style={styles.onboardingSubtitle}>
+          <Text style={[styles.onboardingTitle, { color: colors.textPrimary }]}>Start Selling Today</Text>
+          <Text style={[styles.onboardingSubtitle, { color: colors.textMuted }]}>
             Join thousands of sellers and turn your products into profit
           </Text>
 
           {/* Quick Stats */}
           <View style={styles.statsContainer}>
-            <View style={styles.statBadge}>
-              <Text style={styles.statNumber}>10K+</Text>
-              <Text style={styles.statText}>Buyers</Text>
+            <View style={[styles.statBadge, { backgroundColor: colors.surfaceElevated }]}>
+              <Text style={[styles.statNumber, { color: colors.primary }]}>10K+</Text>
+              <Text style={[styles.statText, { color: colors.textMuted }]}>Buyers</Text>
             </View>
-            <View style={styles.statBadge}>
-              <Text style={styles.statNumber}>Free</Text>
-              <Text style={styles.statText}>Listing</Text>
+            <View style={[styles.statBadge, { backgroundColor: colors.surfaceElevated }]}>
+              <Text style={[styles.statNumber, { color: colors.primary }]}>Free</Text>
+              <Text style={[styles.statText, { color: colors.textMuted }]}>Listing</Text>
             </View>
-            <View style={styles.statBadge}>
-              <Text style={styles.statNumber}>24/7</Text>
-              <Text style={styles.statText}>Support</Text>
+            <View style={[styles.statBadge, { backgroundColor: colors.surfaceElevated }]}>
+              <Text style={[styles.statNumber, { color: colors.primary }]}>24/7</Text>
+              <Text style={[styles.statText, { color: colors.textMuted }]}>Support</Text>
             </View>
           </View>
         </SafeAreaView>
@@ -291,7 +298,7 @@ const OnboardingView: React.FC<{ scrollRef: React.RefObject<ScrollView> }> = ({ 
 
       {/* Benefits Grid */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Why Sell on Kakebe?</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Why Sell on Kakebe?</Text>
         <View style={styles.benefitsGrid}>
           <BenefitCard
             icon="💰"
@@ -318,39 +325,39 @@ const OnboardingView: React.FC<{ scrollRef: React.RefObject<ScrollView> }> = ({ 
 
       {/* How It Works */}
       <View style={[styles.section, styles.howItWorksSection]}>
-        <Text style={styles.sectionTitle}>How It Works</Text>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>How It Works</Text>
         <View style={styles.stepsList}>
           <View style={styles.step}>
-            <View style={styles.stepNumber}>
-              <Text style={styles.stepNumberText}>1</Text>
+            <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
+              <Text style={[styles.stepNumberText, { color: "#FFFFFF" }]}>1</Text>
             </View>
             <View style={styles.stepContent}>
-              <Text style={styles.stepTitle}>Sign Up as Seller</Text>
-              <Text style={styles.stepDescription}>
+              <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>Sign Up as Seller</Text>
+              <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
                 Quick registration with basic info
               </Text>
             </View>
           </View>
 
           <View style={styles.step}>
-            <View style={styles.stepNumber}>
-              <Text style={styles.stepNumberText}>2</Text>
+            <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
+              <Text style={[styles.stepNumberText, { color: "#FFFFFF" }]}>2</Text>
             </View>
             <View style={styles.stepContent}>
-              <Text style={styles.stepTitle}>Add Your Products</Text>
-              <Text style={styles.stepDescription}>
+              <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>Add Your Products</Text>
+              <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
                 Photos, description, and price
               </Text>
             </View>
           </View>
 
           <View style={styles.step}>
-            <View style={styles.stepNumber}>
-              <Text style={styles.stepNumberText}>3</Text>
+            <View style={[styles.stepNumber, { backgroundColor: colors.primary }]}>
+              <Text style={[styles.stepNumberText, { color: "#FFFFFF" }]}>3</Text>
             </View>
             <View style={styles.stepContent}>
-              <Text style={styles.stepTitle}>Start Earning</Text>
-              <Text style={styles.stepDescription}>
+              <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>Start Earning</Text>
+              <Text style={[styles.stepDescription, { color: colors.textSecondary }]}>
                 Receive orders and get paid
               </Text>
             </View>
@@ -361,23 +368,23 @@ const OnboardingView: React.FC<{ scrollRef: React.RefObject<ScrollView> }> = ({ 
       {/* CTA Buttons */}
       <View style={styles.ctaSection}>
         <TouchableOpacity
-          style={styles.primaryButton}
+          style={[styles.primaryButton, { backgroundColor: colors.primary }]}
           onPress={handleGetStarted}
           activeOpacity={0.8}
         >
-          <Text style={styles.primaryButtonText}>Become a Seller</Text>
-          <Ionicons name="arrow-forward" size={20} color={colors.white} />
+          <Text style={[styles.primaryButtonText, { color: "#FFFFFF" }]}>Become a Seller</Text>
+          <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.secondaryButton}
+          style={[styles.secondaryButton, { borderColor: colors.primary }]}
           onPress={handleLearnMore}
           activeOpacity={0.8}
         >
-          <Text style={styles.secondaryButtonText}>Learn More</Text>
+          <Text style={[styles.secondaryButtonText, { color: colors.primary }]}>Learn More</Text>
         </TouchableOpacity>
 
-        <Text style={styles.ctaFootnote}>
+        <Text style={[styles.ctaFootnote, { color: colors.textMuted }]}>
           Free to join • No monthly fees • Secure payments
         </Text>
       </View>
@@ -391,15 +398,15 @@ const OnboardingView: React.FC<{ scrollRef: React.RefObject<ScrollView> }> = ({ 
 export default function SellScreen() {
   const { loading, isMerchant, hasListings } = useUserStatus();
   const scrollRef = useRef<ScrollView>(null);
-  const   {colors} = useTheme();
-
+  const { colors, isDark } = useTheme();
 
   // Scroll to top when sell tab is pressed
   useScrollToTop(scrollRef);
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
+      <View style={[styles.loadingContainer, { backgroundColor: colors.background }]}>
+        <StatusBar style={isDark ? "light" : "dark"} />
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );

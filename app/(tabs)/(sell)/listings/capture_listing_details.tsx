@@ -13,7 +13,8 @@ import {
   Pressable,
 } from "react-native";
 import Typo from "@/components/Typo";
-import { colors, spacingY, spacingX, borderRadius } from "@/constants/theme";
+import { spacingY, spacingX, borderRadius } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { router, useLocalSearchParams } from "expo-router";
 import Button from "@/components/CustomButton";
 import { useState, useEffect } from "react";
@@ -28,6 +29,7 @@ interface Category {
 
 
 export default function CaptureListingDetails() {
+  const { colors, isDark } = useTheme();
   const params = useLocalSearchParams();
   const image_group_ids = params.image_group_ids
     ? JSON.parse(params.image_group_ids as string)
@@ -261,9 +263,9 @@ export default function CaptureListingDetails() {
   if (isLoadingData) {
     return (
       <ScreenWrapper>
-        <StatusBar style="dark" />
-        <View style={[styles.container, styles.centerContent]}>
-          <Typo size={16} color={colors.neutral500}>
+        <StatusBar style={isDark ? "light" : "dark"} />
+        <View style={[styles.container, styles.centerContent, { backgroundColor: colors.background }]}>
+          <Typo size={16} color={colors.textMuted}>
             Loading...
           </Typo>
         </View>
@@ -273,22 +275,22 @@ export default function CaptureListingDetails() {
 
   return (
     <ScreenWrapper>
-      <StatusBar style="dark" />
-      <View style={styles.container}>
+      <StatusBar style={isDark ? "light" : "dark"} />
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={handleBack}
             disabled={isSubmitting}
           >
-            <Ionicons name="arrow-back" size={24} color={colors.black} />
+            <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
           <View style={styles.headerTextContainer}>
-            <Typo size={24} fontWeight="700" color={colors.black}>
+            <Typo size={24} fontWeight="700" color={colors.textPrimary}>
               Listing Details
             </Typo>
-            <Typo size={14} color={colors.neutral500} style={{ marginTop: 4 }}>
+            <Typo size={14} color={colors.textMuted} style={{ marginTop: 4 }}>
               {image_group_ids.length} images uploaded
             </Typo>
           </View>
@@ -300,30 +302,32 @@ export default function CaptureListingDetails() {
         >
           {/* Title */}
           <View style={styles.formGroup}>
-            <Typo size={14} fontWeight="600" color={colors.black}>
+            <Typo size={14} fontWeight="600" color={colors.textPrimary}>
               Title <Typo color={colors.error}>*</Typo>
             </Typo>
             <TextInput
-              style={styles.input}
+              style={[styles.input, { borderColor: colors.inputBorder, color: colors.textPrimary, backgroundColor: colors.inputBackground }]}
               placeholder="e.g., iPhone 15 Pro Max 256GB"
+              placeholderTextColor={colors.textPlaceholder}
               value={title}
               onChangeText={setTitle}
               maxLength={255}
               editable={!isSubmitting}
             />
-            <Typo size={12} color={colors.neutral400}>
+            <Typo size={12} color={colors.textMuted}>
               {title.length}/255 characters
             </Typo>
           </View>
 
           {/* Description */}
           <View style={styles.formGroup}>
-            <Typo size={14} fontWeight="600" color={colors.black}>
+            <Typo size={14} fontWeight="600" color={colors.textPrimary}>
               Description <Typo color={colors.error}>*</Typo>
             </Typo>
             <TextInput
-              style={[styles.input, styles.textArea]}
+              style={[styles.input, styles.textArea, { borderColor: colors.inputBorder, color: colors.textPrimary, backgroundColor: colors.inputBackground }]}
               placeholder="Describe your product or service in detail..."
+              placeholderTextColor={colors.textPlaceholder}
               value={description}
               onChangeText={setDescription}
               multiline
@@ -331,21 +335,22 @@ export default function CaptureListingDetails() {
               textAlignVertical="top"
               editable={!isSubmitting}
             />
-            <Typo size={12} color={colors.neutral400}>
+            <Typo size={12} color={colors.textMuted}>
               Minimum 20 characters ({description.length})
             </Typo>
           </View>
 
           {/* Listing Type */}
           <View style={styles.formGroup}>
-            <Typo size={14} fontWeight="600" color={colors.black}>
+            <Typo size={14} fontWeight="600" color={colors.textPrimary}>
               Type <Typo color={colors.error}>*</Typo>
             </Typo>
             <View style={styles.radioGroup}>
               <TouchableOpacity
                 style={[
                   styles.radioOption,
-                  listingType === "PRODUCT" && styles.radioOptionSelected,
+                  { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground },
+                  listingType === "PRODUCT" && { borderColor: colors.primary, backgroundColor: colors.primary + "10" },
                 ]}
                 onPress={() => setListingType("PRODUCT")}
                 disabled={isSubmitting}
@@ -364,7 +369,7 @@ export default function CaptureListingDetails() {
                 <Typo
                   size={14}
                   color={
-                    listingType === "PRODUCT" ? colors.primary : colors.black
+                    listingType === "PRODUCT" ? colors.primary : colors.textPrimary
                   }
                   style={{ marginLeft: 8 }}
                 >
@@ -375,7 +380,8 @@ export default function CaptureListingDetails() {
               <TouchableOpacity
                 style={[
                   styles.radioOption,
-                  listingType === "SERVICE" && styles.radioOptionSelected,
+                  { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground },
+                  listingType === "SERVICE" && { borderColor: colors.primary, backgroundColor: colors.primary + "10" },
                 ]}
                 onPress={() => setListingType("SERVICE")}
                 disabled={isSubmitting}
@@ -394,7 +400,7 @@ export default function CaptureListingDetails() {
                 <Typo
                   size={14}
                   color={
-                    listingType === "SERVICE" ? colors.primary : colors.black
+                    listingType === "SERVICE" ? colors.primary : colors.textPrimary
                   }
                   style={{ marginLeft: 8 }}
                 >
@@ -406,17 +412,17 @@ export default function CaptureListingDetails() {
 
           {/* Category */}
           <View style={styles.formGroup}>
-            <Typo size={14} fontWeight="600" color={colors.black}>
+            <Typo size={14} fontWeight="600" color={colors.textPrimary}>
               Category <Typo color={colors.error}>*</Typo>
             </Typo>
             <TouchableOpacity
-              style={styles.selectInput}
+              style={[styles.selectInput, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]}
               onPress={() => setShowCategoryModal(true)}
               disabled={isSubmitting}
             >
               <Typo
                 size={15}
-                color={categoryId ? colors.black : colors.neutral400}
+                color={categoryId ? colors.textPrimary : colors.textPlaceholder}
               >
                 {categoryId
                   ? categories.find((c) => c.id === categoryId)?.name
@@ -432,15 +438,15 @@ export default function CaptureListingDetails() {
 
           {/* Price Type */}
           <View style={styles.formGroup}>
-            <Typo size={14} fontWeight="600" color={colors.black}>
+            <Typo size={14} fontWeight="600" color={colors.textPrimary}>
               Price Type <Typo color={colors.error}>*</Typo>
             </Typo>
             <TouchableOpacity
-              style={styles.selectInput}
+              style={[styles.selectInput, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]}
               onPress={() => setShowPriceTypeModal(true)}
               disabled={isSubmitting}
             >
-              <Typo size={15} color={colors.black}>
+              <Typo size={15} color={colors.textPrimary}>
                 {priceType === "FIXED"
                   ? "Fixed Price"
                   : priceType === "RANGE"
@@ -458,12 +464,13 @@ export default function CaptureListingDetails() {
           {/* Price Fields */}
           {priceType === "FIXED" && (
             <View style={styles.formGroup}>
-              <Typo size={14} fontWeight="600" color={colors.black}>
+              <Typo size={14} fontWeight="600" color={colors.textPrimary}>
                 Price (UGX) <Typo color={colors.error}>*</Typo>
               </Typo>
               <TextInput
-                style={styles.input}
+                style={[styles.input, { borderColor: colors.inputBorder, color: colors.textPrimary, backgroundColor: colors.inputBackground }]}
                 placeholder="0"
+                placeholderTextColor={colors.textPlaceholder}
                 value={price}
                 onChangeText={setPrice}
                 keyboardType="numeric"
@@ -475,12 +482,13 @@ export default function CaptureListingDetails() {
           {priceType === "RANGE" && (
             <View style={styles.priceRangeContainer}>
               <View style={styles.priceRangeInput}>
-                <Typo size={14} fontWeight="600" color={colors.black}>
+                <Typo size={14} fontWeight="600" color={colors.textPrimary}>
                   Min Price (UGX) <Typo color={colors.error}>*</Typo>
                 </Typo>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { borderColor: colors.inputBorder, color: colors.textPrimary, backgroundColor: colors.inputBackground }]}
                   placeholder="0"
+                  placeholderTextColor={colors.textPlaceholder}
                   value={priceMin}
                   onChangeText={setPriceMin}
                   keyboardType="numeric"
@@ -489,12 +497,13 @@ export default function CaptureListingDetails() {
               </View>
 
               <View style={styles.priceRangeInput}>
-                <Typo size={14} fontWeight="600" color={colors.black}>
+                <Typo size={14} fontWeight="600" color={colors.textPrimary}>
                   Max Price (UGX) <Typo color={colors.error}>*</Typo>
                 </Typo>
                 <TextInput
-                  style={styles.input}
+                  style={[styles.input, { borderColor: colors.inputBorder, color: colors.textPrimary, backgroundColor: colors.inputBackground }]}
                   placeholder="0"
+                  placeholderTextColor={colors.textPlaceholder}
                   value={priceMax}
                   onChangeText={setPriceMax}
                   keyboardType="numeric"
@@ -517,7 +526,7 @@ export default function CaptureListingDetails() {
                 size={24}
                 color={isPriceNegotiable ? colors.primary : colors.neutral400}
               />
-              <Typo size={14} color={colors.black} style={{ marginLeft: 8 }}>
+              <Typo size={14} color={colors.textPrimary} style={{ marginLeft: 8 }}>
                 Price is negotiable
               </Typo>
             </TouchableOpacity>
@@ -526,11 +535,11 @@ export default function CaptureListingDetails() {
         
 
           {/* Info Box */}
-          <View style={styles.infoBox}>
+          <View style={[styles.infoBox, { backgroundColor: colors.primary + "10" }]}>
             <Ionicons name="information-circle" size={20} color={colors.primary} />
             <Typo
               size={13}
-              color={colors.neutral700}
+              color={colors.textSecondary}
               style={{ marginLeft: 8, flex: 1 }}
             >
               Your listing will be reviewed by our team before it goes live. This
@@ -540,12 +549,12 @@ export default function CaptureListingDetails() {
 
           {/* Submit Button */}
           <Button
-            style={styles.submitButton}
+            style={[styles.submitButton, { backgroundColor: colors.primary }]}
             onPress={handleSubmit}
             disabled={isSubmitting}
             loading={isSubmitting}
           >
-            <Typo size={16} fontWeight="600" color={colors.white}>
+            <Typo size={16} fontWeight="600" color="#FFFFFF">
               {isSubmitting ? "Creating Listing..." : "Create Listing"}
             </Typo>
           </Button>
@@ -563,13 +572,13 @@ export default function CaptureListingDetails() {
           style={styles.modalOverlay}
           onPress={() => setShowCategoryModal(false)}
         >
-          <Pressable style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Typo size={18} fontWeight="600" color={colors.black}>
+          <Pressable style={[styles.modalContainer, { backgroundColor: colors.surface }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Typo size={18} fontWeight="600" color={colors.textPrimary}>
                 Select Category
               </Typo>
               <TouchableOpacity onPress={() => setShowCategoryModal(false)}>
-                <Ionicons name="close" size={24} color={colors.black} />
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
 
@@ -580,7 +589,8 @@ export default function CaptureListingDetails() {
                 <TouchableOpacity
                   style={[
                     styles.modalItem,
-                    categoryId === item.id && styles.modalItemSelected,
+                    { backgroundColor: colors.surface },
+                    categoryId === item.id && { backgroundColor: colors.primary + "10" },
                   ]}
                   onPress={() => {
                     setCategoryId(item.id);
@@ -590,7 +600,7 @@ export default function CaptureListingDetails() {
                   <Typo
                     size={15}
                     color={
-                      categoryId === item.id ? colors.primary : colors.black
+                      categoryId === item.id ? colors.primary : colors.textPrimary
                     }
                   >
                     {item.name}
@@ -604,7 +614,7 @@ export default function CaptureListingDetails() {
                   )}
                 </TouchableOpacity>
               )}
-              ItemSeparatorComponent={() => <View style={styles.separator} />}
+              ItemSeparatorComponent={() => <View style={[styles.separator, { backgroundColor: colors.border }]} />}
               showsVerticalScrollIndicator={true}
             />
           </Pressable>
@@ -622,13 +632,13 @@ export default function CaptureListingDetails() {
           style={styles.modalOverlay}
           onPress={() => setShowPriceTypeModal(false)}
         >
-          <Pressable style={styles.modalContainer}>
-            <View style={styles.modalHeader}>
-              <Typo size={18} fontWeight="600" color={colors.black}>
+          <Pressable style={[styles.modalContainer, { backgroundColor: colors.surface }]}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
+              <Typo size={18} fontWeight="600" color={colors.textPrimary}>
                 Select Price Type
               </Typo>
               <TouchableOpacity onPress={() => setShowPriceTypeModal(false)}>
-                <Ionicons name="close" size={24} color={colors.black} />
+                <Ionicons name="close" size={24} color={colors.textPrimary} />
               </TouchableOpacity>
             </View>
 
@@ -642,7 +652,8 @@ export default function CaptureListingDetails() {
                   <TouchableOpacity
                     style={[
                       styles.modalItem,
-                      priceType === option.value && styles.modalItemSelected,
+                      { backgroundColor: colors.surface },
+                      priceType === option.value && { backgroundColor: colors.primary + "10" },
                     ]}
                     onPress={() => {
                       setPriceType(option.value);
@@ -654,7 +665,7 @@ export default function CaptureListingDetails() {
                       color={
                         priceType === option.value
                           ? colors.primary
-                          : colors.black
+                          : colors.textPrimary
                       }
                     >
                       {option.label}
@@ -667,7 +678,7 @@ export default function CaptureListingDetails() {
                       />
                     )}
                   </TouchableOpacity>
-                  {index < 2 && <View style={styles.separator} />}
+                  {index < 2 && <View style={[styles.separator, { backgroundColor: colors.border }]} />}
                 </View>
               ))}
             </View>
@@ -681,7 +692,6 @@ export default function CaptureListingDetails() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.white,
   },
   centerContent: {
     justifyContent: "center",
@@ -694,7 +704,6 @@ const styles = StyleSheet.create({
     paddingTop: spacingY._20,
     paddingBottom: spacingY._16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral100,
   },
   backButton: {
     marginRight: spacingX._12,
@@ -712,14 +721,11 @@ const styles = StyleSheet.create({
   },
   input: {
     borderWidth: 1,
-    borderColor: colors.neutral200,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacingX._16,
     paddingVertical: spacingY._12,
     fontSize: 15,
-    color: colors.black,
     marginTop: spacingY._8,
-    backgroundColor: colors.white,
   },
   textArea: {
     height: 120,
@@ -737,13 +743,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacingY._12,
     paddingHorizontal: spacingX._16,
     borderWidth: 1,
-    borderColor: colors.neutral200,
     borderRadius: borderRadius.md,
-    backgroundColor: colors.white,
-  },
-  radioOptionSelected: {
-    borderColor: colors.primary,
-    backgroundColor: colors.primary + "10",
   },
   priceRangeContainer: {
     flexDirection: "row",
@@ -770,23 +770,15 @@ const styles = StyleSheet.create({
     paddingVertical: spacingY._8,
     borderRadius: borderRadius.full,
     borderWidth: 1,
-    borderColor: colors.neutral200,
-    backgroundColor: colors.neutral50,
-  },
-  tagSelected: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
   },
   infoBox: {
     flexDirection: "row",
     alignItems: "flex-start",
     padding: spacingX._16,
-    backgroundColor: colors.primary + "10",
     borderRadius: borderRadius.md,
     marginBottom: spacingY._20,
   },
   submitButton: {
-    backgroundColor: colors.primary,
     paddingVertical: spacingY._16,
     alignItems: "center",
     justifyContent: "center",
@@ -797,12 +789,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     borderWidth: 1,
-    borderColor: colors.neutral200,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacingX._16,
     paddingVertical: spacingY._12,
     marginTop: spacingY._8,
-    backgroundColor: colors.white,
   },
   modalOverlay: {
     flex: 1,
@@ -810,7 +800,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   modalContainer: {
-    backgroundColor: colors.white,
     borderTopLeftRadius: borderRadius.lg,
     borderTopRightRadius: borderRadius.lg,
     maxHeight: "50%",
@@ -823,7 +812,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacingX._16,
     paddingVertical: spacingY._16,
     borderBottomWidth: 1,
-    borderBottomColor: colors.neutral100,
   },
   modalItem: {
     flexDirection: "row",
@@ -831,13 +819,8 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: spacingX._16,
     paddingVertical: spacingY._16,
-    backgroundColor: colors.white,
-  },
-  modalItemSelected: {
-    backgroundColor: colors.primary + "10",
   },
   separator: {
     height: 1,
-    backgroundColor: colors.neutral100,
   },
 });
