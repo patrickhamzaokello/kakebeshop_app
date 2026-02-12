@@ -2,7 +2,7 @@ import { useInfiniteScroll } from '@/hooks/useInfiniteScroll';
 import { useSectionData } from '@/hooks/useSectionData';
 import { homeService } from '@/utils/services/homeService';
 import React, { useCallback, useRef, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { NativeScrollEvent, NativeSyntheticEvent, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from "expo-router";
 import { useScrollToTop } from '@react-navigation/native';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -40,6 +40,16 @@ export const HomeScreen: React.FC = () => {
 
     const [refreshing, setRefreshing] = useState<boolean>(false);
 
+    // Load more listings when user scrolls near the bottom
+    const handleScroll = useCallback((event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+        const distanceFromBottom = contentSize.height - layoutMeasurement.height - contentOffset.y;
+
+        if (distanceFromBottom < 300 && hasMore && !listingsLoading) {
+            loadMore();
+        }
+    }, [hasMore, listingsLoading, loadMore]);
+
     // Pull to refresh all sections
     const onRefresh = useCallback(async () => {
         setRefreshing(true);
@@ -66,6 +76,8 @@ export const HomeScreen: React.FC = () => {
             <ScrollView
                 ref={scrollRef}
                 style={styles.scrollView}
+                onScroll={handleScroll}
+                scrollEventThrottle={400}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.primary} />}
             >
                 <HeaderSection

@@ -1,7 +1,4 @@
-import ScreenWrapper from "@/components/ScreenWrapper";
-import { StatusBar } from "expo-status-bar";
-import { StyleSheet, View } from "react-native";
-import Typo from "@/components/Typo";
+import { View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
 import { useCartStore } from "@/utils/stores/useCartStore";

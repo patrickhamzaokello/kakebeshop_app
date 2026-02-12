@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
@@ -126,18 +126,6 @@ export const AllListings: React.FC<AllListingsProps> = ({
 
     const [modalVisible, setModalVisible] = useState(false);
     const [selectedListing, setSelectedListing] = useState<Listing | null>(null);
-    const [isLoadingMore, setIsLoadingMore] = useState(false);
-    const containerRef = useRef<View>(null);
-
-    // Trigger load more when user scrolls near the end
-    const handleLayout = async () => {
-        // Check if we should load more data
-        if (hasMore && !loading && !isLoadingMore && data.length > 0) {
-            setIsLoadingMore(true);
-            await onLoadMore();
-            setIsLoadingMore(false);
-        }
-    };
 
     const handleQuickView = (listing: Listing, event: any) => {
         event.stopPropagation();
@@ -354,16 +342,8 @@ export const AllListings: React.FC<AllListingsProps> = ({
             <View style={styles.bentoContainer}>
                 {renderBentoGrid()}
 
-                {/* Auto-load trigger - loads more when this view appears */}
-                {hasMore && !loading && data.length > 0 && (
-                    <View
-                        style={styles.loadTrigger}
-                        onLayout={handleLayout}
-                    />
-                )}
-
                 {/* Loading Indicator - use theme primary color */}
-                {(loading || isLoadingMore) && data.length > 0 && (
+                {loading && data.length > 0 && (
                     <View style={styles.footerLoader}>
                         <ActivityIndicator size="small" color={colors.primary} />
                     </View>
@@ -589,11 +569,6 @@ const styles = StyleSheet.create({
         paddingVertical: 32,
         alignItems: 'center',
         gap: 8,
-    },
-    loadTrigger: {
-        height: 1,
-        width: '100%',
-        marginTop: 20,
     },
     endOfResults: {
         flexDirection: 'row',

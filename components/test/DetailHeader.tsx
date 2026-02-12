@@ -65,6 +65,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 16,
+    paddingTop: 16,
   },
   backButton: {
     width: 40,
@@ -73,13 +74,13 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 12,
-    marginTop: 20,
   },
   topRow: {
     justifyContent: "space-between",
+    marginTop: 4,
   },
   topRowWithBack: {
-    marginTop: 4,
+    marginTop: 0,
   },
   title: {
     fontSize: 30,

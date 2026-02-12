@@ -16,13 +16,14 @@ export const merchantBase = {
     }
   },
 
+
   async merchantProducts(merchantID: string, page: number = 1, limit: number = 20) {
     try {
       const response = await apiService.get(
-        `/api/v1/merchants/${merchantID}/products?page=${page}&limit=${limit}`
+        `/api/v1/merchants/${merchantID}/listings?page=${page}&limit=${limit}`
       );
       if (response.success && response.data) {
-        return response.data;
+        return response.data.results;
       }
       return null;
     } catch (error) {
