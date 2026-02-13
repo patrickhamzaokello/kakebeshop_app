@@ -239,12 +239,13 @@ export const CartItems: React.FC<CartItemsProps> = ({
   }
 
   if (!items || items.length === 0) {
+    const { colors } = useTheme();
     return (
       <View style={styles.container}>
         <View style={styles.emptyContainer}>
           <Ionicons name="cart-outline" size={64} color="#ccc" />
-          <Text style={styles.emptyText}>Your cart is empty</Text>
-          <Text style={styles.emptySubtext}>
+          <Text style={[styles.emptyText, {color: colors.textPrimary}]}>Your cart is empty</Text>
+          <Text style={[styles.emptySubtext, {color: colors.textPrimary}]}>
             Add items to get started
           </Text>
         </View>

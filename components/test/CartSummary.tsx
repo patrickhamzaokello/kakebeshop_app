@@ -65,15 +65,15 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
           <ActivityIndicator color={colors.white} />
         ) : (
           <>
-            <Text style={[styles.checkoutText, {color: colors.white}]}>Proceed to Checkout</Text>
-            <Ionicons name="arrow-forward" size={20} color={colors.white} />
+            <Text style={[styles.checkoutText, {color: colors.black}]}>Proceed to Checkout</Text>
+            <Ionicons name="arrow-forward" size={20} color={colors.black} />
           </>
         )}
       </TouchableOpacity>
 
       {/* Helper Text */}
       {disabled && (
-        <Text style={styles.helperText}>
+        <Text style={[styles.helperText, {color: colors.textSecondary}]}>
           Add items to your cart to checkout
         </Text>
       )}
