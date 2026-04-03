@@ -41,7 +41,7 @@ export default function OrdersListScreen() {
       const data = await cartService.getOrders();
       setOrders(data);
     } catch (error) {
-      console.error("Error fetching orders:", error);
+      if (__DEV__) console.error("Error fetching orders:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);

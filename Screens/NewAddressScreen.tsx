@@ -70,7 +70,7 @@ export default function NewAddressScreen() {
 
       await getCurrentLocation();
     } catch (error) {
-      console.error("Error requesting location permission:", error);
+      if (__DEV__) console.error("Error requesting location permission:", error);
       setLoadingLocation(false);
     }
   };
@@ -104,7 +104,7 @@ export default function NewAddressScreen() {
         );
       }
     } catch (error) {
-      console.error("Error getting current location:", error);
+      if (__DEV__) console.error("Error getting current location:", error);
       Alert.alert("Error", "Failed to get your current location");
       // Set default location (Kampala, Uganda)
       const defaultCoords = {
@@ -170,7 +170,7 @@ export default function NewAddressScreen() {
         displayName: "Selected Location",
       };
     } catch (error) {
-      console.error("Error reverse geocoding:", error);
+      if (__DEV__) console.error("Error reverse geocoding:", error);
       
       // Return default values on error
       return {
@@ -261,7 +261,7 @@ export default function NewAddressScreen() {
         Alert.alert("Error", "Failed to save address");
       }
     } catch (error) {
-      console.error("Error saving address:", error);
+      if (__DEV__) console.error("Error saving address:", error);
       Alert.alert("Error", "Something went wrong. Please try again.");
     } finally {
       setLoading(false);

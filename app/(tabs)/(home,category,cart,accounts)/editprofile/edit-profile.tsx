@@ -67,7 +67,7 @@ export default function EditProfileScreen() {
         }
       }
     } catch (error) {
-      console.error("Error fetching profile:", error);
+      if (__DEV__) console.error("Error fetching profile:", error);
       Alert.alert("Error", "Failed to load profile data");
     } finally {
       setLoading(false);
@@ -159,7 +159,7 @@ export default function EditProfileScreen() {
         Alert.alert("Error", response.data?.message || "Failed to update profile");
       }
     } catch (error: any) {
-      console.error("Error updating profile:", error);
+      if (__DEV__) console.error("Error updating profile:", error);
       Alert.alert("Error", error.message || "Something went wrong. Please try again.");
     } finally {
       setSaving(false);

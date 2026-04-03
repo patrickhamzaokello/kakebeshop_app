@@ -70,7 +70,7 @@ export default function MerchantListings() {
         throw new Error("Failed to load listings");
       }
     } catch (error) {
-      console.error("Error loading listings:", error);
+      if (__DEV__) console.error("Error loading listings:", error);
       setError(true);
     } finally {
       setIsLoading(false);

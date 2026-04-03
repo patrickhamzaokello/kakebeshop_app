@@ -146,7 +146,7 @@ export const useCart = () => {
     try {
       await fetchCart();
     } catch (error) {
-      console.error('Failed to refresh cart:', error);
+      if (__DEV__) console.error('Failed to refresh cart:', error);
     }
   }, [fetchCart]);
 

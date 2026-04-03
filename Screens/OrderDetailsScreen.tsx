@@ -61,7 +61,7 @@ export default function OrderDetailScreen() {
       const data = await cartService.getOrderbyID(id as string);
       setOrder(data);
     } catch (error) {
-      console.error("Error fetching order:", error);
+      if (__DEV__) console.error("Error fetching order:", error);
     } finally {
       setLoading(false);
     }

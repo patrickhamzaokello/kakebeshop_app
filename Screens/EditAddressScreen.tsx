@@ -63,7 +63,7 @@ export default function EditAddressScreen() {
         router.back();
       }
     } catch (error) {
-      console.error("Error fetching address:", error);
+      if (__DEV__) console.error("Error fetching address:", error);
       Alert.alert("Error", "Something went wrong");
       router.back();
     } finally {
@@ -95,7 +95,7 @@ export default function EditAddressScreen() {
         Alert.alert("Error", "Failed to update address");
       }
     } catch (error) {
-      console.error("Error updating address:", error);
+      if (__DEV__) console.error("Error updating address:", error);
       Alert.alert("Error", "Something went wrong. Please try again.");
     } finally {
       setSaving(false);
@@ -127,7 +127,7 @@ export default function EditAddressScreen() {
                 Alert.alert("Error", "Failed to delete address");
               }
             } catch (error) {
-              console.error("Error deleting address:", error);
+              if (__DEV__) console.error("Error deleting address:", error);
               Alert.alert("Error", "Something went wrong");
             } finally {
               setDeleting(false);
@@ -148,7 +148,7 @@ export default function EditAddressScreen() {
         Alert.alert("Error", "Failed to update default address");
       }
     } catch (error) {
-      console.error("Error setting default:", error);
+      if (__DEV__) console.error("Error setting default:", error);
       Alert.alert("Error", "Something went wrong");
     }
   };

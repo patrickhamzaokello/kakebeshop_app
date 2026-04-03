@@ -78,7 +78,6 @@ const Login = () => {
     setIsLoading(true);
     try {
       const res = await loginUser(trimmedEmail, trimmedPassword);
-      console.log(res)
       if (!res.success) {
         if (res.msg?.includes("Your email is not verified.")) {
           router.replace({

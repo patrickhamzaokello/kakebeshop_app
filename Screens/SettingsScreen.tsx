@@ -44,7 +44,7 @@ export default function AccountScreen() {
         setProfile(response.data.user);
       }
     } catch (error) {
-      console.error("Error fetching user profile:", error);
+      if (__DEV__) console.error("Error fetching user profile:", error);
     } finally {
       setLoading(false);
       setRefreshing(false);

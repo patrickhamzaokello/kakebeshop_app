@@ -164,7 +164,6 @@ export default function BecomeMerchantScreen() {
           ]
         );
       } else {
-        console.log("API Response Error:", response);
         Alert.alert(
           "Failure!",
           "Your merchant profile has failed to be saved. Try again",

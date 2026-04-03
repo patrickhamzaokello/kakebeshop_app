@@ -350,7 +350,7 @@ export default function CaptureListingImages() {
         return updated;
       });
     } catch (error: any) {
-      console.error("Image processing error:", error);
+      if (__DEV__) console.error("Image processing error:", error);
       setImages((prev) => {
         const updated = [...prev];
         updated[index] = {

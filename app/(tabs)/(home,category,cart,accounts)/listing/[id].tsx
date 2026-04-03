@@ -302,7 +302,7 @@ export default function ListingDetailsScreen() {
           }
         }
       } catch (error) {
-        console.error("Error fetching listing details:", error);
+        if (__DEV__) console.error("Error fetching listing details:", error);
         Alert.alert("Error", "Failed to load listing details");
       } finally {
         setLoading(false);
@@ -398,7 +398,7 @@ export default function ListingDetailsScreen() {
         url: `https://kakebeshop.com/listing/${id}`,
       });
     } catch (error) {
-      console.error("Error sharing:", error);
+      if (__DEV__) console.error("Error sharing:", error);
     }
   };
 

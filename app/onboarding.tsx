@@ -110,7 +110,6 @@ const SelectIntent = () => {
   };
 
   const handleContinue = async () => {
-    console.log("Selected Intent:", selectedIntent);
     if (!selectedIntent || isLoading) return;
 
     try {
@@ -119,12 +118,15 @@ const SelectIntent = () => {
 
       if (response.success) {
         completeOnboarding();
-        console.log("User intent saved successfully!");
       } else {
-        console.error("Failed to save user intent:", response?.message || "Unknown error");
+        if (__DEV__) {
+          console.error("Failed to save user intent:", response?.message || "Unknown error");
+        }
       }
     } catch (error) {
-      console.error("Error saving user intent:", error);
+      if (__DEV__) {
+        console.error("Error saving user intent:", error);
+      }
     } finally {
       setIsLoading(false);
     }

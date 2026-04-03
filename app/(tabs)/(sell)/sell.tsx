@@ -45,7 +45,7 @@ const useUserStatus = () => {
         setHasListings(userProfile.merchant?.is_active || false);
       }
     } catch (error) {
-      console.error("Error fetching user profile:", error);
+      if (__DEV__) console.error("Error fetching user profile:", error);
     } finally {
       setLoading(false);
     }

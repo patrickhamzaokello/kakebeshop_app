@@ -79,7 +79,7 @@ export default function AddressListScreen() {
         setCurrentPage(page);
       }
     } catch (error) {
-      console.error("Error fetching addresses:", error);
+      if (__DEV__) console.error("Error fetching addresses:", error);
       Alert.alert("Error", "Failed to load addresses. Please try again.");
     } finally {
       setLoading(false);
@@ -124,7 +124,7 @@ export default function AddressListScreen() {
         Alert.alert("Success", "Default address updated");
       }
     } catch (error) {
-      console.error("Error setting default address:", error);
+      if (__DEV__) console.error("Error setting default address:", error);
       Alert.alert("Error", "Failed to update default address");
     }
   };

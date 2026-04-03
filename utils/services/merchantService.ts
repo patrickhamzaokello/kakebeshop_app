@@ -11,7 +11,7 @@ export const merchantBase = {
       }
       return null;
     } catch (error) {
-      console.error("Error fetching cart:", error);
+      if (__DEV__) console.error("Error fetching cart:", error);
       return null;
     }
   },
@@ -27,7 +27,7 @@ export const merchantBase = {
       }
       return null;
     } catch (error) {
-      console.error("Error fetching merchant products:", error);
+      if (__DEV__) console.error("Error fetching merchant products:", error);
       return null;
     }
   }

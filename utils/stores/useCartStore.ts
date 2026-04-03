@@ -55,7 +55,7 @@ export const useCartStore = create<CartState>()(
             set({ cartCount: cartcount });
           }
         } catch (error) {
-          console.error("Failed to fetch cart count:", error);
+          if (__DEV__) console.error("Failed to fetch cart count:", error);
         } finally {
           set({ isLoading: false });
         }
@@ -73,7 +73,7 @@ export const useCartStore = create<CartState>()(
             });
           }
         } catch (error) {
-          console.error("Failed to fetch cart:", error);
+          if (__DEV__) console.error("Failed to fetch cart:", error);
         } finally {
           set({ isLoading: false });
         }
@@ -101,7 +101,7 @@ export const useCartStore = create<CartState>()(
         } catch (error) {
           // Revert on network/error
           set((state) => ({ cartCount: state.cartCount - quantity }));
-          console.error("Add to cart failed:", error);
+          if (__DEV__) console.error("Add to cart failed:", error);
           return false;
         }
       },
@@ -156,7 +156,7 @@ export const useCartStore = create<CartState>()(
         } catch (error) {
           // Revert on error
           set({ cart: previousCart });
-          console.error("Update cart item failed:", error);
+          if (__DEV__) console.error("Update cart item failed:", error);
           return false;
         } finally {
           set({ isUpdating: false });
@@ -205,7 +205,7 @@ export const useCartStore = create<CartState>()(
         } catch (error) {
           // Revert on error
           set({ cart: previousCart });
-          console.error("Remove cart item failed:", error);
+          if (__DEV__) console.error("Remove cart item failed:", error);
           return false;
         } finally {
           set({ isUpdating: false });
@@ -218,7 +218,7 @@ export const useCartStore = create<CartState>()(
           await apiService.post("/api/v1/cart/clear/");
           set({ cartCount: 0, cart: null });
         } catch (error) {
-          console.error("Failed to clear cart:", error);
+          if (__DEV__) console.error("Failed to clear cart:", error);
         }
       },
     }),

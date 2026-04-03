@@ -52,9 +52,6 @@ export const getNewsTopStory = async (): Promise<any> => {
   }
 };
 
-export const followNewsSource = async (sourceID: string): Promise<any> => {};
-
-export const unfollowNewsSource = async (sourceID: string): Promise<any> => {};
 
 export const getAllSources = async (page: number = 1): Promise<any> => {
   try {
@@ -184,7 +181,6 @@ export const getFeaturedNews = async (page: number = 1): Promise<any> => {
 export const SearchArticle = async (query: string): Promise<any> => {
   try {
     const url = `/news/articles/search/?q=${query}&page_size=10`;
-    console.log("Search URL:", url); // Debugging line
     const response = await apiService.get<any>(url);
     if (response.success && response.data) {
       return response.data;
@@ -221,7 +217,6 @@ export const postFavouriteCategories = async (
         category_ids: categoryIDs,
       }
     );
-    console.log(response);
     if (response.success && response.data) {
       return response.data;
     }

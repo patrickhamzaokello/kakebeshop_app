@@ -112,7 +112,7 @@ export default function OrderSuccessScreen({
         }
       }
     } catch (error) {
-      console.error("Error fetching orders:", error);
+      if (__DEV__) console.error("Error fetching orders:", error);
     } finally {
       setLoading(false);
     }

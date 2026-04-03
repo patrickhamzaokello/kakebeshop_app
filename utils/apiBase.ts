@@ -10,7 +10,6 @@ interface ApiResponse<T = any> {
 class ApiService {
   private axiosInstance: AxiosInstance;
   private baseURL = "https://backend.kakebeshop.com";
-  // private baseURL = "http://192.168.1.3:8000"
   private isRefreshing = false;
   private failedQueue: Array<{
     resolve: (value: any) => void;
@@ -22,6 +21,7 @@ class ApiService {
   constructor() {
     this.axiosInstance = axios.create({
       baseURL: this.baseURL,
+      timeout: 30000,
       headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
@@ -56,6 +56,9 @@ class ApiService {
             config.headers.Authorization = `Bearer ${accessToken}`;
           }
         } catch (error) {
+          if (__DEV__) {
+            console.warn("Failed to read access token from SecureStore:", error);
+          }
         }
         return config;
       },
@@ -177,7 +180,11 @@ class ApiService {
 
       // You might want to trigger a navigation to login here
       // This could be done through a callback or event system
-    } catch (error) {}
+    } catch (error) {
+      if (__DEV__) {
+        console.warn("Failed to clear auth tokens during auth error:", error);
+      }
+    }
   }
 
   // HTTP Methods

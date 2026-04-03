@@ -81,7 +81,7 @@ export default function CaptureListingDetails() {
         setTags(tagsResponse.data.results || []);
       }
     } catch (error) {
-      console.error("Error loading data:", error);
+      if (__DEV__) console.error("Error loading data:", error);
       Alert.alert("Error", "Failed to load categories and tags");
     } finally {
       setIsLoadingData(false);
@@ -232,7 +232,7 @@ export default function CaptureListingDetails() {
         ]
       );
     } catch (error: any) {
-      console.error("Listing creation error:", error);
+      if (__DEV__) console.error("Listing creation error:", error);
       Alert.alert(
         "Error",
         error.message || "Failed to create listing. Please try again."

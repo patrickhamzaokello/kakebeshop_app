@@ -45,7 +45,7 @@ export default function NotificationPreferencesScreen() {
         setPreferences(data);
       }
     } catch (error) {
-      console.error('Error fetching preferences:', error);
+      if (__DEV__) console.error('Error fetching preferences:', error);
       Alert.alert('Error', 'Failed to load notification preferences');
     } finally {
       setLoading(false);
@@ -69,7 +69,7 @@ export default function NotificationPreferencesScreen() {
         Alert.alert('Error', 'Failed to update preferences');
       }
     } catch (error) {
-      console.error('Error updating preferences:', error);
+      if (__DEV__) console.error('Error updating preferences:', error);
       Alert.alert('Error', 'Failed to update preferences');
     } finally {
       setSaving(false);

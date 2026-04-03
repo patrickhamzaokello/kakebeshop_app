@@ -12,7 +12,7 @@ export const cartService = {
       }
       return null;
     } catch (error) {
-      console.error("Error fetching cart:", error);
+      if (__DEV__) console.error("Error fetching cart:", error);
       return null;
     }
   },
@@ -26,7 +26,7 @@ export const cartService = {
       }
       return 0;
     } catch (error) {
-      console.error("Error fetching cart count:", error);
+      if (__DEV__) console.error("Error fetching cart count:", error);
       return 0;
     }
   },
@@ -45,7 +45,7 @@ export const cartService = {
       );
       return !!response.success;
     } catch (error) {
-      console.error("Error updating cart item quantity:", error);
+      if (__DEV__) console.error("Error updating cart item quantity:", error);
       return false;
     }
   },
@@ -58,7 +58,7 @@ export const cartService = {
       );
       return !!response.success;
     } catch (error) {
-      console.error("Error removing cart item:", error);
+      if (__DEV__) console.error("Error removing cart item:", error);
       return false;
     }
   },
@@ -68,7 +68,7 @@ export const cartService = {
     try {
       await apiService.post("/api/v1/cart/clear/");
     } catch (error) {
-      console.error("Error clearing cart:", error);
+      if (__DEV__) console.error("Error clearing cart:", error);
     }
   },
 
@@ -81,7 +81,7 @@ export const cartService = {
       }
       return [];
     } catch (error) {
-      console.error("Error fetching addresses:", error);
+      if (__DEV__) console.error("Error fetching addresses:", error);
       return [];
     }
   },
@@ -91,7 +91,7 @@ export const cartService = {
       const response = await apiService.post("/api/v1/addresses/", addressData);
       return !!response.success;
     } catch (error) {
-      console.error("Error saving address:", error);
+      if (__DEV__) console.error("Error saving address:", error);
       return false;
     }
   },
@@ -103,7 +103,7 @@ export const cartService = {
       );
       return !!response.success;
     } catch (error) {
-      console.error("Error setting address as default:", error);
+      if (__DEV__) console.error("Error setting address as default:", error);
       return false;
     }
   },
@@ -116,7 +116,7 @@ export const cartService = {
       );
       return !!response.success;
     } catch (error) {
-      console.error("Error setting address as default:", error);
+      if (__DEV__) console.error("Error setting address as default:", error);
       return false;
     }
   },
@@ -129,7 +129,7 @@ export const cartService = {
       }
       return null;
     } catch (error) {
-      console.error("Error fetching address by ID:", error);
+      if (__DEV__) console.error("Error fetching address by ID:", error);
       return null;
     }
   },
@@ -141,7 +141,7 @@ export const cartService = {
       );
       return !!response.success;
     } catch (error) {
-      console.error("Error deleting address:", error);
+      if (__DEV__) console.error("Error deleting address:", error);
       return false;
     }
   },
@@ -168,7 +168,7 @@ export const cartService = {
       }
       return null;
     } catch (error) {
-      console.error("Checkout error:", error);
+      if (__DEV__) console.error("Checkout error:", error);
       throw error;
     }
   },
@@ -183,7 +183,7 @@ export const cartService = {
       }
       return null;
     } catch (error) {
-      console.error("Error fetching order by group ID:", error);
+      if (__DEV__) console.error("Error fetching order by group ID:", error);
       return null;
     }
   },
@@ -198,7 +198,7 @@ export const cartService = {
       }
       return [];
     } catch (error) {
-      console.error("Error fetching orders:", error);
+      if (__DEV__) console.error("Error fetching orders:", error);
       return [];
     }
   },
@@ -213,7 +213,7 @@ export const cartService = {
       }
       return null;
     } catch (error) {
-      console.error("Error fetching order by ID:", error);
+      if (__DEV__) console.error("Error fetching order by ID:", error);
       return null;
     }
   },
@@ -230,7 +230,7 @@ export const cartService = {
       }
       return null;
     } catch (error) {
-      console.error("Error canceling order", error);
+      if (__DEV__) console.error("Error canceling order", error);
       return null;
     }
   },

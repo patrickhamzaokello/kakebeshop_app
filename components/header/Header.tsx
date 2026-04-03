@@ -35,7 +35,7 @@ const CAROUSEL_DATA = [
   {
     id: "1",
     image: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=800&q=80",
-    title: "Sale for grabsrr",
+    title: "Sale for grabs",
     subtitle: "Up to 50% off",
   },
   {
@@ -121,7 +121,9 @@ export default function Header({
       const stats: NotificationStats = await getNotificationStats();
       setNotificationStats(stats);
     } catch (error) {
-      console.error("Failed to load notification stats:", error);
+      if (__DEV__) {
+        console.error("Failed to load notification stats:", error);
+      }
       setNotificationStats(null);
     } finally {
       setLoading(false);
@@ -163,8 +165,7 @@ export default function Header({
       }}
       activeOpacity={0.9}
       onPress={() => {
-        // Navigate to promotion detail or category
-        console.log("Carousel item pressed:", item.id);
+        // TODO: Navigate to promotion detail or category
       }}
     >
       <Image

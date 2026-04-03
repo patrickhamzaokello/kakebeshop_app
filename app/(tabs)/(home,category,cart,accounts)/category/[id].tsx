@@ -64,7 +64,9 @@ export default function CategoryDetailsPage() {
         refreshListings(),
       ]);
     } catch (error) {
-      console.error("Error refreshing:", error);
+      if (__DEV__) {
+        console.error("Error refreshing:", error);
+      }
     } finally {
       setRefreshing(false);
     }
@@ -112,8 +114,8 @@ export default function CategoryDetailsPage() {
           titleText="Categories"
           data={categorySubcategories.data}
           loading={categorySubcategories.loading}
-          onCategoryPress={(category) => console.log(category)}
-          onSeeAll={() => console.log("See All Categories")}
+          onCategoryPress={(category) => router.push(`/category/${category.id}`)}
+          onSeeAll={() => router.push("/category")}
           maxItems={20} 
         />
 

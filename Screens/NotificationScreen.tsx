@@ -57,7 +57,7 @@ export default function NotificationsScreen() {
         setNotifications(Array.isArray(data) ? data : []);
       }
     } catch (error) {
-      console.error('Error fetching notifications:', error);
+      if (__DEV__) console.error('Error fetching notifications:', error);
       setNotifications([]);
     } finally {
       setLoading(false);
@@ -85,7 +85,7 @@ export default function NotificationsScreen() {
           )
         );
       } catch (error) {
-        console.error('Error marking as read:', error);
+        if (__DEV__) console.error('Error marking as read:', error);
       }
     }
 
@@ -108,7 +108,7 @@ export default function NotificationsScreen() {
         prev.map(n => ({ ...n, is_read: true }))
       );
     } catch (error) {
-      console.error('Error marking all as read:', error);
+      if (__DEV__) console.error('Error marking all as read:', error);
     }
   };
 

@@ -59,7 +59,7 @@ export function useInfiniteScroll<T>(
                         if (mounted.current) {
                             const apiError = err as ApiError;
                             setError(apiError);
-                            console.error('Infinite scroll error:', apiError);
+                            if (__DEV__) console.error('Infinite scroll error:', apiError);
                         }
                     })
                     .finally(() => {

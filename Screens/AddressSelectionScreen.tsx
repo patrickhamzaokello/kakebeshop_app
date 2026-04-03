@@ -64,7 +64,7 @@ export default function AddressSelectionScreen() {
         }
       }
     } catch (error) {
-      console.error("Error fetching addresses:", error);
+      if (__DEV__) console.error("Error fetching addresses:", error);
     } finally {
       setLoading(false);
     }

@@ -150,7 +150,7 @@ export const useListingDetailStore = create<ListingDetailState>()(
 
         return listingData;
       } catch (error) {
-        console.error("Failed to fetch listing details:", error);
+        if (__DEV__) console.error("Failed to fetch listing details:", error);
         return null;
       } finally {
         set((prev) => ({
@@ -200,7 +200,7 @@ export const useListingDetailStore = create<ListingDetailState>()(
 
         return { similarMerchant, similarMarketplace };
       } catch (error) {
-        console.error("Failed to fetch similar listings:", error);
+        if (__DEV__) console.error("Failed to fetch similar listings:", error);
         return {
           similarMerchant: null,
           similarMarketplace: null,

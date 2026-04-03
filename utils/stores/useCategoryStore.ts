@@ -78,7 +78,7 @@ export const useCategoryStore = create<CategoryState>()(
             set({ parentCategories: Array.isArray(categories) ? categories : [] });
           }
         } catch (error) {
-          console.error("Failed to fetch parent categories:", error);
+          if (__DEV__) console.error("Failed to fetch parent categories:", error);
           // Set empty array on error to prevent undefined
           set({ parentCategories: [] });
         } finally {
@@ -107,8 +107,6 @@ export const useCategoryStore = create<CategoryState>()(
             `/api/v1/categories/subcategories/${parentId}/`
           );
 
-          console.log("Subcategories response:", response);
-          
           if (response.success && response.data.results) {
             const subcategories = Array.isArray(response.data.results) ? response.data.results : [];
             set((state) => ({
@@ -119,7 +117,7 @@ export const useCategoryStore = create<CategoryState>()(
             }));
           }
         } catch (error) {
-          console.error(`Failed to fetch subcategories for ${parentId}:`, error);
+          if (__DEV__) console.error(`Failed to fetch subcategories for ${parentId}:`, error);
           // Set empty array on error
           set((state) => ({
             subcategoriesCache: {

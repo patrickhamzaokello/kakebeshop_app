@@ -27,7 +27,7 @@ export const listingDetailsService = {
       );
       return response.data;
     } catch (error) {
-      console.error("Error checking cart status", error);
+      if (__DEV__) console.error("Error checking cart status", error);
       return null;
     }
   },
@@ -39,7 +39,7 @@ export const listingDetailsService = {
       );
       return response.data;
     } catch (error) {
-      console.error("Error checking wishlist status", error);
+      if (__DEV__) console.error("Error checking wishlist status", error);
       return null;
     }
   },
@@ -54,7 +54,7 @@ export const listingDetailsService = {
       );
       return response.data;
     } catch (error) {
-      console.error("Error fetching similar from merchant", error);
+      if (__DEV__) console.error("Error fetching similar from merchant", error);
       return null;
     }
   },
@@ -70,7 +70,7 @@ export const listingDetailsService = {
       );
       return response.data;
     } catch (error) {
-      console.error("Error fetching similar from marketplace", error);
+      if (__DEV__) console.error("Error fetching similar from marketplace", error);
       return null;
     }
   },
@@ -84,7 +84,7 @@ export const listingDetailsService = {
 
       return response;
     } catch (error) {
-      console.error("Error adding listing to cart", error);
+      if (__DEV__) console.error("Error adding listing to cart", error);
       return false;
     }
   },
@@ -97,7 +97,7 @@ export const listingDetailsService = {
 
       return response.data;
     } catch (error) {
-      console.error("Error adding listing to wishlist", error);
+      if (__DEV__) console.error("Error adding listing to wishlist", error);
       return false;
     }
   },
@@ -109,7 +109,7 @@ export const listingDetailsService = {
       );
       return response.success || false;
     } catch (error) {
-      console.error("Error removing listing from wishlist", error);
+      if (__DEV__) console.error("Error removing listing from wishlist", error);
       return false;
     }
   },

@@ -43,7 +43,7 @@ export default function OrderConfirmationScreen() {
         fetchAddress()
       ]);
     } catch (error) {
-      console.error("Error loading data:", error);
+      if (__DEV__) console.error("Error loading data:", error);
       Alert.alert("Error", "Failed to load order details");
     } finally {
       setLoading(false);
@@ -55,7 +55,7 @@ export default function OrderConfirmationScreen() {
       const data = await cartService.getAddressById(addressId as string);
       setAddress(data);
     } catch (error) {
-      console.error("Error fetching address:", error);
+      if (__DEV__) console.error("Error fetching address:", error);
       throw error;
     }
   };
@@ -98,7 +98,7 @@ export default function OrderConfirmationScreen() {
         Alert.alert("Error", "Failed to place order");
       }
     } catch (error: any) {
-      console.error("Error placing order:", error);
+      if (__DEV__) console.error("Error placing order:", error);
       Alert.alert(
         "Order Failed", 
         error.message || "Something went wrong. Please try again."

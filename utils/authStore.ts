@@ -171,8 +171,7 @@ export const useAuthStore = create<AuthState>()(
             return { success: false, msg };
           }
         } catch (error: any) {
-          console.log(error)
-          let msg = error?.data?.error[0] || "Error occured, please try again";
+          let msg = error?.data?.error[0] || "Error occurred, please try again";
           
           return { success: false, msg };
          
