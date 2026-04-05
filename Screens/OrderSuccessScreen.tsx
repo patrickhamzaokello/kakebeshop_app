@@ -7,13 +7,11 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Animated,
-  Platform,
-  Dimensions,
-  StatusBar,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { cartService } from "@/utils/services/cartService";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface OrderGroup {
   id: string;
@@ -38,20 +36,16 @@ interface OrderSuccessScreenProps {
   orderGroupId?: string | string[];
 }
 
-export default function OrderSuccessScreen({
-  orderIds,
-  orderGroupId,
-}: OrderSuccessScreenProps) {
+export default function OrderSuccessScreen({ orderIds, orderGroupId }: OrderSuccessScreenProps) {
   const router = useRouter();
+  const { colors } = useTheme();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [orderGroup, setOrderGroup] = useState<OrderGroup | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Animations
   const [scaleAnim] = useState(new Animated.Value(0));
   const [fadeAnim] = useState(new Animated.Value(0));
-
 
   useEffect(() => {
     fetchOrders();
@@ -77,9 +71,7 @@ export default function OrderSuccessScreen({
   const fetchOrders = async () => {
     try {
       if (orderGroupId) {
-        const groupIdStr = Array.isArray(orderGroupId)
-          ? orderGroupId[0]
-          : orderGroupId;
+        const groupIdStr = Array.isArray(orderGroupId) ? orderGroupId[0] : orderGroupId;
         const data = await cartService.getOrdersByGroupID(groupIdStr);
         if (data) {
           setOrderGroup(data);
@@ -130,6 +122,8 @@ export default function OrderSuccessScreen({
     router.replace("/orders/");
   };
 
+  const styles = getStyles(colors);
+
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -139,10 +133,7 @@ export default function OrderSuccessScreen({
     );
   }
 
-  const totalAmount = orders.reduce(
-    (sum, order) => sum + parseFloat(order.total_amount),
-    0
-  );
+  const totalAmount = orders.reduce((sum, order) => sum + parseFloat(order.total_amount), 0);
 
   return (
     <View style={styles.container}>
@@ -153,12 +144,7 @@ export default function OrderSuccessScreen({
       >
         {/* Success Header */}
         <View style={styles.successContainer}>
-          <Animated.View
-            style={[
-              styles.successIconContainer,
-              { transform: [{ scale: scaleAnim }] },
-            ]}
-          >
+          <Animated.View style={[styles.successIconContainer, { transform: [{ scale: scaleAnim }] }]}>
             <View style={styles.successIconCircle}>
               <Ionicons name="checkmark-circle" size={80} color="#4CAF50" />
             </View>
@@ -174,10 +160,8 @@ export default function OrderSuccessScreen({
 
             {orderGroup && orderGroup.group_number && (
               <View style={styles.groupBadge}>
-                <Ionicons name="layers-outline" size={14} color="#666" />
-                <Text style={styles.groupBadgeText}>
-                  Group: {orderGroup.group_number}
-                </Text>
+                <Ionicons name="layers-outline" size={14} color={colors.textSecondary} />
+                <Text style={styles.groupBadgeText}>Group: {orderGroup.group_number}</Text>
               </View>
             )}
           </Animated.View>
@@ -198,13 +182,10 @@ export default function OrderSuccessScreen({
             <View style={styles.summaryCard}>
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Total Amount</Text>
-                <Text style={styles.totalAmount}>
-                  UGX {totalAmount.toLocaleString()}
-                </Text>
+                <Text style={styles.totalAmount}>UGX {totalAmount.toLocaleString()}</Text>
               </View>
             </View>
 
-            {/* Individual Orders */}
             {orders.map((order, index) => (
               <View key={order.id} style={styles.orderCard}>
                 <View style={styles.orderHeader}>
@@ -218,14 +199,8 @@ export default function OrderSuccessScreen({
 
                 <View style={styles.orderBody}>
                   <View style={styles.merchantRow}>
-                    <Ionicons
-                      name="storefront-outline"
-                      size={16}
-                      color="#666"
-                    />
-                    <Text style={styles.merchantName}>
-                      {order.merchant_name}
-                    </Text>
+                    <Ionicons name="storefront-outline" size={16} color={colors.textSecondary} />
+                    <Text style={styles.merchantName}>{order.merchant_name}</Text>
                   </View>
 
                   <View style={styles.amountRow}>
@@ -256,74 +231,30 @@ export default function OrderSuccessScreen({
             </View>
 
             <View style={styles.timelineCard}>
-              <View style={styles.timelineItem}>
-                <View style={[styles.timelineDot, styles.timelineDotActive]} />
-                <View style={styles.timelineContent}>
-                  <View style={styles.timelineHeader}>
-                    <Ionicons
-                      name="checkmark-circle"
-                      size={20}
-                      color="#4CAF50"
-                    />
-                    <Text style={styles.timelineTitle}>Order Confirmed</Text>
+              {[
+                { icon: "checkmark-circle", color: "#4CAF50", title: "Order Confirmed", desc: "Confirmation sent to your email", active: true },
+                { icon: "cube-outline", color: colors.textSecondary, title: "Processing", desc: orders.length > 1 ? "Merchants are preparing your items" : "Preparing your items", active: false },
+                { icon: "bicycle-outline", color: colors.textSecondary, title: "Out for Delivery", desc: "You'll receive tracking updates", active: false },
+                { icon: "home-outline", color: colors.textSecondary, title: "Delivered", desc: "Enjoy your purchase!", active: false },
+              ].map((step, i, arr) => (
+                <View key={i} style={[styles.timelineItem, i === arr.length - 1 && styles.timelineItemLast]}>
+                  <View style={[styles.timelineDot, step.active && styles.timelineDotActive]} />
+                  <View style={styles.timelineContent}>
+                    <View style={styles.timelineHeader}>
+                      <Ionicons name={step.icon as any} size={20} color={step.color} />
+                      <Text style={styles.timelineTitle}>{step.title}</Text>
+                    </View>
+                    <Text style={styles.timelineDescription}>{step.desc}</Text>
                   </View>
-                  <Text style={styles.timelineDescription}>
-                    Confirmation sent to your email
-                  </Text>
                 </View>
-              </View>
-
-              <View style={styles.timelineItem}>
-                <View style={styles.timelineDot} />
-                <View style={styles.timelineContent}>
-                  <View style={styles.timelineHeader}>
-                    <Ionicons name="cube-outline" size={20} color="#666" />
-                    <Text style={styles.timelineTitle}>Processing</Text>
-                  </View>
-                  <Text style={styles.timelineDescription}>
-                    {orders.length > 1
-                      ? "Merchants are preparing your items"
-                      : "Preparing your items"}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.timelineItem}>
-                <View style={styles.timelineDot} />
-                <View style={styles.timelineContent}>
-                  <View style={styles.timelineHeader}>
-                    <Ionicons name="bicycle-outline" size={20} color="#666" />
-                    <Text style={styles.timelineTitle}>Out for Delivery</Text>
-                  </View>
-                  <Text style={styles.timelineDescription}>
-                    You'll receive tracking updates
-                  </Text>
-                </View>
-              </View>
-
-              <View style={[styles.timelineItem, styles.timelineItemLast]}>
-                <View style={styles.timelineDot} />
-                <View style={styles.timelineContent}>
-                  <View style={styles.timelineHeader}>
-                    <Ionicons name="home-outline" size={20} color="#666" />
-                    <Text style={styles.timelineTitle}>Delivered</Text>
-                  </View>
-                  <Text style={styles.timelineDescription}>
-                    Enjoy your purchase!
-                  </Text>
-                </View>
-              </View>
+              ))}
             </View>
           </View>
 
           {/* Quick Actions */}
           <View style={styles.section}>
             <View style={styles.actionsRow}>
-              <TouchableOpacity
-                style={styles.actionButton}
-                onPress={handleViewAllOrders}
-                activeOpacity={0.7}
-              >
+              <TouchableOpacity style={styles.actionButton} onPress={handleViewAllOrders} activeOpacity={0.7}>
                 <View style={styles.actionIcon}>
                   <Ionicons name="list-outline" size={24} color="#E60549" />
                 </View>
@@ -336,11 +267,7 @@ export default function OrderSuccessScreen({
                 activeOpacity={0.7}
               >
                 <View style={styles.actionIcon}>
-                  <Ionicons
-                    name="help-circle-outline"
-                    size={24}
-                    color="#E60549"
-                  />
+                  <Ionicons name="help-circle-outline" size={24} color="#E60549" />
                 </View>
                 <Text style={styles.actionText}>Help & Support</Text>
               </TouchableOpacity>
@@ -350,11 +277,7 @@ export default function OrderSuccessScreen({
           {/* Info Note */}
           <View style={styles.section}>
             <View style={styles.infoNote}>
-              <Ionicons
-                name="information-circle-outline"
-                size={18}
-                color="#666"
-              />
+              <Ionicons name="information-circle-outline" size={18} color={colors.textSecondary} />
               <Text style={styles.infoNoteText}>
                 You will receive order updates via email and notifications
               </Text>
@@ -367,20 +290,12 @@ export default function OrderSuccessScreen({
 
       {/* Footer */}
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.secondaryButton}
-          onPress={handleViewAllOrders}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="receipt-outline" size={18} color="#666" />
+        <TouchableOpacity style={styles.secondaryButton} onPress={handleViewAllOrders} activeOpacity={0.7}>
+          <Ionicons name="receipt-outline" size={18} color={colors.textSecondary} />
           <Text style={styles.secondaryButtonText}>Track Orders</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.primaryButton}
-          onPress={handleContinueShopping}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.primaryButton} onPress={handleContinueShopping} activeOpacity={0.7}>
           <Ionicons name="storefront-outline" size={18} color="white" />
           <Text style={styles.primaryButtonText}>Continue Shopping</Text>
         </TouchableOpacity>
@@ -389,21 +304,21 @@ export default function OrderSuccessScreen({
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FAFAFA",
+    backgroundColor: colors.background,
   },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FAFAFA",
+    backgroundColor: colors.background,
   },
   loadingText: {
     marginTop: 16,
     fontSize: 15,
-    color: "#666",
+    color: colors.textSecondary,
     fontWeight: "500",
   },
   scrollView: {
@@ -413,13 +328,12 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
 
-  // Success Header
   successContainer: {
     alignItems: "center",
     paddingVertical: 48,
     paddingTop: 80,
     paddingHorizontal: 24,
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
   },
   successIconContainer: {
     marginBottom: 20,
@@ -431,20 +345,20 @@ const styles = StyleSheet.create({
   successTitle: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#1A1A1A",
+    color: colors.textPrimary,
     marginBottom: 8,
     textAlign: "center",
   },
   successSubtitle: {
     fontSize: 15,
-    color: "#666",
+    color: colors.textSecondary,
     textAlign: "center",
     lineHeight: 22,
   },
   groupBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F5F5F5",
+    backgroundColor: colors.backgroundSecondary,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 16,
@@ -454,10 +368,9 @@ const styles = StyleSheet.create({
   groupBadgeText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#666",
+    color: colors.textSecondary,
   },
 
-  // Section
   section: {
     marginTop: 16,
     paddingHorizontal: 20,
@@ -471,12 +384,11 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#1A1A1A",
+    color: colors.textPrimary,
   },
 
-  // Summary Card
   summaryCard: {
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -488,7 +400,7 @@ const styles = StyleSheet.create({
   },
   totalLabel: {
     fontSize: 14,
-    color: "#666",
+    color: colors.textSecondary,
     fontWeight: "500",
   },
   totalAmount: {
@@ -497,9 +409,8 @@ const styles = StyleSheet.create({
     color: "#E60549",
   },
 
-  // Order Card
   orderCard: {
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -511,10 +422,10 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    borderBottomColor: colors.border,
   },
   orderBadge: {
-    backgroundColor: "#F5F5F5",
+    backgroundColor: colors.backgroundSecondary,
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 6,
@@ -522,13 +433,13 @@ const styles = StyleSheet.create({
   orderBadgeText: {
     fontSize: 11,
     fontWeight: "700",
-    color: "#666",
+    color: colors.textSecondary,
     letterSpacing: 0.5,
   },
   orderNumber: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#1A1A1A",
+    color: colors.textPrimary,
     flex: 1,
   },
   orderBody: {
@@ -542,7 +453,7 @@ const styles = StyleSheet.create({
   },
   merchantName: {
     fontSize: 14,
-    color: "#666",
+    color: colors.textSecondary,
     fontWeight: "500",
   },
   amountRow: {
@@ -552,19 +463,19 @@ const styles = StyleSheet.create({
   },
   amountLabel: {
     fontSize: 13,
-    color: "#999",
+    color: colors.textMuted,
   },
   amountValue: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#1A1A1A",
+    color: colors.textPrimary,
   },
   viewButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 10,
-    backgroundColor: "#FFF5F8",
+    backgroundColor: colors.backgroundSecondary,
     borderRadius: 8,
     gap: 6,
   },
@@ -574,9 +485,8 @@ const styles = StyleSheet.create({
     color: "#E60549",
   },
 
-  // Timeline
   timelineCard: {
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 20,
   },
@@ -584,14 +494,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     position: "relative",
   },
-  timelineItemLast: {
-    // Remove connecting line for last item
-  },
+  timelineItemLast: {},
   timelineDot: {
     width: 12,
     height: 12,
     borderRadius: 6,
-    backgroundColor: "#E0E0E0",
+    backgroundColor: colors.border,
     marginTop: 4,
     marginRight: 12,
   },
@@ -602,7 +510,7 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingBottom: 20,
     borderLeftWidth: 2,
-    borderLeftColor: "#F0F0F0",
+    borderLeftColor: colors.border,
     marginLeft: -6,
     paddingLeft: 18,
   },
@@ -615,22 +523,21 @@ const styles = StyleSheet.create({
   timelineTitle: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#1A1A1A",
+    color: colors.textPrimary,
   },
   timelineDescription: {
     fontSize: 13,
-    color: "#666",
+    color: colors.textSecondary,
     lineHeight: 20,
   },
 
-  // Actions
   actionsRow: {
     flexDirection: "row",
     gap: 12,
   },
   actionButton: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     alignItems: "center",
@@ -640,20 +547,19 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#FFF5F8",
+    backgroundColor: colors.backgroundSecondary,
     justifyContent: "center",
     alignItems: "center",
   },
   actionText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#1A1A1A",
+    color: colors.textPrimary,
   },
 
-  // Info Note
   infoNote: {
     flexDirection: "row",
-    backgroundColor: "#F5F5F5",
+    backgroundColor: colors.backgroundSecondary,
     borderRadius: 12,
     padding: 14,
     gap: 10,
@@ -662,19 +568,18 @@ const styles = StyleSheet.create({
   infoNoteText: {
     flex: 1,
     fontSize: 13,
-    color: "#666",
+    color: colors.textSecondary,
     lineHeight: 20,
   },
 
-  // Footer
   footer: {
     flexDirection: "row",
     paddingHorizontal: 20,
     paddingVertical: 16,
     paddingBottom: 24,
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: "#F0F0F0",
+    borderTopColor: colors.border,
     gap: 12,
   },
   secondaryButton: {
@@ -683,14 +588,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 14,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: colors.backgroundSecondary,
     borderRadius: 10,
     gap: 6,
   },
   secondaryButtonText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#666",
+    color: colors.textSecondary,
   },
   primaryButton: {
     flex: 1,

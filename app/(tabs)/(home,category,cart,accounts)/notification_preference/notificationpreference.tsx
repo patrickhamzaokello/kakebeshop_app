@@ -1,36 +1,28 @@
-import ScreenWrapper from "@/components/ScreenWrapper";
 import {
     StatusBar,
-  StyleSheet,
   View,
 } from "react-native";
-import Typo from "@/components/Typo";
 import { useFocusEffect } from "expo-router";
 import { useCallback } from "react";
+import { useTheme } from "@/contexts/ThemeContext";
 import { DetailHeaderSection } from "@/components/test/DetailHeader";
 import NotificationPreferencesScreen from "@/Screens/NotificationPreferenceScreen";
 
 export default function WishlistMain() {
+  const { isDark, colors } = useTheme();
 
 
     useFocusEffect(
          useCallback(() => {
-           StatusBar.setBarStyle("dark-content");
-         }, [])
+           StatusBar.setBarStyle(isDark ? "light-content" : "dark-content");
+         }, [isDark])
        );
    
      return (
-       <View style={{ flex: 1 }}>
+       <View style={{ flex: 1, backgroundColor: colors.background }}>
             <DetailHeaderSection title="Preferences" subheading="Choose the notifications you would like to receive" />
             <NotificationPreferencesScreen />
        </View>
      );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-
-});

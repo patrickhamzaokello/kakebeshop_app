@@ -18,6 +18,7 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { colors, spacingX, spacingY, radius } from "@/constants/theme";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Listing } from "@/utils/types/models";
 import { ListingImage } from "@/components/test/common/ListingImage";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -255,6 +256,7 @@ const MerchantShimmerCard = () => (
 );
 
 export default function SearchPage() {
+  const { isDark } = useTheme();
   const router = useRouter();
   const searchInputRef = useRef<TextInput>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -651,7 +653,7 @@ export default function SearchPage() {
 
   return (
     <View style={styles.container}>
-      <StatusBar style="dark" />
+      <StatusBar style={isDark ? "light" : "dark"} />
 
       <SafeAreaView edges={["top"]} style={styles.safeArea}>
         {/* Search Header */}

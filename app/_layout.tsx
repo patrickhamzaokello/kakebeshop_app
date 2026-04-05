@@ -8,6 +8,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { StyleSheet } from "react-native";
 import { useCartStore } from "@/utils/stores/useCartStore";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
+import { postUserIntent } from "@/utils/apiEndpoints";
 
 // Inner layout component that uses theme
 const RootLayoutContent = () => {
@@ -16,6 +17,7 @@ const RootLayoutContent = () => {
     hasCompletedOnboarding,
     isLoading: authLoading,
     checkAuthState,
+    completeOnboarding,
   } = useAuthStore();
 
   const { fetchCartCount } = useCartStore();
@@ -32,9 +34,17 @@ const RootLayoutContent = () => {
 
   useEffect(() => {
     if (!authLoading && isLoggedIn) {
-      fetchCartCount(); // Only fetch if user is logged in
+      fetchCartCount();
+
+      // Onboarding removed — default all users to "both" (buy & sell).
+      // This silently completes onboarding for any user who hasn't done it yet
+      // (new sign-ups or users who had the old onboarding flow).
+      if (!hasCompletedOnboarding) {
+        postUserIntent("both").catch(() => {});
+        completeOnboarding();
+      }
     }
-  }, [authLoading, isLoggedIn]);
+  }, [authLoading, isLoggedIn, hasCompletedOnboarding]);
 
   if (authLoading) {
     return (
@@ -56,14 +66,8 @@ const RootLayoutContent = () => {
             contentStyle: { backgroundColor: colors.background },
           }}
         >
-          <Stack.Protected
-            guard={isLoggedIn && hasCompletedOnboarding}
-          >
+          <Stack.Protected guard={isLoggedIn}>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          </Stack.Protected>
-
-          <Stack.Protected guard={isLoggedIn && !hasCompletedOnboarding}>
-            <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           </Stack.Protected>
 
           <Stack.Protected guard={!isLoggedIn}>

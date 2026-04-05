@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -12,17 +12,15 @@ import {
   Share,
   Alert,
   Animated,
-  Linking,
   Modal,
   Pressable,
+  StatusBar,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
-import {
-  Ionicons,
-  MaterialIcons,
-  MaterialCommunityIcons,
-} from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import {
   radius,
@@ -49,183 +47,241 @@ import {
 import { useTheme } from "@/contexts/ThemeContext";
 import { ListingImage } from "@/components/test/common/ListingImage";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const IMAGE_HEIGHT = SCREEN_WIDTH * 0.9;
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const IMAGE_HEIGHT = SCREEN_WIDTH * 0.95;
+const CONTENT_OVERLAP = 24;
+const HEADER_TRIGGER = IMAGE_HEIGHT - 80;
 
-// Shimmer Placeholder Component
+// ─── Image Lightbox ───────────────────────────────────────────────────────────
+
+interface ImageLightboxProps {
+  visible: boolean;
+  images: { large?: { image: string }; thumb?: { image: string } }[];
+  initialIndex: number;
+  onClose: () => void;
+}
+
+const ImageLightbox: React.FC<ImageLightboxProps> = ({ visible, images, initialIndex, onClose }) => {
+  const insets = useSafeAreaInsets();
+  const scrollRef = useRef<ScrollView>(null);
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      setCurrentIndex(initialIndex);
+      Animated.timing(fadeAnim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
+      // Scroll to initial index after mount
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({ x: initialIndex * SCREEN_WIDTH, animated: false });
+      }, 50);
+    } else {
+      fadeAnim.setValue(0);
+    }
+  }, [visible, initialIndex]);
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      onRequestClose={onClose}
+      statusBarTranslucent
+    >
+      <Animated.View style={[lightboxStyles.root, { opacity: fadeAnim }]}>
+        {/* Close button */}
+        <TouchableOpacity
+          style={[lightboxStyles.closeBtn, { top: insets.top + 10 }]}
+          onPress={onClose}
+          activeOpacity={0.82}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="close" size={22} color="#fff" />
+        </TouchableOpacity>
+
+        {/* Counter */}
+        {images.length > 1 && (
+          <View style={[lightboxStyles.counter, { top: insets.top + 14 }]}>
+            <Text style={lightboxStyles.counterText}>
+              {currentIndex + 1} / {images.length}
+            </Text>
+          </View>
+        )}
+
+        {/* Image pager */}
+        <ScrollView
+          ref={scrollRef}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          decelerationRate="fast"
+          onMomentumScrollEnd={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
+            const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+            setCurrentIndex(idx);
+          }}
+          scrollEventThrottle={16}
+          style={{ flex: 1 }}
+        >
+          {images.map((img, i) => (
+            <View key={i} style={lightboxStyles.imageWrap}>
+              <Image
+                source={{ uri: img.large?.image || img.thumb?.image }}
+                style={lightboxStyles.image}
+                resizeMode="contain"
+              />
+            </View>
+          ))}
+        </ScrollView>
+
+        {/* Dot indicators */}
+        {images.length > 1 && (
+          <View style={[lightboxStyles.dotsRow, { bottom: insets.bottom + 24 }]}>
+            {images.map((_, i) => (
+              <View
+                key={i}
+                style={[
+                  lightboxStyles.dot,
+                  {
+                    backgroundColor: i === currentIndex ? "#fff" : "rgba(255,255,255,0.35)",
+                    width: i === currentIndex ? 20 : 7,
+                  },
+                ]}
+              />
+            ))}
+          </View>
+        )}
+      </Animated.View>
+    </Modal>
+  );
+};
+
+const lightboxStyles = StyleSheet.create({
+  root: {
+    flex: 1,
+    backgroundColor: "#000",
+    justifyContent: "center",
+  },
+  closeBtn: {
+    position: "absolute",
+    right: 16,
+    zIndex: 10,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  counter: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    alignItems: "center",
+  },
+  counterText: {
+    color: "rgba(255,255,255,0.75)",
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  imageWrap: {
+    width: SCREEN_WIDTH,
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  image: {
+    width: SCREEN_WIDTH,
+    height: SCREEN_HEIGHT,
+  },
+  dotsRow: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 5,
+  },
+  dot: {
+    height: 7,
+    borderRadius: 3.5,
+  },
+});
+
+// ─── Shimmer ─────────────────────────────────────────────────────────────────
+
 const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
-  const animatedValue = new Animated.Value(0);
+  const anim = useRef(new Animated.Value(0)).current;
   const { colors } = useTheme();
 
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
-        Animated.timing(animatedValue, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(animatedValue, {
-          toValue: 0,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
+        Animated.timing(anim, { toValue: 1, duration: 900, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0, duration: 900, useNativeDriver: true }),
       ])
     ).start();
   }, []);
 
-  const opacity = animatedValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.3, 0.7],
-  });
+  const opacity = anim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
 
-  return (
-    <Animated.View
-      style={[
-        {
-          backgroundColor: colors.gray300,
-          opacity,
-        },
-        style,
-      ]}
-    />
-  );
+  return <Animated.View style={[{ backgroundColor: colors.border, opacity }, style]} />;
 };
 
-// Loading Skeleton Component
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
 const ListingDetailsSkeleton = () => {
   const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.container}>
-      <SafeAreaView edges={["top"]} style={styles.safeArea}>
-        {/* Header skeleton */}
-        <View style={styles.header}>
-          <ShimmerPlaceholder
-            style={{
-              width: scale(40),
-              height: scale(40),
-              borderRadius: radius._20,
-            }}
-          />
-          <ShimmerPlaceholder
-            style={{
-              width: scale(40),
-              height: scale(40),
-              borderRadius: radius._20,
-            }}
-          />
-        </View>
-      </SafeAreaView>
-
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Image skeleton */}
-        <ShimmerPlaceholder
-          style={{ width: SCREEN_WIDTH, height: IMAGE_HEIGHT }}
-        />
-
-        <View style={styles.contentContainer}>
-          {/* Title skeleton */}
-          <ShimmerPlaceholder
-            style={{
-              width: "80%",
-              height: verticalScale(24),
-              borderRadius: radius._4,
-              marginBottom: spacingY._8,
-            }}
-          />
-          <ShimmerPlaceholder
-            style={{
-              width: "60%",
-              height: verticalScale(24),
-              borderRadius: radius._4,
-              marginBottom: spacingY._16,
-            }}
-          />
-
-          {/* Price skeleton */}
-          <ShimmerPlaceholder
-            style={{
-              width: "40%",
-              height: verticalScale(32),
-              borderRadius: radius._4,
-              marginBottom: spacingY._24,
-            }}
-          />
-
-          {/* Seller card skeleton */}
-          <View style={styles.sellerCard}>
-            <ShimmerPlaceholder
-              style={{
-                width: scale(50),
-                height: scale(50),
-                borderRadius: scale(25),
-              }}
-            />
-            <View style={{ flex: 1, marginLeft: spacingX._12 }}>
-              <ShimmerPlaceholder
-                style={{
-                  width: "70%",
-                  height: verticalScale(16),
-                  borderRadius: radius._4,
-                  marginBottom: spacingY._8,
-                }}
-              />
-              <ShimmerPlaceholder
-                style={{
-                  width: "50%",
-                  height: verticalScale(12),
-                  borderRadius: radius._4,
-                }}
-              />
-            </View>
-          </View>
-
-          {/* Description skeleton */}
-          <ShimmerPlaceholder
-            style={{
-              width: "100%",
-              height: verticalScale(80),
-              borderRadius: radius._8,
-              marginTop: spacingY._16,
-            }}
-          />
-        </View>
-      </ScrollView>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+      <ShimmerPlaceholder style={{ width: SCREEN_WIDTH, height: IMAGE_HEIGHT }} />
+      <View style={{ padding: 16, marginTop: -CONTENT_OVERLAP }}>
+        <ShimmerPlaceholder style={{ height: 10, width: "40%", borderRadius: 6, marginBottom: 12 }} />
+        <ShimmerPlaceholder style={{ height: 22, width: "85%", borderRadius: 6, marginBottom: 8 }} />
+        <ShimmerPlaceholder style={{ height: 22, width: "65%", borderRadius: 6, marginBottom: 14 }} />
+        <ShimmerPlaceholder style={{ height: 28, width: "50%", borderRadius: 6, marginBottom: 20 }} />
+        <ShimmerPlaceholder style={{ height: 72, width: "100%", borderRadius: 12, marginBottom: 16 }} />
+        <ShimmerPlaceholder style={{ height: 13, width: "100%", borderRadius: 6, marginBottom: 8 }} />
+        <ShimmerPlaceholder style={{ height: 13, width: "90%", borderRadius: 6, marginBottom: 8 }} />
+        <ShimmerPlaceholder style={{ height: 13, width: "75%", borderRadius: 6 }} />
+      </View>
     </View>
   );
 };
 
-// Similar Listing Card Component
+// ─── Similar listing card ──────────────────────────────────────────────────────
+
 const SimilarListingCard: React.FC<{
   item: SimilarListingItem;
   onPress: () => void;
   showMerchant?: boolean;
 }> = ({ item, onPress, showMerchant = false }) => {
   const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
 
   return (
     <TouchableOpacity
-      style={styles.similarCard}
+      style={[styles.similarCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
       onPress={onPress}
-      activeOpacity={0.7}
+      activeOpacity={0.75}
     >
       <ListingImage
         primaryImage={item.primary_image?.image}
         style={styles.similarCardImage}
       />
       <View style={styles.similarCardContent}>
-        <Text style={styles.similarCardTitle} numberOfLines={2}>
+        <Text style={[styles.similarCardTitle, { color: colors.textPrimary }]} numberOfLines={2}>
           {item.title}
         </Text>
         {showMerchant && (
-          <Text style={styles.similarCardMerchant} numberOfLines={1}>
+          <Text style={[styles.similarCardMerchant, { color: colors.textMuted }]} numberOfLines={1}>
             {item.merchant.display_name}
           </Text>
         )}
-        <Text style={styles.similarCardPrice}>
+        <Text style={[styles.similarCardPrice, { color: colors.primary }]}>
           {item.currency} {parseFloat(item.price).toLocaleString()}
         </Text>
       </View>
@@ -233,14 +289,16 @@ const SimilarListingCard: React.FC<{
   );
 };
 
-// Main Component
+// ─── Main component ───────────────────────────────────────────────────────────
+
 export default function ListingDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { isLoggedIn } = useAuthStore();
   const { addToCart, fetchCart } = useCartStore();
+  const { colors, isDark } = useTheme();
 
-  // Listing cache store
   const {
     fetchAllCacheableData,
     getCachedListing,
@@ -248,16 +306,12 @@ export default function ListingDetailsScreen() {
     getCachedSimilarMarketplace,
   } = useListingDetailStore();
 
-  // Derived state from cache store
   const listing = getCachedListing(id ?? "");
   const similarMerchant = getCachedSimilarMerchant(id ?? "");
   const similarMarketplace = getCachedSimilarMarketplace(id ?? "");
 
-  // Local state (user-specific, not cached)
   const [cartStatus, setCartStatus] = useState<CartCheckResponse | null>(null);
-  const [wishlistStatus, setWishlistStatus] =
-    useState<WishlistCheckResponse | null>(null);
-
+  const [wishlistStatus, setWishlistStatus] = useState<WishlistCheckResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
@@ -265,38 +319,55 @@ export default function ListingDetailsScreen() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [contactModalVisible, setContactModalVisible] = useState(false);
+  const [descExpanded, setDescExpanded] = useState(false);
+  const [headerShown, setHeaderShown] = useState(false);
+  const [lightboxVisible, setLightboxVisible] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState(0);
 
-  // Check if cart is allowed (only for FIXED price type)
   const isCartAllowed = listing?.price_type === "FIXED";
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
 
-  // Fetch all data (cacheable data via store, user-specific data fresh)
+  // Scroll animation
+  const scrollY = useRef(new Animated.Value(0)).current;
+
+  const floatOpacity = scrollY.interpolate({
+    inputRange: [HEADER_TRIGGER - 40, HEADER_TRIGGER],
+    outputRange: [1, 0],
+    extrapolate: "clamp",
+  });
+
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [HEADER_TRIGGER, HEADER_TRIGGER + 40],
+    outputRange: [0, 1],
+    extrapolate: "clamp",
+  });
+
+  useEffect(() => {
+    const listener = scrollY.addListener(({ value }) => {
+      const should = value > HEADER_TRIGGER;
+      setHeaderShown((prev) => (prev !== should ? should : prev));
+    });
+    return () => scrollY.removeListener(listener);
+  }, []);
+
+  // ── Data fetching ──
+
   const fetchAllData = useCallback(
     async (forceRefresh = false) => {
       if (!id) return;
-
       try {
-        // Fetch cacheable data through the store
         const cacheResult = await fetchAllCacheableData(id, forceRefresh);
-
         if (!cacheResult) {
           Alert.alert("Error", "Listing not found");
           router.back();
           return;
         }
-
-        // Fetch user-specific data directly (not cached)
         if (isLoggedIn) {
           const [cartResult, wishlistResult] = await Promise.all([
             listingDetailsService.checkCartStatus(id),
             listingDetailsService.checkWishlistStatus(id),
           ]);
-
           setCartStatus(cartResult);
           setWishlistStatus(wishlistResult);
-
-          // Pre-fill quantity if item is already in cart
           if (cartResult?.in_cart && cartResult?.quantity) {
             setQuantity(cartResult.quantity);
           }
@@ -313,16 +384,16 @@ export default function ListingDetailsScreen() {
   );
 
   useEffect(() => {
-    fetchAllData(false); // Uses cache if available
+    fetchAllData(false);
   }, [fetchAllData]);
 
-  // Handle refresh
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    fetchAllData(true); // Force bypass cache
+    fetchAllData(true);
   }, [fetchAllData]);
 
-  // Handle add to cart
+  // ── Actions ──
+
   const handleAddToCart = async () => {
     if (!isLoggedIn) {
       Alert.alert("Login Required", "Please login to add items to cart", [
@@ -331,70 +402,55 @@ export default function ListingDetailsScreen() {
       ]);
       return;
     }
-
     if (!id) return;
-
     setAddingToCart(true);
     try {
       const success = await addToCart(id, quantity);
       if (success) {
         setCartStatus({ in_cart: true, cart_item_id: null, quantity });
-        Alert.alert("Success", "Item added to cart");
+        Alert.alert("Added to cart", "Item added to your cart");
         await fetchCart();
       } else {
         Alert.alert("Error", "Failed to add item to cart");
       }
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "Failed to add item to cart");
     } finally {
       setAddingToCart(false);
     }
   };
 
-  // Handle wishlist toggle
   const handleWishlistToggle = async () => {
     if (!isLoggedIn) {
-      Alert.alert("Login Required", "Please login to add items to wishlist", [
+      Alert.alert("Login Required", "Please login to save to wishlist", [
         { text: "Cancel", style: "cancel" },
         { text: "Login", onPress: () => router.push("/(auth)/login") },
       ]);
       return;
     }
-
     if (!id) return;
-
     setTogglingWishlist(true);
     try {
       if (wishlistStatus?.in_wishlist) {
-        const success = await listingDetailsService.RemoveListingFromWishlist(
-          id
-        );
-        if (success) {
-          setWishlistStatus({ in_wishlist: false });
-        }
+        const ok = await listingDetailsService.RemoveListingFromWishlist(id);
+        if (ok) setWishlistStatus({ in_wishlist: false });
       } else {
-        const success = await listingDetailsService.AddListingtoWishlist(id);
-        if (success) {
-          setWishlistStatus({ in_wishlist: true });
-        }
+        const ok = await listingDetailsService.AddListingtoWishlist(id);
+        if (ok) setWishlistStatus({ in_wishlist: true });
       }
-    } catch (error) {
+    } catch {
       Alert.alert("Error", "Failed to update wishlist");
     } finally {
       setTogglingWishlist(false);
     }
   };
 
-  // Handle share
   const handleShare = async () => {
     if (!listing) return;
-
     try {
       await Share.share({
         title: listing.title,
-        message: `Check out ${listing.title} on Kakebe Shop!\n\n${
-          listing.currency
-        } ${parseFloat(listing.price).toLocaleString()}`,
+        message: `Check out ${listing.title} on Kakebe Shop!\n\n${listing.currency} ${parseFloat(listing.price).toLocaleString()}`,
         url: `https://kakebeshop.com/listing/${id}`,
       });
     } catch (error) {
@@ -402,270 +458,254 @@ export default function ListingDetailsScreen() {
     }
   };
 
-  // Handle similar listing press
   const handleSimilarListingPress = (listingId: string) => {
-    router.push({
-      pathname: "/listing/[id]",
-      params: { id: listingId },
-    });
+    router.push({ pathname: "/listing/[id]", params: { id: listingId } });
   };
 
-  // Handle merchant press
   const handleMerchantPress = () => {
     if (listing?.merchant?.id) {
-      router.push({
-        pathname: "/merchant/[id]",
-        params: { id: listing.merchant.id },
-      });
+      router.push({ pathname: "/merchant/[id]", params: { id: listing.merchant.id } });
     }
   };
 
-  // Format price based on price type
-  const formatPrice = (price: string | null, currency: string) => {
-    if (!price) return "";
-    return `${currency} ${parseFloat(price).toLocaleString()}`;
-  };
+  const handleContactMerchant = () => setContactModalVisible(true);
 
-  // Get display price based on price type
-  const getDisplayPrice = () => {
-    if (!listing) return "";
-
-    switch (listing.price_type) {
-      case "FIXED":
-        return formatPrice(listing.price, listing.currency);
-      case "RANGE":
-        const minPrice = listing.price_min
-          ? parseFloat(listing.price_min).toLocaleString()
-          : "0";
-        const maxPrice = listing.price_max
-          ? parseFloat(listing.price_max).toLocaleString()
-          : "0";
-        return `${listing.currency} ${minPrice} - ${maxPrice}`;
-      case "ON_REQUEST":
-        return "Contact for Price";
-      default:
-        return listing.price
-          ? formatPrice(listing.price, listing.currency)
-          : "Contact for Price";
-    }
-  };
-
-  // Handle contact merchant
-  const handleContactMerchant = () => {
-    setContactModalVisible(true);
-  };
-
-  // Handle call merchant
   const handleCallMerchant = async () => {
     setContactModalVisible(false);
-
-    // For now, we'll show an alert since we don't have the merchant phone in the current data
-    // In a real implementation, you would get the phone from merchant details or a separate API call
     Alert.alert(
       "Contact Merchant",
       `Would you like to call ${listing?.merchant.display_name}?`,
       [
         { text: "Cancel", style: "cancel" },
-        {
-          text: "Call",
-          onPress: () => {
-            // If merchant has a phone number, use it
-            // For demo, we'll show a placeholder
-            Alert.alert(
-              "Info",
-              "Merchant contact information will be available soon."
-            );
-            // Linking.openURL(`tel:+256700000000`);
-          },
-        },
+        { text: "Call", onPress: () => Alert.alert("Info", "Merchant contact will be available soon.") },
       ]
     );
   };
 
-  // Handle message merchant
   const handleMessageMerchant = () => {
     setContactModalVisible(false);
-
-    // Navigate to a chat/message screen or show contact options
     Alert.alert(
       "Message Merchant",
-      `Send a message to ${listing?.merchant.display_name} about "${listing?.title}"`,
+      `Send a message to ${listing?.merchant.display_name}`,
       [
         { text: "Cancel", style: "cancel" },
-        {
-          text: "WhatsApp",
-          onPress: () => {
-            // For demo - in production, get actual phone
-            const message = encodeURIComponent(
-              `Hi, I'm interested in your listing: ${listing?.title}`
-            );
-            // Linking.openURL(`https://wa.me/256700000000?text=${message}`);
-            Alert.alert("Info", "WhatsApp contact will be available soon.");
-          },
-        },
-        {
-          text: "In-App Message",
-          onPress: () => {
-            // Navigate to in-app messaging
-            Alert.alert("Info", "In-app messaging coming soon.");
-          },
-        },
+        { text: "WhatsApp", onPress: () => Alert.alert("Info", "WhatsApp contact will be available soon.") },
+        { text: "In-App Message", onPress: () => Alert.alert("Info", "In-app messaging coming soon.") },
       ]
     );
   };
 
-  // Get images array
-  const getImages = () => {
-    if (!listing?.images || listing.images.length === 0) {
-      return [];
+  // ── Price formatting ──
+
+  const getDisplayPrice = () => {
+    if (!listing) return "";
+    switch (listing.price_type) {
+      case "FIXED":
+        return `${listing.currency} ${parseFloat(listing.price).toLocaleString()}`;
+      case "RANGE":
+        return `${listing.currency} ${parseFloat(listing.price_min || "0").toLocaleString()} – ${parseFloat(listing.price_max || "0").toLocaleString()}`;
+      case "ON_REQUEST":
+        return "Price on request";
+      default:
+        return listing.price ? `${listing.currency} ${parseFloat(listing.price).toLocaleString()}` : "Contact for price";
     }
-    return listing.images;
   };
 
-  if (loading) {
-    return <ListingDetailsSkeleton />;
-  }
+  // ── Render ──
+
+  if (loading) return <ListingDetailsSkeleton />;
 
   if (!listing) {
     return (
-      <View style={styles.errorContainer}>
-        <Ionicons
-          name="alert-circle-outline"
-          size={64}
-          color={colors.gray400}
-        />
-        <Text style={styles.errorText}>Listing not found</Text>
+      <View style={[styles.errorContainer, { backgroundColor: colors.background }]}>
+        <Ionicons name="alert-circle-outline" size={64} color={colors.textMuted} />
+        <Text style={[styles.errorText, { color: colors.textSecondary }]}>Listing not found</Text>
         <TouchableOpacity
-          style={styles.errorButton}
+          style={[styles.errorButton, { backgroundColor: colors.primary }]}
           onPress={() => router.back()}
         >
-          <Text style={styles.errorButtonText}>Go Back</Text>
+          <Text style={[styles.errorButtonText, { color: "#fff" }]}>Go Back</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const images = getImages();
+  const images = listing.images ?? [];
+  const description = listing.description ?? "";
+  const shortDesc = description.length > 220 ? description.slice(0, 220).trimEnd() + "…" : description;
+  const inWishlist = !!wishlistStatus?.in_wishlist;
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <SafeAreaView edges={["top"]} style={styles.safeArea}>
-        <View style={styles.header}>
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
+      <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
+
+      {/* ── Floating nav (fades out as sticky header appears) ── */}
+      <Animated.View
+        style={[styles.floatingNav, { top: insets.top + 6, opacity: floatOpacity }]}
+        pointerEvents={headerShown ? "none" : "box-none"}
+      >
+        <TouchableOpacity style={styles.floatBtn} onPress={() => router.back()} activeOpacity={0.82}>
+          <Ionicons name="arrow-back" size={20} color="#fff" />
+        </TouchableOpacity>
+        <View style={styles.floatRight}>
+          <TouchableOpacity style={styles.floatBtn} onPress={handleShare} activeOpacity={0.82}>
+            <Ionicons name="share-outline" size={20} color="#fff" />
+          </TouchableOpacity>
           <TouchableOpacity
-            style={styles.headerButton}
-            onPress={() => router.back()}
-            activeOpacity={0.7}
+            style={styles.floatBtn}
+            onPress={handleWishlistToggle}
+            activeOpacity={0.82}
+            disabled={togglingWishlist}
           >
-            <Ionicons name="arrow-back" size={24} color={colors.black} />
+            {togglingWishlist ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Ionicons
+                name={inWishlist ? "heart" : "heart-outline"}
+                size={20}
+                color={inWishlist ? "#ff6b6b" : "#fff"}
+              />
+            )}
+          </TouchableOpacity>
+        </View>
+      </Animated.View>
+
+      {/* ── Sticky compact header (fades in after scroll) ── */}
+      <Animated.View
+        style={[styles.stickyHeader, { opacity: headerOpacity, backgroundColor: colors.surface, borderBottomColor: colors.border }]}
+        pointerEvents={headerShown ? "box-none" : "none"}
+      >
+        <View style={[styles.stickyHeaderInner, { paddingTop: insets.top + 6 }]}>
+          <TouchableOpacity
+            style={[styles.stickyHeaderBtn, { backgroundColor: colors.backgroundSecondary }]}
+            onPress={() => router.back()}
+            activeOpacity={0.75}
+          >
+            <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
 
-          <View style={styles.headerActions}>
-            <TouchableOpacity
-              style={styles.headerButton}
-              onPress={handleShare}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="share-outline" size={24} color={colors.black} />
-            </TouchableOpacity>
+          <Text style={[styles.stickyTitle, { color: colors.textPrimary }]} numberOfLines={1}>
+            {listing.title}
+          </Text>
 
+          <View style={styles.stickyActions}>
             <TouchableOpacity
-              style={styles.headerButton}
+              style={[styles.stickyHeaderBtn, { backgroundColor: colors.backgroundSecondary }]}
+              onPress={handleShare}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="share-outline" size={18} color={colors.textPrimary} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.stickyHeaderBtn, { backgroundColor: colors.backgroundSecondary }]}
               onPress={handleWishlistToggle}
-              activeOpacity={0.7}
+              activeOpacity={0.75}
               disabled={togglingWishlist}
             >
-              {togglingWishlist ? (
-                <ActivityIndicator size="small" color={colors.primary} />
-              ) : (
-                <Ionicons
-                  name={wishlistStatus?.in_wishlist ? "heart" : "heart-outline"}
-                  size={24}
-                  color={
-                    wishlistStatus?.in_wishlist ? colors.primary : colors.black
-                  }
-                />
-              )}
+              <Ionicons
+                name={inWishlist ? "heart" : "heart-outline"}
+                size={18}
+                color={inWishlist ? "#E60549" : colors.textSecondary}
+              />
             </TouchableOpacity>
           </View>
         </View>
-      </SafeAreaView>
+      </Animated.View>
 
-      <ScrollView
+      {/* ── Scrollable content ── */}
+      <Animated.ScrollView
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            progressViewOffset={insets.top}
+          />
         }
+        contentContainerStyle={{ paddingBottom: 120 }}
       >
-        {/* Image Gallery */}
-        <View style={styles.imageContainer}>
+        {/* ── Image section (edge to edge, from top of screen) ── */}
+        <View style={[styles.imageSection, { height: IMAGE_HEIGHT }]}>
           {images.length > 0 ? (
-            <>
-              {/* Main Large Image */}
-              <ListingImage
-                primaryImage={
-                  images[currentImageIndex]?.large?.image ||
-                  images[currentImageIndex]?.thumb?.image
-                }
-                style={styles.mainImage}
-              />
-
-              {/* Thumbnail Selector */}
-              {images.length > 1 && (
-                <View style={styles.thumbnailContainer}>
-                  <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.thumbnailScrollContent}
-                  >
-                    {images.map((image, index) => (
-                      <TouchableOpacity
-                        key={`thumb-${index}`}
-                        style={[
-                          styles.thumbnailWrapper,
-                          index === currentImageIndex &&
-                            styles.thumbnailWrapperActive,
-                        ]}
-                        onPress={() => setCurrentImageIndex(index)}
-                        activeOpacity={0.7}
-                      >
-                        <ListingImage
-                          primaryImage={image.thumb?.image}
-                          style={styles.thumbnailImage}
-                        />
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
-              )}
-            </>
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              decelerationRate="fast"
+              onScroll={(e: NativeSyntheticEvent<NativeScrollEvent>) => {
+                const idx = Math.round(e.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+                setCurrentImageIndex(idx);
+              }}
+              scrollEventThrottle={16}
+              style={{ flex: 1 }}
+            >
+              {images.map((img, i) => (
+                <TouchableOpacity
+                  key={i}
+                  activeOpacity={0.95}
+                  onPress={() => { setLightboxIndex(i); setLightboxVisible(true); }}
+                >
+                  <Image
+                    source={{ uri: img.large?.image || img.thumb?.image }}
+                    style={{ width: SCREEN_WIDTH, height: IMAGE_HEIGHT }}
+                    resizeMode="cover"
+                  />
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
           ) : (
-            <ListingImage primaryImage={""} style={styles.mainImage} />
+            <ListingImage primaryImage="" style={{ width: SCREEN_WIDTH, height: IMAGE_HEIGHT }} />
           )}
 
-          {/* Badges */}
-          <View style={styles.badgesContainer}>
+          {/* Bottom gradient for readability */}
+          <LinearGradient
+            colors={["transparent", "rgba(0,0,0,0.55)"]}
+            style={styles.imageGradient}
+            pointerEvents="none"
+          />
+
+          {/* Badges — top left, below floating nav */}
+          <View style={[styles.badgeRow, { top: insets.top + 52 }]}>
             {listing.is_featured && (
-              <View style={[styles.badge, styles.featuredBadge]}>
-                <Ionicons name="star" size={12} color={colors.white} />
+              <View style={styles.featuredBadge}>
+                <Ionicons name="star" size={10} color="#fff" />
                 <Text style={styles.badgeText}>Featured</Text>
               </View>
             )}
             {listing.is_verified && (
-              <View style={[styles.badge, styles.verifiedBadge]}>
-                <Ionicons
-                  name="checkmark-circle"
-                  size={12}
-                  color={colors.white}
-                />
+              <View style={styles.verifiedBadge}>
+                <Ionicons name="checkmark-circle" size={10} color="#fff" />
                 <Text style={styles.badgeText}>Verified</Text>
               </View>
             )}
           </View>
 
-          {/* Image Counter */}
+          {/* Dot indicators — bottom of image */}
           {images.length > 1 && (
-            <View style={styles.imageCounter}>
+            <View style={styles.dotsRow} pointerEvents="none">
+              {images.map((_, i) => (
+                <View
+                  key={i}
+                  style={[
+                    styles.dot,
+                    {
+                      backgroundColor: i === currentImageIndex ? "#fff" : "rgba(255,255,255,0.45)",
+                      width: i === currentImageIndex ? 18 : 6,
+                    },
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+
+          {/* Image counter text */}
+          {images.length > 1 && (
+            <View style={styles.imageCounter} pointerEvents="none">
               <Text style={styles.imageCounterText}>
                 {currentImageIndex + 1} / {images.length}
               </Text>
@@ -673,156 +713,170 @@ export default function ListingDetailsScreen() {
           )}
         </View>
 
-        <View style={styles.contentContainer}>
-          {/* Category & Type */}
-          <View style={styles.metaRow}>
-            <View style={styles.categoryChip}>
-              <Text style={styles.categoryText}>
-                {listing.category?.name || "General"}
-              </Text>
-            </View>
-            <View style={styles.typeChip}>
-              <Text style={styles.typeText}>
+        {/* ── Content card (overlaps image bottom) ── */}
+        <View style={[styles.contentCard, { backgroundColor: colors.background, marginTop: -CONTENT_OVERLAP }]}>
+
+          {/* Pull handle */}
+          <View style={styles.handleRow}>
+            <View style={[styles.handle, { backgroundColor: colors.border }]} />
+          </View>
+
+          {/* Category + type chips */}
+          <View style={styles.chipsRow}>
+            {listing.category?.name && (
+              <View style={[styles.chip, { backgroundColor: colors.backgroundSecondary }]}>
+                <Text style={[styles.chipText, { color: colors.primary }]}>
+                  {listing.category.name}
+                </Text>
+              </View>
+            )}
+            <View style={[styles.chip, { backgroundColor: colors.backgroundSecondary }]}>
+              <Text style={[styles.chipText, { color: colors.textSecondary }]}>
                 {listing.listing_type === "PRODUCT" ? "Product" : "Service"}
               </Text>
             </View>
           </View>
 
           {/* Title */}
-          <Text style={styles.title}>{listing.title}</Text>
+          <Text style={[styles.title, { color: colors.textPrimary }]}>{listing.title}</Text>
 
-          {/* Price Section */}
-          <View style={styles.priceSection}>
+          {/* Price row */}
+          <View style={styles.priceRow}>
             <Text
               style={[
                 styles.price,
-                listing.price_type !== "FIXED" && styles.priceRange,
+                listing.price_type === "ON_REQUEST"
+                  ? { color: colors.textMuted, fontSize: 16, fontWeight: "500" }
+                  : { color: colors.primary },
               ]}
             >
               {getDisplayPrice()}
             </Text>
-            {listing.is_price_negotiable && (
-              <View style={styles.negotiableBadge}>
-                <Text style={styles.negotiableText}>Negotiable</Text>
-              </View>
-            )}
-            {listing.price_type === "RANGE" && (
-              <View style={styles.rangeBadge}>
-                <Text style={styles.rangeText}>Price Range</Text>
+            {listing.is_price_negotiable && listing.price_type !== "ON_REQUEST" && (
+              <View style={[styles.negotiableBadge, { backgroundColor: "rgba(76,175,80,0.12)" }]}>
+                <Text style={[styles.negotiableText, { color: "#4CAF50" }]}>Negotiable</Text>
               </View>
             )}
           </View>
 
-          {/* Stats Row */}
+          {/* Stats row */}
           <View style={styles.statsRow}>
             <View style={styles.statItem}>
-              <Ionicons name="eye-outline" size={16} color={colors.gray600} />
-              <Text style={styles.statText}>{listing.views_count} views</Text>
+              <Ionicons name="eye-outline" size={13} color={colors.textMuted} />
+              <Text style={[styles.statText, { color: colors.textMuted }]}>
+                {listing.views_count ?? 0} views
+              </Text>
             </View>
             <View style={styles.statItem}>
-              <Ionicons
-                name="chatbubble-outline"
-                size={16}
-                color={colors.gray600}
-              />
-              <Text style={styles.statText}>
-                {listing.contact_count} inquiries
+              <Ionicons name="chatbubble-outline" size={13} color={colors.textMuted} />
+              <Text style={[styles.statText, { color: colors.textMuted }]}>
+                {listing.contact_count ?? 0} inquiries
               </Text>
             </View>
           </View>
 
-          {/* Divider */}
-          <View style={styles.divider} />
+          {/* ── Divider ── */}
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-          {/* Seller Card */}
+          {/* ── Merchant card ── */}
           <TouchableOpacity
-            style={styles.sellerCard}
+            style={[styles.merchantCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
             onPress={handleMerchantPress}
-            activeOpacity={0.7}
+            activeOpacity={0.75}
           >
-            <View style={styles.sellerAvatar}>
+            <View style={[styles.merchantAvatarWrap, { borderColor: colors.border }]}>
               {listing.merchant.logo ? (
-                <Image
-                  source={{ uri: listing.merchant.logo }}
-                  style={styles.sellerAvatarImage}
-                />
+                <Image source={{ uri: listing.merchant.logo }} style={styles.merchantAvatar} />
               ) : (
-                <View style={styles.sellerAvatarPlaceholder}>
-                  <Ionicons
-                    name="storefront"
-                    size={24}
-                    color={colors.gray500}
-                  />
+                <View style={[styles.merchantAvatarFallback, { backgroundColor: colors.backgroundSecondary }]}>
+                  <Ionicons name="storefront-outline" size={20} color={colors.textMuted} />
                 </View>
               )}
             </View>
-
-            <View style={styles.sellerInfo}>
-              <View style={styles.sellerNameRow}>
-                <Text style={styles.sellerName}>
+            <View style={styles.merchantMeta}>
+              <View style={styles.merchantNameRow}>
+                <Text style={[styles.merchantName, { color: colors.textPrimary }]} numberOfLines={1}>
                   {listing.merchant.display_name}
                 </Text>
                 {listing.merchant.verified && (
-                  <Ionicons
-                    name="checkmark-circle"
-                    size={16}
-                    color={colors.verified}
-                    style={{ marginLeft: spacingX._4 }}
-                  />
+                  <Ionicons name="checkmark-circle" size={14} color="#4CAF50" style={{ marginLeft: 4 }} />
                 )}
               </View>
-
-              <View style={styles.sellerStats}>
-                <Ionicons name="star" size={14} color={colors.star} />
-                <Text style={styles.sellerRating}>
-                  {listing.merchant.rating.toFixed(1)} (
-                  {listing.merchant.total_reviews} reviews)
+              <View style={styles.ratingRow}>
+                <Ionicons name="star" size={12} color="#FFC107" />
+                <Text style={[styles.ratingText, { color: colors.textMuted }]}>
+                  {listing.merchant.rating.toFixed(1)}
+                  {listing.merchant.total_reviews > 0 ? `  (${listing.merchant.total_reviews})` : ""}
                 </Text>
               </View>
             </View>
-
-            <Ionicons name="chevron-forward" size={20} color={colors.gray400} />
+            <View style={[styles.viewStoreBtn, { backgroundColor: colors.backgroundSecondary }]}>
+              <Text style={[styles.viewStoreText, { color: colors.textSecondary }]}>View Store</Text>
+              <Ionicons name="chevron-forward" size={13} color={colors.textMuted} />
+            </View>
           </TouchableOpacity>
 
-          {/* Divider */}
-          <View style={styles.divider} />
+          {/* ── Divider ── */}
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
 
-          {/* Description */}
-          <View style={styles.descriptionSection}>
-            <Text style={styles.sectionTitle}>Description</Text>
-            <Text style={styles.description}>{listing.description}</Text>
-          </View>
+          {/* ── Description ── */}
+          {description.length > 0 && (
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: colors.textPrimary }]}>Description</Text>
+              <Text style={[styles.descText, { color: colors.textSecondary }]}>
+                {descExpanded ? description : shortDesc}
+              </Text>
+              {description.length > 220 && (
+                <TouchableOpacity onPress={() => setDescExpanded(!descExpanded)} activeOpacity={0.7}>
+                  <Text style={[styles.readMore, { color: colors.primary }]}>
+                    {descExpanded ? "Show less" : "Read more"}
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
 
-          {/* Tags */}
+          {/* ── Location ── */}
+          {listing.location && (
+            <View style={[styles.locationRow, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              <Ionicons name="location-outline" size={15} color={colors.textMuted} />
+              <Text style={[styles.locationText, { color: colors.textSecondary }]} numberOfLines={1}>
+                {[listing.location.area, listing.location.district, listing.location.region]
+                  .filter(Boolean)
+                  .join(", ")}
+              </Text>
+            </View>
+          )}
+
+          {/* ── Tags ── */}
           {listing.tags && listing.tags.length > 0 && (
-            <View style={styles.tagsSection}>
-              <Text style={styles.sectionTitle}>Tags</Text>
-              <View style={styles.tagsContainer}>
+            <View style={styles.section}>
+              <Text style={[styles.sectionLabel, { color: colors.textPrimary }]}>Tags</Text>
+              <View style={styles.tagsWrap}>
                 {listing.tags.map((tag) => (
-                  <View key={tag.id} style={styles.tag}>
-                    <Text style={styles.tagText}>{tag.name}</Text>
+                  <View key={tag.id} style={[styles.tag, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+                    <Text style={[styles.tagText, { color: colors.textMuted }]}>#{tag.name}</Text>
                   </View>
                 ))}
               </View>
             </View>
           )}
 
-          {/* Similar from Merchant */}
+          {/* ── More from merchant ── */}
           {similarMerchant && similarMerchant.results.length > 0 && (
             <View style={styles.similarSection}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>
+                <Text style={[styles.sectionLabel, { color: colors.textPrimary }]}>
                   More from {listing.merchant.display_name}
                 </Text>
-                <TouchableOpacity onPress={handleMerchantPress}>
-                  <Text style={styles.seeAllText}>View Store</Text>
+                <TouchableOpacity onPress={handleMerchantPress} activeOpacity={0.7}>
+                  <Text style={[styles.seeAll, { color: colors.primary }]}>View Store</Text>
                 </TouchableOpacity>
               </View>
-
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.similarScrollContent}
+                contentContainerStyle={{ paddingRight: 16 }}
               >
                 {similarMerchant.results.map((item) => (
                   <SimilarListingCard
@@ -835,17 +889,16 @@ export default function ListingDetailsScreen() {
             </View>
           )}
 
-          {/* Similar from Marketplace */}
+          {/* ── You may also like ── */}
           {similarMarketplace && similarMarketplace.results.length > 0 && (
             <View style={styles.similarSection}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>You May Also Like</Text>
+                <Text style={[styles.sectionLabel, { color: colors.textPrimary }]}>You May Also Like</Text>
               </View>
-
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.similarScrollContent}
+                contentContainerStyle={{ paddingRight: 16 }}
               >
                 {similarMarketplace.results.map((item) => (
                   <SimilarListingCard
@@ -858,258 +911,183 @@ export default function ListingDetailsScreen() {
               </ScrollView>
             </View>
           )}
-
-          {/* Bottom spacing for sticky bar */}
-          <View style={{ height: verticalScale(100) }} />
         </View>
-      </ScrollView>
+      </Animated.ScrollView>
 
-      {/* Sticky Bottom Action Bar */}
-      <SafeAreaView edges={["bottom"]} style={styles.bottomBarSafeArea}>
-        <View style={styles.bottomBar}>
-          {/* Price Section - Now takes more space */}
-          <View style={styles.priceSection}>
-            <Text style={styles.priceLabel}>
-              {listing.price_type === "RANGE"
-                ? "Price Range"
-                : listing.price_type === "ON_REQUEST"
-                ? "Pricing"
-                : "Price"}
-            </Text>
-            <Text style={styles.priceValue} numberOfLines={1}>
-              {getDisplayPrice()}
-            </Text>
-            {listing.is_price_negotiable && listing.price_type === "FIXED" && (
-              <Text style={styles.negotiableTag}>Negotiable</Text>
-            )}
-          </View>
-
-          {/* Action Section */}
-          <View style={styles.actionSection}>
-            {isCartAllowed ? (
-              <>
-                {/* If item is already in cart */}
-                {cartStatus?.in_cart ? (
-                  <View style={styles.cartActionsRow}>
-                    <TouchableOpacity
-                      style={styles.viewCartButton}
-                      onPress={() => router.push("/(tabs)/(cart)/cart")}
-                      activeOpacity={0.8}
-                    >
-                      <Ionicons name="cart" size={20} color={colors.white} />
-                      <Text style={styles.viewCartText}>View Cart</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.contactIconButton}
-                      onPress={handleContactMerchant}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons
-                        name="chatbubble-ellipses-outline"
-                        size={22}
-                        color={colors.primary}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                ) : (
-                  /* Item not in cart - show quantity selector and add to cart */
-                  <View style={styles.cartActionsRow}>
-                    <View style={styles.quantitySelector}>
-                      <TouchableOpacity
-                        style={styles.quantityButton}
-                        onPress={() => setQuantity(Math.max(1, quantity - 1))}
-                        disabled={quantity <= 1}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons
-                          name="remove"
-                          size={18}
-                          color={
-                            quantity <= 1 ? colors.neutral400 : colors.black
-                          }
-                        />
-                      </TouchableOpacity>
-                      <Text style={styles.quantityText}>{quantity}</Text>
-                      <TouchableOpacity
-                        style={styles.quantityButton}
-                        onPress={() => setQuantity(quantity + 1)}
-                        activeOpacity={0.7}
-                      >
-                        <Ionicons name="add" size={18} color={colors.black} />
-                      </TouchableOpacity>
-                    </View>
-
-                    <TouchableOpacity
-                      style={styles.addToCartButton}
-                      onPress={handleAddToCart}
-                      disabled={addingToCart}
-                      activeOpacity={0.8}
-                    >
-                      {addingToCart ? (
-                        <ActivityIndicator size="small" color={colors.white} />
-                      ) : (
-                        <>
-                          <Ionicons
-                            name="cart-outline"
-                            size={20}
-                            color={colors.white}
-                          />
-                          <Text style={styles.addToCartText}>Add to Cart</Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={styles.contactIconButton}
-                      onPress={handleContactMerchant}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons
-                        name="chatbubble-ellipses-outline"
-                        size={22}
-                        color={colors.primary}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </>
-            ) : (
-              /* For RANGE or ON_REQUEST - show only contact button */
+      {/* ── Sticky footer CTA ── */}
+      <View
+        style={[
+          styles.footer,
+          {
+            backgroundColor: colors.surface,
+            borderTopColor: colors.border,
+            paddingBottom: insets.bottom > 0 ? insets.bottom : 12,
+          },
+        ]}
+      >
+        {isCartAllowed ? (
+          cartStatus?.in_cart ? (
+            <View style={styles.footerRow}>
               <TouchableOpacity
-                style={styles.contactMerchantButtonFull}
-                onPress={handleContactMerchant}
-                activeOpacity={0.8}
+                style={[styles.footerPrimaryBtn, { backgroundColor: colors.primary }]}
+                onPress={() => router.push("/(tabs)/(cart)/cart")}
+                activeOpacity={0.82}
               >
-                <Ionicons
-                  name="chatbubble-ellipses"
-                  size={20}
-                  color={colors.white}
-                />
-                <Text style={styles.contactMerchantText}>Contact Merchant</Text>
+                <Ionicons name="cart" size={18} color="#fff" />
+                <Text style={styles.footerPrimaryText}>View Cart</Text>
               </TouchableOpacity>
-            )}
-          </View>
-        </View>
-      </SafeAreaView>
+              <TouchableOpacity
+                style={[styles.footerSecondaryBtn, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}
+                onPress={handleContactMerchant}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="chatbubble-ellipses-outline" size={20} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={styles.footerRow}>
+              {/* Quantity selector */}
+              <View style={[styles.qtySelector, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+                <TouchableOpacity
+                  style={styles.qtyBtn}
+                  onPress={() => setQuantity(Math.max(1, quantity - 1))}
+                  disabled={quantity <= 1}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="remove" size={16} color={quantity <= 1 ? colors.textMuted : colors.textPrimary} />
+                </TouchableOpacity>
+                <Text style={[styles.qtyText, { color: colors.textPrimary }]}>{quantity}</Text>
+                <TouchableOpacity
+                  style={styles.qtyBtn}
+                  onPress={() => setQuantity(quantity + 1)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="add" size={16} color={colors.textPrimary} />
+                </TouchableOpacity>
+              </View>
 
-      {/* Contact Modal */}
+              <TouchableOpacity
+                style={[styles.footerPrimaryBtn, { flex: 1, backgroundColor: colors.primary }]}
+                onPress={handleAddToCart}
+                disabled={addingToCart}
+                activeOpacity={0.82}
+              >
+                {addingToCart ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <>
+                    <Ionicons name="cart-outline" size={18} color="#fff" />
+                    <Text style={styles.footerPrimaryText}>Add to Cart</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.footerSecondaryBtn, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}
+                onPress={handleContactMerchant}
+                activeOpacity={0.75}
+              >
+                <Ionicons name="chatbubble-ellipses-outline" size={20} color={colors.primary} />
+              </TouchableOpacity>
+            </View>
+          )
+        ) : (
+          <TouchableOpacity
+            style={[styles.footerPrimaryBtn, { backgroundColor: colors.primary }]}
+            onPress={handleContactMerchant}
+            activeOpacity={0.82}
+          >
+            <Ionicons name="chatbubble-ellipses" size={18} color="#fff" />
+            <Text style={styles.footerPrimaryText}>Contact Merchant</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* ── Image lightbox ── */}
+      <ImageLightbox
+        visible={lightboxVisible}
+        images={images}
+        initialIndex={lightboxIndex}
+        onClose={() => setLightboxVisible(false)}
+      />
+
+      {/* ── Contact modal ── */}
       <Modal
         animationType="slide"
-        transparent={true}
+        transparent
         visible={contactModalVisible}
         onRequestClose={() => setContactModalVisible(false)}
       >
         <Pressable
-          style={styles.modalOverlay}
+          style={[styles.modalOverlay, { backgroundColor: "rgba(0,0,0,0.5)" }]}
           onPress={() => setContactModalVisible(false)}
         >
           <Pressable
-            style={styles.modalContent}
+            style={[styles.modalSheet, { backgroundColor: colors.surface }]}
             onPress={(e) => e.stopPropagation()}
           >
-            <View style={styles.modalHandle} />
+            <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
 
-            <Text style={styles.modalTitle}>Contact Merchant</Text>
-            <Text style={styles.modalSubtitle}>
-              Choose how you'd like to reach {listing.merchant.display_name}
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Contact Merchant</Text>
+            <Text style={[styles.modalSubtitle, { color: colors.textSecondary }]}>
+              Choose how to reach {listing.merchant.display_name}
             </Text>
 
-            {/* Call Option */}
-            <TouchableOpacity
-              style={styles.contactOption}
-              onPress={handleCallMerchant}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.contactOptionIcon,
-                  { backgroundColor: colors.successLight },
-                ]}
+            {[
+              {
+                icon: "call" as const,
+                iconColor: "#4CAF50",
+                bgColor: "rgba(76,175,80,0.12)",
+                title: "Call",
+                desc: "Speak directly with the merchant",
+                onPress: handleCallMerchant,
+              },
+              {
+                icon: "chatbubbles" as const,
+                iconColor: colors.primary,
+                bgColor: colors.backgroundSecondary,
+                title: "Send Message",
+                desc: "Send an inquiry about this listing",
+                onPress: handleMessageMerchant,
+              },
+              {
+                icon: "logo-whatsapp" as const,
+                iconColor: "#25D366",
+                bgColor: "rgba(37,211,102,0.12)",
+                title: "WhatsApp",
+                desc: "Chat on WhatsApp",
+                onPress: () => {
+                  setContactModalVisible(false);
+                  Alert.alert("Info", "WhatsApp contact will be available soon.");
+                },
+              },
+            ].map((opt) => (
+              <TouchableOpacity
+                key={opt.title}
+                style={[styles.contactOption, { borderBottomColor: colors.border }]}
+                onPress={opt.onPress}
+                activeOpacity={0.75}
               >
-                <Ionicons name="call" size={24} color={colors.success} />
-              </View>
-              <View style={styles.contactOptionInfo}>
-                <Text style={styles.contactOptionTitle}>Call</Text>
-                <Text style={styles.contactOptionDescription}>
-                  Speak directly with the merchant
-                </Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={colors.gray400}
-              />
-            </TouchableOpacity>
+                <View style={[styles.contactOptIcon, { backgroundColor: opt.bgColor }]}>
+                  <Ionicons name={opt.icon} size={22} color={opt.iconColor} />
+                </View>
+                <View style={styles.contactOptMeta}>
+                  <Text style={[styles.contactOptTitle, { color: colors.textPrimary }]}>{opt.title}</Text>
+                  <Text style={[styles.contactOptDesc, { color: colors.textMuted }]}>{opt.desc}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+            ))}
 
-            {/* Message Option */}
             <TouchableOpacity
-              style={styles.contactOption}
-              onPress={handleMessageMerchant}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.contactOptionIcon,
-                  { backgroundColor: colors.infoLight },
-                ]}
-              >
-                <Ionicons name="chatbubbles" size={24} color={colors.info} />
-              </View>
-              <View style={styles.contactOptionInfo}>
-                <Text style={styles.contactOptionTitle}>Send Message</Text>
-                <Text style={styles.contactOptionDescription}>
-                  Send an inquiry about this listing
-                </Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={colors.gray400}
-              />
-            </TouchableOpacity>
-
-            {/* WhatsApp Option */}
-            <TouchableOpacity
-              style={styles.contactOption}
-              onPress={() => {
-                setContactModalVisible(false);
-                const message = encodeURIComponent(
-                  `Hi, I'm interested in your listing: ${listing.title}`
-                );
-                Alert.alert("Info", "WhatsApp contact will be available soon.");
-              }}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.contactOptionIcon,
-                  { backgroundColor: colors.successLight },
-                ]}
-              >
-                <Ionicons name="logo-whatsapp" size={24} color="#25D366" />
-              </View>
-              <View style={styles.contactOptionInfo}>
-                <Text style={styles.contactOptionTitle}>WhatsApp</Text>
-                <Text style={styles.contactOptionDescription}>
-                  Chat on WhatsApp
-                </Text>
-              </View>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color={colors.gray400}
-              />
-            </TouchableOpacity>
-
-            {/* Cancel Button */}
-            <TouchableOpacity
-              style={styles.cancelButton}
+              style={styles.cancelBtn}
               onPress={() => setContactModalVisible(false)}
               activeOpacity={0.7}
             >
-              <Text style={styles.cancelButtonText}>Cancel</Text>
+              <Text style={[styles.cancelText, { color: colors.textSecondary }]}>Cancel</Text>
             </TouchableOpacity>
+
+            <View style={{ height: insets.bottom > 0 ? insets.bottom : 8 }} />
           </Pressable>
         </Pressable>
       </Modal>
@@ -1117,539 +1095,521 @@ export default function ListingDetailsScreen() {
   );
 }
 
-const createStyles = (colors: ThemeColors) =>
-  StyleSheet.create({
-    container: {
-      flex: 1,
-      backgroundColor: colors.white,
-    },
-    safeArea: {
-      backgroundColor: colors.white,
-      zIndex: 10,
-    },
-    header: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      paddingHorizontal: spacingX._16,
-      paddingVertical: spacingY._8,
-    },
-    headerButton: {
-      width: scale(40),
-      height: scale(40),
-      borderRadius: radius._20,
-      backgroundColor: colors.white,
-      justifyContent: "center",
-      alignItems: "center",
-      ...shadow.sm,
-    },
-    headerActions: {
-      flexDirection: "row",
-      gap: spacingX._8,
-    },
-    imageContainer: {
-      position: "relative",
-      backgroundColor: colors.gray100,
-    },
-    mainImage: {
-      width: SCREEN_WIDTH,
-      height: IMAGE_HEIGHT,
-    },
-    thumbnailContainer: {
-      backgroundColor: colors.white,
-      paddingVertical: spacingY._12,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.gray200,
-    },
-    thumbnailScrollContent: {
-      paddingHorizontal: spacingX._16,
-      gap: spacingX._8,
-    },
-    thumbnailWrapper: {
-      width: scale(60),
-      height: scale(60),
-      borderRadius: radius._8,
-      overflow: "hidden",
-      borderWidth: 2,
-      borderColor: "transparent",
-    },
-    thumbnailWrapperActive: {
-      borderColor: colors.primary,
-    },
-    thumbnailImage: {
-      width: "100%",
-      height: "100%",
-    },
-    imageCounter: {
-      position: "absolute",
-      bottom: spacingY._16,
-      right: spacingX._16,
-      backgroundColor: colors.backdrop,
-      paddingHorizontal: spacingX._10,
-      paddingVertical: spacingY._4,
-      borderRadius: radius._12,
-    },
-    imageCounterText: {
-      color: colors.white,
-      fontSize: fontSize.sm,
-      fontWeight: fontWeight.semibold,
-    },
-    badgesContainer: {
-      position: "absolute",
-      top: spacingY._16,
-      left: spacingX._16,
-      flexDirection: "row",
-      gap: spacingX._8,
-    },
-    badge: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: spacingX._8,
-      paddingVertical: spacingY._4,
-      borderRadius: radius._4,
-      gap: spacingX._4,
-    },
-    featuredBadge: {
-      backgroundColor: colors.star,
-    },
-    verifiedBadge: {
-      backgroundColor: colors.verified,
-    },
-    badgeText: {
-      color: colors.white,
-      fontSize: fontSize.sm,
-      fontWeight: fontWeight.semibold,
-    },
-    contentContainer: {
-      padding: spacingX._16,
-    },
-    metaRow: {
-      flexDirection: "row",
-      gap: spacingX._8,
-      marginBottom: spacingY._12,
-    },
-    categoryChip: {
-      backgroundColor: colors.primarySoft,
-      paddingHorizontal: spacingX._12,
-      paddingVertical: spacingY._6,
-      borderRadius: radius._16,
-    },
-    categoryText: {
-      color: colors.primary,
-      fontSize: fontSize.sm,
-      fontWeight: fontWeight.semibold,
-    },
-    typeChip: {
-      backgroundColor: colors.gray100,
-      paddingHorizontal: spacingX._12,
-      paddingVertical: spacingY._6,
-      borderRadius: radius._16,
-    },
-    typeText: {
-      color: colors.gray700,
-      fontSize: fontSize.sm,
-      fontWeight: fontWeight.medium,
-    },
-    title: {
-      ...typography.title,
-      color: colors.textPrimary,
-      marginBottom: spacingY._8,
-    },
-    priceSection: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacingX._12,
-      marginBottom: spacingY._12,
-    },
-    price: {
-      fontSize: 28,
-      fontWeight: fontWeight.bold,
-      color: colors.primary,
-    },
-    priceRange: {
-      fontSize: 22,
-    },
-    rangeBadge: {
-      backgroundColor: colors.infoLight,
-      paddingHorizontal: spacingX._8,
-      paddingVertical: spacingY._4,
-      borderRadius: radius._4,
-    },
-    rangeText: {
-      color: colors.info,
-      fontSize: fontSize.sm,
-      fontWeight: fontWeight.semibold,
-    },
-    negotiableBadge: {
-      backgroundColor: colors.successLight,
-      paddingHorizontal: spacingX._8,
-      paddingVertical: spacingY._4,
-      borderRadius: radius._4,
-    },
-    negotiableText: {
-      color: colors.success,
-      fontSize: fontSize.sm,
-      fontWeight: fontWeight.semibold,
-    },
-    statsRow: {
-      flexDirection: "row",
-      gap: spacingX._16,
-      marginBottom: spacingY._16,
-    },
-    statItem: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacingX._4,
-    },
-    statText: {
-      fontSize: fontSize.md,
-      color: colors.gray600,
-    },
-    divider: {
-      ...components.divider,
-      backgroundColor: colors.divider,
-      marginVertical: spacingY._16,
-    },
-    sellerCard: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: colors.gray50,
-      padding: spacingX._12,
-      borderRadius: radius._12,
-    },
-    sellerAvatar: {
-      width: scale(50),
-      height: scale(50),
-      borderRadius: scale(25),
-      overflow: "hidden",
-    },
-    sellerAvatarImage: {
-      width: "100%",
-      height: "100%",
-    },
-    sellerAvatarPlaceholder: {
-      width: "100%",
-      height: "100%",
-      backgroundColor: colors.gray200,
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    sellerInfo: {
-      flex: 1,
-      marginLeft: spacingX._12,
-    },
-    sellerNameRow: {
-      flexDirection: "row",
-      alignItems: "center",
-    },
-    sellerName: {
-      fontSize: fontSize.lg,
-      fontWeight: fontWeight.semibold,
-      color: colors.textPrimary,
-    },
-    sellerStats: {
-      flexDirection: "row",
-      alignItems: "center",
-      marginTop: spacingY._4,
-      gap: spacingX._4,
-    },
-    sellerRating: {
-      fontSize: fontSize.md,
-      color: colors.gray600,
-    },
-    descriptionSection: {
-      marginBottom: spacingY._16,
-    },
-    sectionTitle: {
-      ...typography.subtitle,
-      color: colors.textPrimary,
-      marginBottom: spacingY._8,
-    },
-    description: {
-      fontSize: 15,
-      lineHeight: 22,
-      color: colors.textSecondary,
-    },
-    tagsSection: {
-      marginBottom: spacingY._16,
-    },
-    tagsContainer: {
-      flexDirection: "row",
-      flexWrap: "wrap",
-      gap: spacingX._8,
-    },
-    tag: {
-      ...components.chip,
-      backgroundColor: colors.backgroundTertiary,
-    },
-    tagText: {
-      ...components.chipText,
-      color: colors.textSecondary,
-    },
-    similarSection: {
-      marginTop: spacingY._16,
-    },
-    sectionHeader: {
-      flexDirection: "row",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: spacingY._12,
-    },
-    seeAllText: {
-      fontSize: fontSize.md,
-      color: colors.primary,
-      fontWeight: fontWeight.semibold,
-    },
-    similarScrollContent: {
-      paddingRight: spacingX._16,
-    },
-    similarCard: {
-      width: scale(140),
-      marginRight: spacingX._12,
-      backgroundColor: colors.white,
-      borderRadius: radius._8,
-      borderWidth: 1,
-      borderColor: colors.gray200,
-      overflow: "hidden",
-    },
-    similarCardImage: {
-      width: "100%",
-      height: verticalScale(140),
-    },
-    similarCardContent: {
-      padding: spacingX._8,
-    },
-    similarCardTitle: {
-      fontSize: 13,
-      fontWeight: fontWeight.medium,
-      color: colors.textPrimary,
-      marginBottom: spacingY._4,
-    },
-    similarCardMerchant: {
-      fontSize: 11,
-      color: colors.gray500,
-      marginBottom: spacingY._4,
-    },
-    similarCardPrice: {
-      ...typography.priceSmall,
-      color: colors.textPrimary,
-    },
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
-    bottomBarSafeArea: {
-      backgroundColor: colors.white,
-      borderTopWidth: 1,
-      borderTopColor: colors.neutral100,
-    },
-    bottomBar: {
-      flexDirection: "column",
-      backgroundColor: colors.white,
-      paddingHorizontal: spacingX._16,
-      paddingTop: spacingY._12,
-      paddingBottom: spacingY._8,
-      gap: spacingY._12,
-    },
-    priceLabel: {
-      fontSize: 13,
-      color: colors.neutral600,
-      fontWeight: fontWeight.medium,
-    },
-    priceValue: {
-      flex: 1,
-      fontSize: fontSize.xl,
-      fontWeight: fontWeight.bold,
-      color: colors.black,
-    },
-    negotiableTag: {
-      fontSize: 11,
-      color: colors.primary,
-      fontWeight: fontWeight.semibold,
-      backgroundColor: colors.primary + "15",
-      paddingHorizontal: spacingX._8,
-      paddingVertical: spacingY._3,
-      borderRadius: radius._4,
-    },
+const styles = StyleSheet.create({
+  root: {
+    flex: 1,
+  },
 
-    // Action Section
-    actionSection: {
-      width: "100%",
-    },
-    cartActionsRow: {
-      flexDirection: "row",
-      alignItems: "center",
-      gap: spacingX._8,
-    },
-    quantitySelector: {
-      flexDirection: "row",
-      alignItems: "center",
-      backgroundColor: colors.neutral100,
-      borderRadius: radius._8,
-      borderWidth: 1,
-      borderColor: colors.neutral200,
-      paddingHorizontal: spacingX._4,
-      paddingVertical: spacingY._4,
-      gap: spacingX._8,
-    },
-    quantityButton: {
-      width: scale(32),
-      height: scale(32),
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.white,
-      borderRadius: radius._6,
-    },
-    quantityText: {
-      fontSize: 15,
-      fontWeight: fontWeight.semibold,
-      color: colors.black,
-      minWidth: scale(24),
-      textAlign: "center",
-    },
-    addToCartButton: {
-      flex: 1,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.primary,
-      paddingVertical: spacingY._12,
-      paddingHorizontal: spacingX._16,
-      borderRadius: radius._8,
-      gap: spacingX._8,
-    },
-    addToCartText: {
-      fontSize: 15,
-      fontWeight: fontWeight.semibold,
-      color: colors.white,
-    },
-    viewCartButton: {
-      flex: 1,
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.primary,
-      paddingVertical: spacingY._12,
-      paddingHorizontal: spacingX._16,
-      borderRadius: radius._8,
-      gap: spacingX._8,
-    },
-    viewCartText: {
-      fontSize: 15,
-      fontWeight: fontWeight.semibold,
-      color: colors.white,
-    },
-    contactIconButton: {
-      width: scale(48),
-      height: scale(48),
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.neutral50,
-      borderRadius: radius._8,
-      borderWidth: 1,
-      borderColor: colors.neutral200,
-    },
-    contactMerchantButtonFull: {
-      flexDirection: "row",
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: colors.primary,
-      paddingVertical: spacingY._14,
-      paddingHorizontal: spacingX._20,
-      borderRadius: radius._8,
-      gap: spacingX._8,
-    },
-    contactMerchantText: {
-      fontSize: 15,
-      fontWeight: fontWeight.semibold,
-      color: colors.white,
-    },
-    modalOverlay: {
-      flex: 1,
-      backgroundColor: colors.overlay,
-      justifyContent: "flex-end",
-    },
-    modalContent: {
-      backgroundColor: colors.white,
-      borderTopLeftRadius: radius._24,
-      borderTopRightRadius: radius._24,
-      paddingHorizontal: spacingX._20,
-      paddingBottom: spacingY._35,
-      paddingTop: spacingY._12,
-    },
-    modalHandle: {
-      width: scale(40),
-      height: verticalScale(4),
-      backgroundColor: colors.gray300,
-      borderRadius: 2,
-      alignSelf: "center",
-      marginBottom: spacingY._20,
-    },
-    modalTitle: {
-      fontSize: fontSize.xxl,
-      fontWeight: fontWeight.bold,
-      color: colors.textPrimary,
-      marginBottom: spacingY._4,
-    },
-    modalSubtitle: {
-      fontSize: fontSize.md,
-      color: colors.gray600,
-      marginBottom: spacingY._20,
-    },
-    contactOption: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingVertical: spacingY._14,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.gray100,
-    },
-    contactOptionIcon: {
-      width: scale(48),
-      height: scale(48),
-      borderRadius: scale(24),
-      justifyContent: "center",
-      alignItems: "center",
-    },
-    contactOptionInfo: {
-      flex: 1,
-      marginLeft: spacingX._15,
-    },
-    contactOptionTitle: {
-      fontSize: fontSize.lg,
-      fontWeight: fontWeight.semibold,
-      color: colors.textPrimary,
-      marginBottom: spacingY._2,
-    },
-    contactOptionDescription: {
-      fontSize: 13,
-      color: colors.gray500,
-    },
-    cancelButton: {
-      marginTop: spacingY._16,
-      paddingVertical: spacingY._14,
-      alignItems: "center",
-    },
-    cancelButtonText: {
-      fontSize: fontSize.lg,
-      fontWeight: fontWeight.semibold,
-      color: colors.gray600,
-    },
-    errorContainer: {
-      flex: 1,
-      justifyContent: "center",
-      alignItems: "center",
-      backgroundColor: colors.white,
-      padding: spacingX._16,
-    },
-    errorText: {
-      ...typography.subtitle,
-      color: colors.gray600,
-      marginTop: spacingY._16,
-    },
-    errorButton: {
-      ...components.buttonPrimary,
-      backgroundColor: colors.primary,
-      marginTop: spacingY._16,
-    },
-    errorButtonText: {
-      ...typography.button,
-      color: colors.white,
-    },
-  });
+  // Floating nav
+  floatingNav: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    zIndex: 50,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 14,
+  },
+  floatRight: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  floatBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(0,0,0,0.38)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  // Sticky header
+  stickyHeader: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  stickyHeaderInner: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingBottom: 10,
+    gap: 10,
+  },
+  stickyHeaderBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  stickyTitle: {
+    flex: 1,
+    fontSize: 15,
+    fontWeight: "600",
+    letterSpacing: 0.1,
+  },
+  stickyActions: {
+    flexDirection: "row",
+    gap: 6,
+  },
+
+  // Image section
+  imageSection: {
+    width: SCREEN_WIDTH,
+    overflow: "hidden",
+  },
+  imageGradient: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 120,
+  },
+  badgeRow: {
+    position: "absolute",
+    left: 14,
+    flexDirection: "row",
+    gap: 6,
+  },
+  featuredBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#E60549",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 7,
+  },
+  verifiedBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#4CAF50",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 7,
+  },
+  badgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#fff",
+    letterSpacing: 0.2,
+  },
+  dotsRow: {
+    position: "absolute",
+    bottom: CONTENT_OVERLAP + 16,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 5,
+  },
+  dot: {
+    height: 6,
+    borderRadius: 3,
+  },
+  imageCounter: {
+    position: "absolute",
+    bottom: CONTENT_OVERLAP + 14,
+    right: 14,
+    backgroundColor: "rgba(0,0,0,0.45)",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  imageCounterText: {
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: "600",
+  },
+
+  // Content card
+  contentCard: {
+    borderTopLeftRadius: CONTENT_OVERLAP,
+    borderTopRightRadius: CONTENT_OVERLAP,
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+    minHeight: SCREEN_HEIGHT,
+  },
+  handleRow: {
+    alignItems: "center",
+    paddingTop: 10,
+    paddingBottom: 14,
+  },
+  handle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+  },
+
+  // Chips
+  chipsRow: {
+    flexDirection: "row",
+    gap: 6,
+    marginBottom: 10,
+  },
+  chip: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  chipText: {
+    fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.3,
+    textTransform: "uppercase",
+  },
+
+  // Title & price
+  title: {
+    fontSize: 20,
+    fontWeight: "700",
+    lineHeight: 28,
+    letterSpacing: -0.2,
+    marginBottom: 10,
+  },
+  priceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginBottom: 10,
+  },
+  price: {
+    fontSize: 26,
+    fontWeight: "800",
+    letterSpacing: -0.4,
+  },
+  negotiableBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 7,
+  },
+  negotiableText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+
+  // Stats
+  statsRow: {
+    flexDirection: "row",
+    gap: 14,
+    marginBottom: 16,
+  },
+  statItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  statText: {
+    fontSize: 12,
+  },
+
+  // Divider
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginVertical: 14,
+  },
+
+  // Merchant card
+  merchantCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    gap: 10,
+  },
+  merchantAvatarWrap: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  merchantAvatar: {
+    width: "100%",
+    height: "100%",
+  },
+  merchantAvatarFallback: {
+    width: "100%",
+    height: "100%",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  merchantMeta: {
+    flex: 1,
+    gap: 3,
+  },
+  merchantNameRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  merchantName: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  ratingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  ratingText: {
+    fontSize: 12,
+  },
+  viewStoreBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 8,
+  },
+  viewStoreText: {
+    fontSize: 11,
+    fontWeight: "600",
+  },
+
+  // Sections
+  section: {
+    marginBottom: 14,
+  },
+  sectionLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    letterSpacing: 0.1,
+    marginBottom: 8,
+  },
+  descText: {
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  readMore: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginTop: 4,
+  },
+  locationRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    borderRadius: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: 14,
+  },
+  locationText: {
+    fontSize: 13,
+    flex: 1,
+  },
+  tagsWrap: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  tag: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  tagText: {
+    fontSize: 12,
+  },
+
+  // Similar sections
+  similarSection: {
+    marginBottom: 16,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  seeAll: {
+    fontSize: 13,
+    fontWeight: "600",
+  },
+  similarCard: {
+    width: scale(140),
+    marginRight: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  similarCardImage: {
+    width: "100%",
+    height: verticalScale(130),
+  },
+  similarCardContent: {
+    padding: 8,
+    gap: 3,
+  },
+  similarCardTitle: {
+    fontSize: 12,
+    fontWeight: "600",
+    lineHeight: 16,
+  },
+  similarCardMerchant: {
+    fontSize: 11,
+  },
+  similarCardPrice: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  // Footer
+  footer: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  footerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  footerPrimaryBtn: {
+    height: 50,
+    borderRadius: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    paddingHorizontal: 16,
+  },
+  footerPrimaryText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#fff",
+    letterSpacing: 0.2,
+  },
+  footerSecondaryBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  qtySelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: 4,
+    gap: 4,
+    height: 50,
+  },
+  qtyBtn: {
+    width: 34,
+    height: 34,
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 10,
+  },
+  qtyText: {
+    fontSize: 15,
+    fontWeight: "600",
+    minWidth: 24,
+    textAlign: "center",
+  },
+
+  // Contact modal
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingTop: 12,
+  },
+  modalHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    alignSelf: "center",
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    marginBottom: 16,
+  },
+  contactOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 12,
+  },
+  contactOptIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  contactOptMeta: {
+    flex: 1,
+    gap: 2,
+  },
+  contactOptTitle: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  contactOptDesc: {
+    fontSize: 12,
+  },
+  cancelBtn: {
+    marginTop: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  cancelText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+
+  // Error
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  errorText: {
+    fontSize: 16,
+    fontWeight: "500",
+    marginTop: 16,
+    marginBottom: 20,
+  },
+  errorButton: {
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+  },
+  errorButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+});

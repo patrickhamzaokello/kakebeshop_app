@@ -106,13 +106,7 @@ export default function AccountScreen() {
 
   // Merchant menu items (only show if user is a merchant)
   const merchantMenuItems: MenuItem[] = [
-    {
-      id: "merchant-dashboard",
-      title: "Merchant Dashboard",
-      icon: "stats-chart-outline",
-      route: "/merchant/dashboard",
-      color: "#4CAF50",
-    },
+   
     {
       id: "my-listings",
       title: "My Listings",
@@ -126,14 +120,8 @@ export default function AccountScreen() {
       icon: "cube-outline",
       route: "/merchant/orders",
       color: "#4CAF50",
-    },
-    {
-      id: "merchant-profile",
-      title: "Business Profile",
-      icon: "business-outline",
-      route: "/merchant/profile",
-      color: "#4CAF50",
-    },
+    }
+   
   ];
 
   const settingsMenuItems: MenuItem[] = [
@@ -154,15 +142,8 @@ export default function AccountScreen() {
     {
       id: "notifications-pref",
       title: "Notification Preferences",
-      icon: "notifications-outline",
+      icon: "options-outline",
       route: "/notification_preference/notificationpreference",
-      color: "#666",
-    },
-    {
-      id: "privacy",
-      title: "Privacy & Security",
-      icon: "shield-outline",
-      route: "/privacy/privacy",
       color: "#666",
     },
     {
@@ -178,30 +159,16 @@ export default function AccountScreen() {
   const supportMenuItems: MenuItem[] = [
     {
       id: "help",
-      title: "Help Center",
+      title: "Help & Support",
       icon: "help-circle-outline",
       route: "/help/help",
       color: "#666",
     },
     {
-      id: "support",
-      title: "Contact Support",
-      icon: "chatbubble-outline",
-      route: "/support/support",
-      color: "#666",
-    },
-    {
       id: "about",
-      title: "About",
+      title: "About & Legal",
       icon: "information-circle-outline",
       route: "/about/about",
-      color: "#666",
-    },
-    {
-      id: "terms",
-      title: "Terms & Conditions",
-      icon: "document-text-outline",
-      route: "/terms/terms",
       color: "#666",
     },
   ];

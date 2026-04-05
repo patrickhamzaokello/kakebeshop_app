@@ -65,7 +65,6 @@ type AuthState = {
 
   // Onboarding & setup
   completeOnboarding: () => Promise<void>;
-  resetOnboarding: () => void;
 };
 
 export const useAuthStore = create<AuthState>()(
@@ -524,16 +523,17 @@ export const useAuthStore = create<AuthState>()(
 
       // Complete onboarding
       completeOnboarding: async () => {
-        await setItemAsync("hasCompletedOnboarding", "true");
+        try {
+          await setItemAsync("hasCompletedOnboarding", "true");
+        } catch (e) {
+          if (__DEV__) console.warn("SecureStore write failed in completeOnboarding:", e);
+        }
+        // Always update in-memory state so the navigation guard fires
+        // even if SecureStore is unavailable.
         set({ hasCompletedOnboarding: true });
       },
 
    
-
-      // Reset onboarding
-      resetOnboarding: () => {
-        set({ hasCompletedOnboarding: false });
-      },
 
     }),
     {

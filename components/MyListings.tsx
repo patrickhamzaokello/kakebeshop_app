@@ -8,12 +8,13 @@ import {
   Image,
   Dimensions,
   RefreshControl,
+  Text,
 } from "react-native";
-import Typo from "@/components/Typo";
 import { Listing } from "@/utils/types/models";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const { width } = Dimensions.get("window");
-const ITEM_WIDTH = (width - 48) / 2; // 2 columns with padding
+const ITEM_WIDTH = (width - 48) / 2;
 
 interface MyListingsProps {
   data: Listing[];
@@ -34,77 +35,74 @@ const MyListings: React.FC<MyListingsProps> = ({
   onListingPress,
   onRefresh,
 }) => {
+  const { colors } = useTheme();
+
   const renderListingItem = ({ item }: { item: Listing }) => {
     const firstImage = item.images?.[0];
     const imageUrl = firstImage?.medium?.image || firstImage?.thumb?.image;
 
     return (
       <TouchableOpacity
-        style={styles.listingCard}
+        style={[styles.listingCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
         onPress={() => onListingPress(item)}
-        activeOpacity={0.7}
+        activeOpacity={0.75}
       >
         <View style={styles.imageContainer}>
           {imageUrl ? (
-            <Image
-              source={{ uri: imageUrl }}
-              style={styles.listingImage}
-              resizeMode="cover"
-            />
+            <Image source={{ uri: imageUrl }} style={styles.listingImage} resizeMode="cover" />
           ) : (
-            <View style={[styles.listingImage, styles.placeholderImage]}>
-              <Typo style={styles.placeholderText}>No Image</Typo>
+            <View style={[styles.listingImage, { backgroundColor: colors.backgroundSecondary, justifyContent: "center", alignItems: "center" }]}>
+              <Text style={{ fontSize: 11, color: colors.textMuted }}>No Image</Text>
             </View>
           )}
-          
-          {/* Status Badge */}
-          <View
-            style={[
-              styles.statusBadge,
-              item.status === "ACTIVE"
-                ? styles.activeBadge
-                : styles.inactiveBadge,
-            ]}
-          >
-            <Typo style={styles.statusText}>
+
+          {/* Status badge */}
+          <View style={[
+            styles.statusBadge,
+            { backgroundColor: item.status === "ACTIVE" ? "#4CAF50" : "#FF3B30" },
+          ]}>
+            <Text style={styles.badgeText}>
               {item.status === "ACTIVE" ? "Active" : "Inactive"}
-            </Typo>
+            </Text>
           </View>
 
-          {/* Featured Badge */}
+          {/* Featured badge */}
           {item.is_featured && (
             <View style={styles.featuredBadge}>
-              <Typo style={styles.featuredText}>★ Featured</Typo>
+              <Text style={styles.featuredText}>★ Featured</Text>
             </View>
           )}
         </View>
 
-        <View style={styles.listingDetails}>
-     
-          <Typo style={styles.categoryText}>{item.category.name}</Typo>
+        <View style={[styles.listingDetails, { backgroundColor: colors.surface }]}>
+          {item.category?.name ? (
+            <Text style={[styles.categoryText, { color: colors.textMuted }]}>
+              {item.category.name}
+            </Text>
+          ) : null}
 
-          <Typo style={styles.listingTitle} numberOfLines={2}>
+          <Text style={[styles.listingTitle, { color: colors.textPrimary }]} numberOfLines={2}>
             {item.title}
-          </Typo>
-          <Typo style={styles.listingPrice}>
+          </Text>
+
+          <Text style={[styles.listingPrice, { color: colors.primary }]}>
             {item.currency} {parseFloat(item.price).toLocaleString()}
             {item.is_price_negotiable && (
-              <Typo style={styles.negotiableText}> (Negotiable)</Typo>
+              <Text style={[styles.negotiableText, { color: colors.textMuted }]}> · Negotiable</Text>
             )}
-          </Typo>
+          </Text>
 
-          <View style={styles.statsContainer}>
+          <View style={[styles.statsContainer, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
             <View style={styles.statItem}>
-              <Typo style={styles.statLabel}>Views</Typo>
-              <Typo style={styles.statValue}>{item.views_count}</Typo>
+              <Text style={[styles.statLabel, { color: colors.textMuted }]}>Views</Text>
+              <Text style={[styles.statValue, { color: colors.textPrimary }]}>{item.views_count ?? 0}</Text>
             </View>
-            <View style={styles.statDivider} />
+            <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
             <View style={styles.statItem}>
-              <Typo style={styles.statLabel}>Contacts</Typo>
-              <Typo style={styles.statValue}>{item.contact_count}</Typo>
+              <Text style={[styles.statLabel, { color: colors.textMuted }]}>Contacts</Text>
+              <Text style={[styles.statValue, { color: colors.textPrimary }]}>{item.contact_count ?? 0}</Text>
             </View>
           </View>
-
         </View>
       </TouchableOpacity>
     );
@@ -114,7 +112,7 @@ const MyListings: React.FC<MyListingsProps> = ({
     if (!loading) return null;
     return (
       <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color="#007AFF" />
+        <ActivityIndicator size="small" color={colors.primary} />
       </View>
     );
   };
@@ -123,19 +121,16 @@ const MyListings: React.FC<MyListingsProps> = ({
     if (loading) return null;
     return (
       <View style={styles.emptyContainer}>
-        <Typo style={styles.emptyTitle}>No Listings Yet</Typo>
-        <Typo style={styles.emptyText}>
-          You haven't created any listings yet. Start by creating your first
-          listing to showcase your products or services.
-        </Typo>
+        <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No Listings Yet</Text>
+        <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+          You haven't created any listings yet. Start by creating your first listing to showcase your products or services.
+        </Text>
       </View>
     );
   };
 
   const handleEndReached = () => {
-    if (!loading && hasMore) {
-      onLoadMore();
-    }
+    if (!loading && hasMore) onLoadMore();
   };
 
   return (
@@ -155,8 +150,8 @@ const MyListings: React.FC<MyListingsProps> = ({
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          tintColor="#007AFF"
-          colors={["#007AFF"]}
+          tintColor={colors.primary}
+          colors={[colors.primary]}
         />
       }
     />
@@ -170,12 +165,13 @@ const styles = StyleSheet.create({
   },
   columnWrapper: {
     justifyContent: "space-between",
-    marginBottom: 16,
+    marginBottom: 14,
   },
   listingCard: {
     width: ITEM_WIDTH,
-    borderRadius: 8,
+    borderRadius: 12,
     overflow: "hidden",
+    borderWidth: 1,
   },
   imageContainer: {
     position: "relative",
@@ -186,122 +182,101 @@ const styles = StyleSheet.create({
     width: "100%",
     height: "100%",
   },
-  placeholderImage: {
-    backgroundColor: "#f0f0f0",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  placeholderText: {
-    fontSize: 12,
-    color: "#999",
-  },
   statusBadge: {
     position: "absolute",
     top: 8,
     right: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
-  activeBadge: {
-    backgroundColor: "#34C759",
-  },
-  inactiveBadge: {
-    backgroundColor: "#FF3B30",
-  },
-  statusText: {
+  badgeText: {
     fontSize: 10,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#fff",
+    letterSpacing: 0.2,
   },
   featuredBadge: {
     position: "absolute",
     top: 8,
     left: 8,
     backgroundColor: "#FFD700",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
   featuredText: {
     fontSize: 10,
-    fontWeight: "600",
+    fontWeight: "700",
     color: "#000",
   },
   listingDetails: {
-    padding: 12,
-    backgroundColor:"#FFF"
+    padding: 10,
+    gap: 4,
+  },
+  categoryText: {
+    fontSize: 10,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
   },
   listingTitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
-    color: "#000",
-    marginBottom: 8,
+    lineHeight: 18,
   },
   listingPrice: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "700",
-    color: "#007AFF",
-    marginBottom: 8,
   },
   negotiableText: {
     fontSize: 11,
     fontWeight: "400",
-    color: "#666",
   },
   statsContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-around",
-    backgroundColor: "#f8f8f8",
-    borderRadius: 6,
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
     padding: 8,
+    marginTop: 4,
   },
   statItem: {
     flex: 1,
     alignItems: "center",
+    gap: 2,
   },
   statDivider: {
     width: 1,
-    height: 24,
-    backgroundColor: "#ddd",
+    height: 22,
   },
   statLabel: {
     fontSize: 10,
-    color: "#666",
-    marginBottom: 2,
   },
   statValue: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: "600",
-    color: "#000",
-  },
-  categoryText: {
-    fontSize: 11,
-    color: "#666",
   },
   footerLoader: {
     paddingVertical: 20,
     alignItems: "center",
   },
   emptyContainer: {
-    flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 32,
     paddingVertical: 64,
+    gap: 10,
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "700",
-    color: "#000",
-    marginBottom: 12,
   },
   emptyText: {
     fontSize: 14,
-    color: "#666",
     textAlign: "center",
-    lineHeight: 20,
+    lineHeight: 21,
   },
 });
 

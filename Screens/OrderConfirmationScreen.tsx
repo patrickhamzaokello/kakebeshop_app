@@ -13,6 +13,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useCartStore } from "@/utils/stores/useCartStore";
 import { cartService } from "@/utils/services/cartService";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface Address {
   id: string;
@@ -25,9 +26,10 @@ interface Address {
 
 export default function OrderConfirmationScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const { addressId } = useLocalSearchParams();
   const { cart, fetchCart } = useCartStore();
-  
+
   const [address, setAddress] = useState<Address | null>(null);
   const [loading, setLoading] = useState(true);
   const [placing, setPlacing] = useState(false);
@@ -38,10 +40,7 @@ export default function OrderConfirmationScreen() {
 
   const loadData = async () => {
     try {
-      await Promise.all([
-        fetchCart(),
-        fetchAddress()
-      ]);
+      await Promise.all([fetchCart(), fetchAddress()]);
     } catch (error) {
       if (__DEV__) console.error("Error loading data:", error);
       Alert.alert("Error", "Failed to load order details");
@@ -51,7 +50,7 @@ export default function OrderConfirmationScreen() {
   };
 
   const fetchAddress = async () => {
-    try {     
+    try {
       const data = await cartService.getAddressById(addressId as string);
       setAddress(data);
     } catch (error) {
@@ -61,37 +60,29 @@ export default function OrderConfirmationScreen() {
   };
 
   const handlePlaceOrder = async () => {
-    // Validate cart has items
     if (!cart?.items || cart.items.length === 0) {
       Alert.alert("Error", "Your cart is empty");
       return;
     }
 
     setPlacing(true);
-    
+
     try {
-      // Call the checkout endpoint
-      // Backend will:
-      // 1. Create OrderIntent(s) - one per merchant
-      // 2. Create OrderIntentItems from cart items
-      // 3. Clear the cart
       const response = await cartService.checkout({
         address_id: addressId as string,
         notes: "",
         delivery_fee: 0,
       });
-    
+
       if (response && response.orders) {
         await fetchCart();
-        
-        // Navigate with order group info
         router.replace({
           pathname: "/checkout/order-success",
-          params: { 
+          params: {
             orderIds: response.orders.map((o: any) => o.id).join(","),
             orderGroupId: response.order_group?.id || "",
             orderCount: response.orders.length.toString(),
-            groupNumber: response.order_group?.group_number || ""
+            groupNumber: response.order_group?.group_number || "",
           },
         });
       } else {
@@ -99,14 +90,13 @@ export default function OrderConfirmationScreen() {
       }
     } catch (error: any) {
       if (__DEV__) console.error("Error placing order:", error);
-      Alert.alert(
-        "Order Failed", 
-        error.message || "Something went wrong. Please try again."
-      );
+      Alert.alert("Order Failed", error.message || "Something went wrong. Please try again.");
     } finally {
       setPlacing(false);
     }
   };
+
+  const styles = getStyles(colors);
 
   if (loading) {
     return (
@@ -120,12 +110,9 @@ export default function OrderConfirmationScreen() {
   if (!cart || !address) {
     return (
       <View style={styles.centerContainer}>
-        <Ionicons name="alert-circle-outline" size={64} color="#CCC" />
+        <Ionicons name="alert-circle-outline" size={64} color={colors.border} />
         <Text style={styles.errorText}>Unable to load order details</Text>
-        <TouchableOpacity 
-          style={styles.retryButton}
-          onPress={loadData}
-        >
+        <TouchableOpacity style={styles.retryButton} onPress={loadData}>
           <Text style={styles.retryText}>Try Again</Text>
         </TouchableOpacity>
       </View>
@@ -134,12 +121,7 @@ export default function OrderConfirmationScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
-      
-
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Delivery Address */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
@@ -149,17 +131,12 @@ export default function OrderConfirmationScreen() {
           <View style={styles.card}>
             <View style={styles.addressLabelRow}>
               <Text style={styles.addressLabel}>{address.label}</Text>
-              <TouchableOpacity
-                onPress={() => router.back()}
-                style={styles.changeButton}
-              >
+              <TouchableOpacity onPress={() => router.back()} style={styles.changeButton}>
                 <Text style={styles.changeText}>Change</Text>
               </TouchableOpacity>
             </View>
             <Text style={styles.addressText}>{address.landmark}</Text>
-            <Text style={styles.addressText}>
-              {address.area}, {address.district}
-            </Text>
+            <Text style={styles.addressText}>{address.area}, {address.district}</Text>
             <Text style={styles.addressRegion}>{address.region}</Text>
           </View>
         </View>
@@ -168,11 +145,9 @@ export default function OrderConfirmationScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Ionicons name="cart" size={20} color="#E60549" />
-            <Text style={styles.sectionTitle}>
-              Order Items ({cart.total_items})
-            </Text>
+            <Text style={styles.sectionTitle}>Order Items ({cart.total_items})</Text>
           </View>
-          {cart.items?.map((item: any, index: number) => (
+          {cart.items?.map((item: any) => (
             <View key={item.id} style={styles.itemCard}>
               <View style={styles.itemContent}>
                 {item.listing.images && item.listing.images.length > 0 && (
@@ -212,7 +187,7 @@ export default function OrderConfirmationScreen() {
           <View style={styles.summaryCard}>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>
-                Subtotal ({cart.total_items} {cart.total_items === 1 ? 'item' : 'items'})
+                Subtotal ({cart.total_items} {cart.total_items === 1 ? "item" : "items"})
               </Text>
               <Text style={styles.summaryValue}>
                 UGX {parseFloat(cart.total_price).toLocaleString()}
@@ -232,17 +207,15 @@ export default function OrderConfirmationScreen() {
           </View>
         </View>
 
-        {/* Order Note */}
         <View style={styles.noteSection}>
           <View style={styles.noteCard}>
-            <Ionicons name="information-circle" size={20} color="#666" />
+            <Ionicons name="information-circle" size={20} color={colors.textSecondary} />
             <Text style={styles.noteText}>
               By placing this order, you agree to our terms and conditions
             </Text>
           </View>
         </View>
 
-        {/* Bottom padding */}
         <View style={{ height: 100 }} />
       </ScrollView>
 
@@ -274,27 +247,28 @@ export default function OrderConfirmationScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "white",
+    backgroundColor: colors.background,
   },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 32,
+    backgroundColor: colors.background,
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: "#666",
+    color: colors.textSecondary,
     fontWeight: "500",
   },
   errorText: {
     marginTop: 16,
     fontSize: 16,
-    color: "#666",
+    color: colors.textSecondary,
     textAlign: "center",
   },
   retryButton: {
@@ -313,27 +287,6 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Header
-  header: {
-    padding: 24,
-    alignItems: "center",
-    backgroundColor: "#FFF5F8",
-    borderBottomWidth: 1,
-    borderBottomColor: "#FFE5ED",
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#333",
-    marginTop: 12,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: "#666",
-    marginTop: 4,
-  },
-
-  // Section
   section: {
     paddingHorizontal: 20,
     paddingTop: 24,
@@ -346,17 +299,16 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#333",
+    color: colors.textPrimary,
     marginLeft: 8,
   },
 
-  // Address Card
   card: {
-    backgroundColor: "#F8F8F8",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#E5E5E5",
+    borderColor: colors.border,
   },
   addressLabelRow: {
     flexDirection: "row",
@@ -367,12 +319,12 @@ const styles = StyleSheet.create({
   addressLabel: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#333",
+    color: colors.textPrimary,
   },
   changeButton: {
     paddingVertical: 4,
     paddingHorizontal: 12,
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     borderRadius: 6,
     borderWidth: 1,
     borderColor: "#E60549",
@@ -384,20 +336,21 @@ const styles = StyleSheet.create({
   },
   addressText: {
     fontSize: 14,
-    color: "#666",
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   addressRegion: {
     fontSize: 13,
-    color: "#999",
+    color: colors.textMuted,
   },
 
-  // Item Card
   itemCard: {
-    backgroundColor: "#F8F8F8",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
   },
   itemContent: {
     flexDirection: "row",
@@ -406,7 +359,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 8,
-    backgroundColor: "#E5E5E5",
+    backgroundColor: colors.backgroundSecondary,
   },
   itemInfo: {
     flex: 1,
@@ -416,7 +369,7 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontSize: 15,
     fontWeight: "500",
-    color: "#333",
+    color: colors.textPrimary,
     marginBottom: 6,
   },
   itemMeta: {
@@ -425,12 +378,12 @@ const styles = StyleSheet.create({
   },
   itemQuantity: {
     fontSize: 13,
-    color: "#666",
+    color: colors.textSecondary,
     marginRight: 12,
   },
   itemUnitPrice: {
     fontSize: 13,
-    color: "#999",
+    color: colors.textMuted,
   },
   itemPriceContainer: {
     justifyContent: "center",
@@ -439,16 +392,15 @@ const styles = StyleSheet.create({
   itemPrice: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#333",
+    color: colors.textPrimary,
   },
 
-  // Summary Card
   summaryCard: {
-    backgroundColor: "#F8F8F8",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#E5E5E5",
+    borderColor: colors.border,
   },
   summaryRow: {
     flexDirection: "row",
@@ -457,12 +409,12 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 14,
-    color: "#666",
+    color: colors.textSecondary,
   },
   summaryValue: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#333",
+    color: colors.textPrimary,
   },
   summaryValueFree: {
     fontSize: 14,
@@ -471,7 +423,7 @@ const styles = StyleSheet.create({
   },
   divider: {
     height: 1,
-    backgroundColor: "#E0E0E0",
+    backgroundColor: colors.border,
     marginVertical: 8,
   },
   totalRow: {
@@ -482,7 +434,7 @@ const styles = StyleSheet.create({
   totalLabel: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#333",
+    color: colors.textPrimary,
   },
   totalValue: {
     fontSize: 20,
@@ -490,40 +442,33 @@ const styles = StyleSheet.create({
     color: "#E60549",
   },
 
-  // Note Section
   noteSection: {
     paddingHorizontal: 20,
     paddingTop: 16,
   },
   noteCard: {
     flexDirection: "row",
-    backgroundColor: "#F8F8F8",
+    backgroundColor: colors.backgroundSecondary,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#E5E5E5",
+    borderColor: colors.border,
   },
   noteText: {
     flex: 1,
     fontSize: 13,
-    color: "#666",
+    color: colors.textSecondary,
     marginLeft: 12,
     lineHeight: 18,
   },
 
-  // Footer
   footer: {
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 24,
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: "#F0F0F0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 8,
+    borderTopColor: colors.border,
   },
   footerTop: {
     flexDirection: "row",
@@ -533,7 +478,7 @@ const styles = StyleSheet.create({
   },
   footerLabel: {
     fontSize: 14,
-    color: "#666",
+    color: colors.textSecondary,
   },
   footerAmount: {
     fontSize: 20,
@@ -548,11 +493,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
-    shadowColor: "#E60549",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 6,
   },
   placeOrderText: {
     color: "white",
@@ -560,8 +500,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   disabledButton: {
-    backgroundColor: "#CCC",
-    shadowOpacity: 0,
-    elevation: 0,
+    backgroundColor: colors.textMuted,
   },
 });

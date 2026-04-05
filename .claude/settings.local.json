@@ -8,7 +8,17 @@
       "Bash(for f:*)",
       "Bash(do sed:*)",
       "Bash(done)",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "Bash(ls -la \"C:\\\\React Native Projects\\\\KakebeShop/app/\\(tabs\\)/\\(home,category,cart,accounts\\)/merchant/\")",
+      "Bash(ls -la 'C:\\\\React Native Projects\\\\KakebeShop/app/\\(tabs\\)/\\(home,category,cart,accounts\\)/orders/')",
+      "Bash(ls -la 'C:\\\\React Native Projects\\\\KakebeShop/app/\\(tabs\\)/\\(home,category,cart,accounts\\)/')",
+      "Bash(do)",
+      "Bash(echo \"=== $f ===\")",
+      "Read(//c/React Native Projects/KakebeShop/**)",
+      "Bash(grep -E \"\\\\.\\(tsx|ts\\)$\")",
+      "Bash(grep -r listing 'C:\\\\React Native Projects\\\\KakebeShop' --include=*.tsx --include=*.ts -l)",
+      "Bash(wc:*)",
+      "Bash(ls:*)"
     ]
   }
 }

@@ -4,7 +4,6 @@ import { useTheme } from "@/contexts/ThemeContext";
 import {
   AntDesign,
   Feather,
-  Ionicons,
   MaterialCommunityIcons,
   Octicons,
 } from "@expo/vector-icons";
@@ -19,7 +18,6 @@ const CartTabIcon = ({ color, size }: { color: string; size: number }) => {
   return (
     <View>
       <Feather name="shopping-cart" size={size} color={color} />
-
       {cartCount > 0 && (
         <View
           style={{
@@ -44,6 +42,17 @@ const CartTabIcon = ({ color, size }: { color: string; size: number }) => {
   );
 };
 
+// Navigate to a tab's root screen, popping any stacked sub-screens.
+// Called from every tabPress listener so switching tabs always lands
+// on the tab's default screen, never a stale sub-screen.
+const makeTabResetListener = (tabName: string, rootScreen: string) =>
+  ({ navigation }: { navigation: any }) => ({
+    tabPress: (e: any) => {
+      e.preventDefault();
+      navigation.navigate(tabName, { screen: rootScreen });
+    },
+  });
+
 export default function TabsLayout() {
   const { colors } = useTheme();
 
@@ -63,6 +72,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen
         name="(home)"
+        listeners={makeTabResetListener("(home)", "index")}
         options={{
           title: "Home",
           tabBarIcon: ({ color, size }) => (
@@ -72,6 +82,7 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="(category)"
+        listeners={makeTabResetListener("(category)", "category")}
         options={{
           title: "Category",
           tabBarIcon: ({ color, size }) => (
@@ -81,6 +92,7 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="(sell)"
+        listeners={makeTabResetListener("(sell)", "sell")}
         options={{
           title: "Sell",
           tabBarIcon: ({ color, size }) => (
@@ -90,21 +102,22 @@ export default function TabsLayout() {
       />
       <Tabs.Screen
         name="(cart)"
+        listeners={makeTabResetListener("(cart)", "cart")}
         options={{
           title: "Cart",
-          tabBarIcon: CartTabIcon, 
+          tabBarIcon: CartTabIcon,
         }}
       />
       <Tabs.Screen
         name="(accounts)"
+        listeners={makeTabResetListener("(accounts)", "settings")}
         options={{
-          title: "accounts",
+          title: "Accounts",
           tabBarIcon: ({ color, size }) => (
             <Octicons name="person" size={size} color={color} />
           ),
         }}
       />
-       
     </Tabs>
   );
 }

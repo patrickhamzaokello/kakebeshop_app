@@ -6,6 +6,7 @@ import { useFocusEffect, useLocalSearchParams } from "expo-router";
 import ScreenWrapper from "@/components/ScreenWrapper";
 import { useCallback } from "react";
 import { StatusBar } from "react-native";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface OrderGroup {
   id: string;
@@ -26,11 +27,12 @@ interface Order {
 
 export default function OrderSuccessMain() {
   const { orderIds, orderGroupId } = useLocalSearchParams();
+  const { isDark } = useTheme();
 
    useFocusEffect(
       useCallback(() => {
-        StatusBar.setBarStyle("dark-content");
-      }, [])
+        StatusBar.setBarStyle(isDark ? "light-content" : "dark-content");
+      }, [isDark])
     );
 
   return (

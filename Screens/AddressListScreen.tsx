@@ -12,6 +12,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter, useFocusEffect } from "expo-router";
 import apiService from "@/utils/apiBase";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface Address {
   id: string;
@@ -36,13 +37,12 @@ interface AddressResponse {
 
 export default function AddressListScreen() {
   const router = useRouter();
-  
+  const { colors } = useTheme();
+
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
-  
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
@@ -55,25 +55,18 @@ export default function AddressListScreen() {
 
   const fetchAddresses = async (page: number = 1, append: boolean = false) => {
     try {
-      if (page === 1) {
-        setLoading(true);
-      } else {
-        setLoadingMore(true);
-      }
+      if (page === 1) setLoading(true);
+      else setLoadingMore(true);
 
-      const response = await apiService.get<AddressResponse>(
-        `/api/v1/addresses/?page=${page}`
-      );
+      const response = await apiService.get<AddressResponse>(`/api/v1/addresses/?page=${page}`);
 
       if (response.success && response.data) {
         const data = response.data;
-        
         if (append) {
-          setAddresses(prev => [...prev, ...data.results]);
+          setAddresses((prev) => [...prev, ...data.results]);
         } else {
           setAddresses(data.results);
         }
-        
         setTotalCount(data.count);
         setHasMore(!!data.next);
         setCurrentPage(page);
@@ -94,9 +87,7 @@ export default function AddressListScreen() {
   };
 
   const loadMore = () => {
-    if (hasMore && !loadingMore) {
-      fetchAddresses(currentPage + 1, true);
-    }
+    if (hasMore && !loadingMore) fetchAddresses(currentPage + 1, true);
   };
 
   const handleAddNew = () => {
@@ -109,17 +100,10 @@ export default function AddressListScreen() {
 
   const handleSetDefault = async (addressId: string) => {
     try {
-      const response = await apiService.patch(
-        `/api/v1/addresses/${addressId}/set-default/`
-      );
-
+      const response = await apiService.patch(`/api/v1/addresses/${addressId}/set-default/`);
       if (response.success) {
-        // Update local state
-        setAddresses(prev =>
-          prev.map(addr => ({
-            ...addr,
-            is_default: addr.id === addressId,
-          }))
+        setAddresses((prev) =>
+          prev.map((addr) => ({ ...addr, is_default: addr.id === addressId }))
         );
         Alert.alert("Success", "Default address updated");
       }
@@ -130,27 +114,18 @@ export default function AddressListScreen() {
   };
 
   const handleDelete = (addressId: string) => {
-    Alert.alert(
-      "Delete Address",
-      "Are you sure you want to delete this address?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: () => deleteAddress(addressId),
-        },
-      ]
-    );
+    Alert.alert("Delete Address", "Are you sure you want to delete this address?", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: () => deleteAddress(addressId) },
+    ]);
   };
 
   const deleteAddress = async (addressId: string) => {
     try {
       const response = await apiService.delete(`/api/v1/addresses/${addressId}/`);
-
       if (response.success) {
-        setAddresses(prev => prev.filter(addr => addr.id !== addressId));
-        setTotalCount(prev => prev - 1);
+        setAddresses((prev) => prev.filter((addr) => addr.id !== addressId));
+        setTotalCount((prev) => prev - 1);
         Alert.alert("Success", "Address deleted successfully");
       }
     } catch (error: any) {
@@ -158,123 +133,91 @@ export default function AddressListScreen() {
     }
   };
 
-  const renderAddressCard = ({ item }: { item: Address }) => {
-    return (
-      <View style={styles.addressCard}>
-        {/* Header */}
-        <View style={styles.cardHeader}>
-          <View style={styles.headerLeft}>
-            <View style={[
-              styles.labelBadge,
-              item.is_default && styles.labelBadgeDefault
-            ]}>
-              <Ionicons
-                name={
-                  item.label === "HOME"
-                    ? "home"
-                    : item.label === "WORK"
-                    ? "briefcase"
-                    : "location"
-                }
-                size={14}
-                color={item.is_default ? "#E60549" : "#666"}
-              />
-              <Text style={[
-                styles.labelText,
-                item.is_default && styles.labelTextDefault
-              ]}>
-                {item.label}
-              </Text>
-            </View>
-            
-            {item.is_default && (
-              <View style={styles.defaultBadge}>
-                <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
-                <Text style={styles.defaultText}>Default</Text>
-              </View>
-            )}
-          </View>
+  const styles = getStyles(colors);
 
-          <TouchableOpacity
-            style={styles.editButton}
-            onPress={() => handleEdit(item.id)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="pencil" size={18} color="#E60549" />
-          </TouchableOpacity>
-        </View>
-
-        {/* Address Details */}
-        <View style={styles.addressDetails}>
-          <View style={styles.detailRow}>
-            <Ionicons name="location-outline" size={16} color="#999" />
-            <Text style={styles.detailText}>
-              {item.area}, {item.district}
+  const renderAddressCard = ({ item }: { item: Address }) => (
+    <View style={styles.addressCard}>
+      <View style={styles.cardHeader}>
+        <View style={styles.headerLeft}>
+          <View style={[styles.labelBadge, item.is_default && styles.labelBadgeDefault]}>
+            <Ionicons
+              name={
+                item.label === "HOME" ? "home" : item.label === "WORK" ? "briefcase" : "location"
+              }
+              size={14}
+              color={item.is_default ? "#E60549" : colors.textSecondary}
+            />
+            <Text style={[styles.labelText, item.is_default && styles.labelTextDefault]}>
+              {item.label}
             </Text>
           </View>
 
-          <View style={styles.detailRow}>
-            <Ionicons name="navigate-outline" size={16} color="#999" />
-            <Text style={styles.detailText}>{item.region} Region</Text>
-          </View>
-
-          {item.landmark && (
-            <View style={styles.detailRow}>
-              <Ionicons name="flag-outline" size={16} color="#999" />
-              <Text style={styles.detailText}>{item.landmark}</Text>
+          {item.is_default && (
+            <View style={styles.defaultBadge}>
+              <Ionicons name="checkmark-circle" size={14} color="#4CAF50" />
+              <Text style={styles.defaultText}>Default</Text>
             </View>
           )}
         </View>
 
-        {/* Actions */}
-        <View style={styles.cardActions}>
-          {!item.is_default && (
-            <TouchableOpacity
-              style={styles.actionButton}
-              onPress={() => handleSetDefault(item.id)}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="checkmark-circle-outline" size={18} color="#4CAF50" />
-              <Text style={styles.actionButtonText}>Set as Default</Text>
-            </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            style={[styles.actionButton, styles.deleteButton]}
-            onPress={() => handleDelete(item.id)}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="trash-outline" size={18} color="#F44336" />
-            <Text style={[styles.actionButtonText, styles.deleteButtonText]}>
-              Delete
-            </Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.editButton} onPress={() => handleEdit(item.id)} activeOpacity={0.7}>
+          <Ionicons name="pencil" size={18} color="#E60549" />
+        </TouchableOpacity>
       </View>
-    );
-  };
+
+      <View style={styles.addressDetails}>
+        <View style={styles.detailRow}>
+          <Ionicons name="location-outline" size={16} color={colors.textMuted} />
+          <Text style={styles.detailText}>{item.area}, {item.district}</Text>
+        </View>
+        <View style={styles.detailRow}>
+          <Ionicons name="navigate-outline" size={16} color={colors.textMuted} />
+          <Text style={styles.detailText}>{item.region} Region</Text>
+        </View>
+        {item.landmark && (
+          <View style={styles.detailRow}>
+            <Ionicons name="flag-outline" size={16} color={colors.textMuted} />
+            <Text style={styles.detailText}>{item.landmark}</Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.cardActions}>
+        {!item.is_default && (
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={() => handleSetDefault(item.id)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="checkmark-circle-outline" size={18} color="#4CAF50" />
+            <Text style={styles.actionButtonText}>Set as Default</Text>
+          </TouchableOpacity>
+        )}
+
+        <TouchableOpacity
+          style={[styles.actionButton, styles.deleteButton]}
+          onPress={() => handleDelete(item.id)}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="trash-outline" size={18} color="#F44336" />
+          <Text style={[styles.actionButtonText, styles.deleteButtonText]}>Delete</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
 
   const renderEmpty = () => {
-    if (loading) {
-      return null;
-    }
-
+    if (loading) return null;
     return (
       <View style={styles.emptyContainer}>
         <View style={styles.emptyIconContainer}>
-          <Ionicons name="location-outline" size={80} color="#CCC" />
+          <Ionicons name="location-outline" size={80} color={colors.border} />
         </View>
-        
         <Text style={styles.emptyTitle}>No Addresses Yet</Text>
         <Text style={styles.emptyText}>
           Add your delivery addresses to make checkout faster and easier
         </Text>
-
-        <TouchableOpacity
-          style={styles.emptyButton}
-          onPress={handleAddNew}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.emptyButton} onPress={handleAddNew} activeOpacity={0.7}>
           <Ionicons name="add-circle-outline" size={20} color="white" />
           <Text style={styles.emptyButtonText}>Add Your First Address</Text>
         </TouchableOpacity>
@@ -284,7 +227,6 @@ export default function AddressListScreen() {
 
   const renderFooter = () => {
     if (!loadingMore) return null;
-
     return (
       <View style={styles.footerLoader}>
         <ActivityIndicator size="small" color="#E60549" />
@@ -295,18 +237,12 @@ export default function AddressListScreen() {
 
   const renderHeader = () => {
     if (addresses.length === 0) return null;
-
     return (
       <View style={styles.listHeader}>
         <Text style={styles.countText}>
           {totalCount} {totalCount === 1 ? "Address" : "Addresses"}
         </Text>
-        
-        <TouchableOpacity
-          style={styles.addNewButton}
-          onPress={handleAddNew}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.addNewButton} onPress={handleAddNew} activeOpacity={0.7}>
           <Ionicons name="add-circle" size={20} color="#E60549" />
           <Text style={styles.addNewText}>Add New</Text>
         </TouchableOpacity>
@@ -337,38 +273,33 @@ export default function AddressListScreen() {
         onEndReachedThreshold={0.5}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#E60549"
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#E60549" />
         }
       />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FAFAFA",
+    backgroundColor: colors.background,
   },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FAFAFA",
+    backgroundColor: colors.background,
   },
   loadingText: {
     marginTop: 12,
     fontSize: 14,
-    color: "#999",
+    color: colors.textMuted,
   },
   listContent: {
     paddingVertical: 16,
   },
 
-  // List Header
   listHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -379,7 +310,7 @@ const styles = StyleSheet.create({
   countText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#1A1A1A",
+    color: colors.textPrimary,
   },
   addNewButton: {
     flexDirection: "row",
@@ -388,7 +319,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
-    backgroundColor: "#FFE5ED",
+    backgroundColor: colors.backgroundSecondary,
   },
   addNewText: {
     fontSize: 14,
@@ -396,15 +327,14 @@ const styles = StyleSheet.create({
     color: "#E60549",
   },
 
-  // Address Card
   addressCard: {
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     marginHorizontal: 20,
     marginBottom: 12,
     borderRadius: 12,
     padding: 16,
     borderWidth: 1,
-    borderColor: "#F0F0F0",
+    borderColor: colors.border,
   },
   cardHeader: {
     flexDirection: "row",
@@ -425,15 +355,15 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 10,
     borderRadius: 6,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: colors.backgroundSecondary,
   },
   labelBadgeDefault: {
-    backgroundColor: "#FFE5ED",
+    backgroundColor: colors.backgroundSecondary,
   },
   labelText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#666",
+    color: colors.textSecondary,
   },
   labelTextDefault: {
     color: "#E60549",
@@ -456,18 +386,17 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "#FFE5ED",
+    backgroundColor: colors.backgroundSecondary,
     justifyContent: "center",
     alignItems: "center",
   },
 
-  // Address Details
   addressDetails: {
     gap: 8,
     marginBottom: 12,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    borderBottomColor: colors.border,
   },
   detailRow: {
     flexDirection: "row",
@@ -477,11 +406,10 @@ const styles = StyleSheet.create({
   detailText: {
     flex: 1,
     fontSize: 14,
-    color: "#666",
+    color: colors.textSecondary,
     lineHeight: 20,
   },
 
-  // Card Actions
   cardActions: {
     flexDirection: "row",
     gap: 8,
@@ -494,7 +422,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 10,
     borderRadius: 8,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: colors.backgroundSecondary,
   },
   actionButtonText: {
     fontSize: 13,
@@ -508,7 +436,6 @@ const styles = StyleSheet.create({
     color: "#F44336",
   },
 
-  // Empty State
   emptyContainer: {
     flex: 1,
     alignItems: "center",
@@ -520,7 +447,7 @@ const styles = StyleSheet.create({
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: colors.backgroundSecondary,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 24,
@@ -528,12 +455,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#1A1A1A",
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: "#999",
+    color: colors.textMuted,
     textAlign: "center",
     lineHeight: 20,
     marginBottom: 24,
@@ -553,7 +480,6 @@ const styles = StyleSheet.create({
     color: "white",
   },
 
-  // Footer Loader
   footerLoader: {
     flexDirection: "row",
     alignItems: "center",
@@ -563,6 +489,6 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: 13,
-    color: "#999",
+    color: colors.textMuted,
   },
 });

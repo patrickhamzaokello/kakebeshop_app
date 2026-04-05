@@ -3,6 +3,7 @@ import { DetailHeaderSection } from "@/components/test/DetailHeader";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { StatusBar } from "react-native";
+import { useTheme } from "@/contexts/ThemeContext";
 import { Listing } from "@/utils/types/models";
 import apiService from "@/utils/apiBase";
 import Typo from "@/components/Typo";
@@ -22,6 +23,7 @@ interface PaginatedResponse {
 
 export default function MerchantListings() {
   const router = useRouter();
+  const { isDark, colors } = useTheme();
   const [listings, setListings] = useState<Listing[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -32,8 +34,8 @@ export default function MerchantListings() {
 
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle("dark-content");
-    }, [])
+      StatusBar.setBarStyle(isDark ? "light-content" : "dark-content");
+    }, [isDark])
   );
 
   useEffect(() => {
@@ -98,24 +100,25 @@ export default function MerchantListings() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <DetailHeaderSection
         title="My Listings"
         subheading="Track and manage all listings you placed"
         showBackButton={true}
       />
-      
+
       {isError && !isLoading && (
         <View style={styles.errorContainer}>
-          <Typo style={styles.errorText}>
+          <Typo style={[styles.errorText, { color: colors.error }]}>
             Error loading listings. Please try again.
           </Typo>
           <TouchableOpacity
+            style={[styles.retryRow, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}
             onPress={handleRefresh}
             activeOpacity={0.7}
           >
-            <Text>Retry</Text>
-            <Ionicons name="arrow-forward" size={16} color="#4CAF50" />
+            <Text style={{ fontSize: 14, fontWeight: "600", color: colors.textPrimary }}>Retry</Text>
+            <Ionicons name="refresh-outline" size={16} color={colors.primary} />
           </TouchableOpacity>
         </View>
       )}
@@ -144,15 +147,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
+    gap: 12,
   },
   errorText: {
     fontSize: 16,
-    color: "#FF3B30",
     textAlign: "center",
-    marginBottom: 16,
   },
-  retryButton: {
-    fontSize: 16,
-    color: "#007AFF",
-  }
+  retryRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1,
+  },
 });

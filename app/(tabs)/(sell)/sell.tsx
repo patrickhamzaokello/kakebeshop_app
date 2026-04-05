@@ -211,14 +211,14 @@ const MerchantView: React.FC<{ hasListings: boolean; scrollRef: React.RefObject<
         <QuickAction
           icon={
             <Ionicons
-              name="bar-chart-outline"
+              name="help-circle-outline"
               size={24}
               color={colors.primary}
             />
           }
-          title="Sales Analytics"
-          subtitle="View your performance"
-          onPress={() => router.push("/merchant/dashboard")}
+          title="Help & Support"
+          subtitle="Get help with your store"
+          onPress={() => router.push("/merchant/merchant-support")}
         />
       </View>
 

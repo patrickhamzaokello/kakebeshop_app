@@ -1,26 +1,23 @@
-import ScreenWrapper from "@/components/ScreenWrapper";
-import { StatusBar } from "expo-status-bar";
-import {
-  StyleSheet,
-} from "react-native";
+import { View, StatusBar } from "react-native";
+import { useFocusEffect } from "expo-router";
+import { useCallback } from "react";
+import { useTheme } from "@/contexts/ThemeContext";
+import { DetailHeaderSection } from "@/components/test/DetailHeader";
 import Typo from "@/components/Typo";
 
 export default function LanguageMain() {
+  const { isDark, colors } = useTheme();
 
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle(isDark ? "light-content" : "dark-content");
+    }, [isDark])
+  );
 
-    return (
-      <ScreenWrapper style={styles.container}>
-        <StatusBar style="dark" />
-
-        <Typo>Language page</Typo>
-      </ScreenWrapper>
-    );
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <DetailHeaderSection title="Language" subheading="Choose your preferred language" />
+      <Typo>Language page</Typo>
+    </View>
+  );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-
-});

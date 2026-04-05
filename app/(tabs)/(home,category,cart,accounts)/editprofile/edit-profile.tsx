@@ -10,11 +10,15 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
+  StatusBar,
 } from "react-native";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import apiService from "@/utils/apiBase";
+import { useTheme } from "@/contexts/ThemeContext";
+import { DetailHeaderSection } from "@/components/test/DetailHeader";
 
 interface UserProfile {
   id: string;
@@ -28,7 +32,8 @@ interface UserProfile {
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  
+  const { colors, isDark } = useTheme();
+
   const [profile, setProfile] = useState<UserProfile>({
     id: "",
     username: "",
@@ -42,6 +47,12 @@ export default function EditProfileScreen() {
   const [saving, setSaving] = useState(false);
   const [imageUri, setImageUri] = useState<string | null>(null);
 
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle(isDark ? "light-content" : "dark-content");
+    }, [isDark])
+  );
+
   useEffect(() => {
     fetchProfile();
   }, []);
@@ -49,7 +60,6 @@ export default function EditProfileScreen() {
   const fetchProfile = async () => {
     try {
       const response = await apiService.get("/auth/profile/");
-      
       if (response.success && response.data.user) {
         const userData = response.data.user;
         setProfile({
@@ -61,10 +71,7 @@ export default function EditProfileScreen() {
           bio: userData.bio || "",
           profile_image: userData.profile_image,
         });
-        
-        if (userData.profile_image) {
-          setImageUri(userData.profile_image);
-        }
+        if (userData.profile_image) setImageUri(userData.profile_image);
       }
     } catch (error) {
       if (__DEV__) console.error("Error fetching profile:", error);
@@ -76,12 +83,8 @@ export default function EditProfileScreen() {
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    
     if (status !== "granted") {
-      Alert.alert(
-        "Permission Required",
-        "Please grant camera roll permissions to change your profile picture."
-      );
+      Alert.alert("Permission Required", "Please grant camera roll permissions to change your profile picture.");
       return;
     }
 
@@ -92,9 +95,7 @@ export default function EditProfileScreen() {
       quality: 0.8,
     });
 
-    if (!result.canceled) {
-      setImageUri(result.assets[0].uri);
-    }
+    if (!result.canceled) setImageUri(result.assets[0].uri);
   };
 
   const validateForm = (): boolean => {
@@ -120,33 +121,20 @@ export default function EditProfileScreen() {
 
   const handleSave = async () => {
     if (!validateForm()) return;
-
     setSaving(true);
 
     try {
       const formData = new FormData();
       formData.append("name", profile.name);
       formData.append("email", profile.email);
-      
-      if (profile.phone) {
-        formData.append("phone", profile.phone);
-      }
-      
-      if (profile.bio) {
-        formData.append("bio", profile.bio);
-      }
+      if (profile.phone) formData.append("phone", profile.phone);
+      if (profile.bio) formData.append("bio", profile.bio);
 
-      // Only append image if it's a new local file
       if (imageUri && !imageUri.startsWith("http")) {
         const filename = imageUri.split("/").pop() || "profile.jpg";
         const match = /\.(\w+)$/.exec(filename);
         const type = match ? `image/${match[1]}` : "image/jpeg";
-
-        formData.append("profile_image", {
-          uri: imageUri,
-          name: filename,
-          type,
-        } as any);
+        formData.append("profile_image", { uri: imageUri, name: filename, type } as any);
       }
 
       const response = await apiService.patch("/auth/profile/", formData);
@@ -166,6 +154,8 @@ export default function EditProfileScreen() {
     }
   };
 
+  const styles = getStyles(colors);
+
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -176,10 +166,9 @@ export default function EditProfileScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView 
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
+      <DetailHeaderSection title="Edit Profile" subheading="Update your name, email, and photo" />
+
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Profile Image */}
         <View style={styles.imageSection}>
           <View style={styles.imageContainer}>
@@ -187,16 +176,12 @@ export default function EditProfileScreen() {
               <Image source={{ uri: imageUri }} style={styles.profileImage} />
             ) : (
               <View style={styles.imagePlaceholder}>
-                <Ionicons name="person" size={50} color="#CCC" />
+                <Ionicons name="person" size={50} color={colors.textMuted} />
               </View>
             )}
           </View>
-          
-          <TouchableOpacity
-            style={styles.changeImageButton}
-            onPress={pickImage}
-            activeOpacity={0.7}
-          >
+
+          <TouchableOpacity style={styles.changeImageButton} onPress={pickImage} activeOpacity={0.7}>
             <Ionicons name="camera-outline" size={18} color="#E60549" />
             <Text style={styles.changeImageText}>Change Photo</Text>
           </TouchableOpacity>
@@ -204,17 +189,15 @@ export default function EditProfileScreen() {
 
         {/* Form Fields */}
         <View style={styles.formSection}>
-          {/* Username (Read-only) */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Username</Text>
             <View style={styles.readOnlyInput}>
               <Text style={styles.readOnlyText}>{profile.username}</Text>
-              <Ionicons name="lock-closed-outline" size={16} color="#999" />
+              <Ionicons name="lock-closed-outline" size={16} color={colors.textMuted} />
             </View>
             <Text style={styles.helpText}>Username cannot be changed</Text>
           </View>
 
-          {/* Full Name */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
               Full Name <Text style={styles.required}>*</Text>
@@ -224,11 +207,10 @@ export default function EditProfileScreen() {
               value={profile.name}
               onChangeText={(text) => setProfile({ ...profile, name: text })}
               placeholder="Enter your full name"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textMuted}
             />
           </View>
 
-          {/* Email */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>
               Email <Text style={styles.required}>*</Text>
@@ -238,13 +220,12 @@ export default function EditProfileScreen() {
               value={profile.email}
               onChangeText={(text) => setProfile({ ...profile, email: text })}
               placeholder="Enter your email"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textMuted}
               keyboardType="email-address"
               autoCapitalize="none"
             />
           </View>
 
-          {/* Phone Number */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Phone Number</Text>
             <TextInput
@@ -252,35 +233,28 @@ export default function EditProfileScreen() {
               value={profile.phone || ""}
               onChangeText={(text) => setProfile({ ...profile, phone: text })}
               placeholder="Enter your phone number"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textMuted}
               keyboardType="phone-pad"
             />
-            <Text style={styles.helpText}>
-              Add your phone number for verification
-            </Text>
+            <Text style={styles.helpText}>Add your phone number for verification</Text>
           </View>
 
-          {/* Bio */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Bio</Text>
             <TextInput
               style={[styles.input, styles.textArea]}
               value={profile.bio || ""}
               onChangeText={(text) => {
-                if (text.length <= 200) {
-                  setProfile({ ...profile, bio: text });
-                }
+                if (text.length <= 200) setProfile({ ...profile, bio: text });
               }}
               placeholder="Tell us about yourself"
-              placeholderTextColor="#999"
+              placeholderTextColor={colors.textMuted}
               multiline
               numberOfLines={4}
               textAlignVertical="top"
               maxLength={200}
             />
-            <Text style={styles.helpText}>
-              {(profile.bio || "").length}/200 characters
-            </Text>
+            <Text style={styles.helpText}>{(profile.bio || "").length}/200 characters</Text>
           </View>
         </View>
 
@@ -289,11 +263,7 @@ export default function EditProfileScreen() {
 
       {/* Footer */}
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.cancelButton}
-          onPress={() => router.back()}
-          activeOpacity={0.7}
-        >
+        <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()} activeOpacity={0.7}>
           <Text style={styles.cancelButtonText}>Cancel</Text>
         </TouchableOpacity>
 
@@ -317,27 +287,27 @@ export default function EditProfileScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FAFAFA",
+    backgroundColor: colors.background,
   },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: colors.background,
   },
   scrollView: {
     flex: 1,
   },
 
-  // Image Section
   imageSection: {
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     paddingVertical: 32,
     alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    borderBottomColor: colors.border,
   },
   imageContainer: {
     marginBottom: 16,
@@ -351,7 +321,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: colors.backgroundSecondary,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -361,7 +331,7 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 8,
     paddingHorizontal: 16,
-    backgroundColor: "#FFF5F8",
+    backgroundColor: colors.backgroundSecondary,
     borderRadius: 20,
   },
   changeImageText: {
@@ -370,7 +340,6 @@ const styles = StyleSheet.create({
     color: "#E60549",
   },
 
-  // Form Section
   formSection: {
     padding: 20,
   },
@@ -380,27 +349,27 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#1A1A1A",
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   required: {
     color: "#E60549",
   },
   input: {
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#E5E5E5",
+    borderColor: colors.border,
     paddingHorizontal: 16,
     paddingVertical: 14,
     fontSize: 15,
-    color: "#1A1A1A",
+    color: colors.textPrimary,
   },
   readOnlyInput: {
-    backgroundColor: "#F5F5F5",
+    backgroundColor: colors.backgroundSecondary,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: "#E5E5E5",
+    borderColor: colors.border,
     paddingHorizontal: 16,
     paddingVertical: 14,
     flexDirection: "row",
@@ -409,7 +378,7 @@ const styles = StyleSheet.create({
   },
   readOnlyText: {
     fontSize: 15,
-    color: "#666",
+    color: colors.textSecondary,
   },
   textArea: {
     minHeight: 100,
@@ -417,33 +386,32 @@ const styles = StyleSheet.create({
   },
   helpText: {
     fontSize: 12,
-    color: "#999",
+    color: colors.textMuted,
     marginTop: 6,
   },
 
-  // Footer
   footer: {
     flexDirection: "row",
     paddingHorizontal: 20,
     paddingVertical: 16,
     paddingBottom: Platform.OS === "ios" ? 32 : 16,
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: "#F0F0F0",
+    borderTopColor: colors.border,
     gap: 12,
   },
   cancelButton: {
     flex: 1,
     paddingVertical: 14,
     borderRadius: 10,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: colors.backgroundSecondary,
     alignItems: "center",
     justifyContent: "center",
   },
   cancelButtonText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#666",
+    color: colors.textSecondary,
   },
   saveButton: {
     flex: 2,
@@ -461,6 +429,6 @@ const styles = StyleSheet.create({
     color: "white",
   },
   disabledButton: {
-    backgroundColor: "#CCC",
+    backgroundColor: colors.textMuted,
   },
 });

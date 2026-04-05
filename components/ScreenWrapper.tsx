@@ -7,7 +7,8 @@ import {
 } from "react-native";
 import React from "react";
 import { useFocusEffect } from "@react-navigation/native";
-import { useCallback, } from "react";
+import { useCallback } from "react";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const { height } = Dimensions.get("window");
 
@@ -17,19 +18,21 @@ interface ScreenWrapperProps {
   statusBarStyle?: "light-content" | "dark-content";
 }
 
-const ScreenWrapper = ({ 
-  style, 
-  children, 
-  statusBarStyle = "dark-content" 
+const ScreenWrapper = ({
+  style,
+  children,
+  statusBarStyle,
 }: ScreenWrapperProps) => {
+  const { isDark } = useTheme();
+  const resolvedStyle = statusBarStyle ?? (isDark ? "light-content" : "dark-content");
   let paddingTop = Platform.OS == "ios" ? height * 0.06 : StatusBar.currentHeight || 50;
 
   useFocusEffect(
     useCallback(() => {
-      StatusBar.setBarStyle(statusBarStyle);
-    }, [statusBarStyle])
+      StatusBar.setBarStyle(resolvedStyle);
+    }, [resolvedStyle])
   );
-  
+
   return (
     <View
       style={[

@@ -1,34 +1,21 @@
-import ScreenWrapper from "@/components/ScreenWrapper";
-import {
-    StatusBar,
-  StyleSheet,
-  View,
-} from "react-native";
-import Typo from "@/components/Typo";
+import { StatusBar, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useCallback } from "react";
+import { useTheme } from "@/contexts/ThemeContext";
 import { DetailHeaderSection } from "@/components/test/DetailHeader";
 
 export default function WishlistMain() {
+  const { isDark, colors } = useTheme();
 
+  useFocusEffect(
+    useCallback(() => {
+      StatusBar.setBarStyle(isDark ? "light-content" : "dark-content");
+    }, [isDark])
+  );
 
-    useFocusEffect(
-         useCallback(() => {
-           StatusBar.setBarStyle("dark-content");
-         }, [])
-       );
-   
-     return (
-       <View style={{ flex: 1 }}>
-            <DetailHeaderSection title="Favourites" subheading="Here are your saved listings" />
-       </View>
-     );
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <DetailHeaderSection title="Favourites" subheading="Here are your saved listings" />
+    </View>
+  );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-
-});

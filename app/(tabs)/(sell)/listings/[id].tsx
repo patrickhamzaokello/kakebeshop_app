@@ -15,6 +15,7 @@ import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import apiService from "@/utils/apiBase";
+import { merchantBase } from "@/utils/services/merchantService";
 import { useTheme } from "@/contexts/ThemeContext";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
@@ -79,6 +80,7 @@ export default function ListingDetailPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
+  const [deleting, setDeleting] = useState(false);
   const [imageIndex, setImageIndex] = useState(0);
   const { colors, isDark } = useTheme();
 
@@ -115,6 +117,30 @@ export default function ListingDetailPage() {
       return `${listing.currency} ${parseInt(listing.price_min || "0").toLocaleString()} - ${parseInt(listing.price_max || "0").toLocaleString()}`;
     }
     return "";
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      "Delete Listing",
+      "Are you sure you want to delete this listing? This cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setDeleting(true);
+            const ok = await merchantBase.deleteListing(id as string);
+            setDeleting(false);
+            if (ok) {
+              router.replace("/merchant/mylistings");
+            } else {
+              Alert.alert("Error", "Failed to delete listing. Please try again.");
+            }
+          },
+        },
+      ]
+    );
   };
 
   const formatDate = (date: string) => {
@@ -164,7 +190,18 @@ export default function ListingDetailPage() {
             <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
           </TouchableOpacity>
           <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Listing</Text>
-          <View style={styles.headerBtn} />
+          <TouchableOpacity
+            onPress={handleDelete}
+            style={styles.headerBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            disabled={deleting}
+          >
+            {deleting ? (
+              <ActivityIndicator size="small" color={colors.error} />
+            ) : (
+              <Ionicons name="trash-outline" size={22} color={colors.error} />
+            )}
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
 

@@ -13,10 +13,11 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
-import MapView, { Marker } from "react-native-maps"; // Remove PROVIDER_GOOGLE
+import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
 import { cartService } from "@/utils/services/cartService";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface LocationData {
   latitude: number;
@@ -29,6 +30,7 @@ interface LocationData {
 
 export default function NewAddressScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const mapRef = useRef<MapView>(null);
 
   // Form state
@@ -270,16 +272,16 @@ export default function NewAddressScreen() {
 
   if (loadingLocation) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centerContainer, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color="#E60549" />
-        <Text style={styles.loadingText}>Getting your location...</Text>
+        <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Getting your location...</Text>
       </View>
     );
   }
 
   return (
     <KeyboardAvoidingView
-      style={styles.container}
+      style={[styles.container, { backgroundColor: colors.background }]}
       behavior={Platform.OS === "ios" ? "padding" : undefined}
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
@@ -340,8 +342,8 @@ export default function NewAddressScreen() {
       </View>
 
       {/* Form Section */}
-      <ScrollView 
-        style={styles.formContainer} 
+      <ScrollView
+        style={[styles.formContainer, { backgroundColor: colors.background }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
@@ -349,7 +351,7 @@ export default function NewAddressScreen() {
         {selectedLocation && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Selected Location</Text>
-            <View style={styles.locationCard}>
+            <View style={[styles.locationCard, { backgroundColor: colors.surface }]}>
               <Ionicons
                 name="location-sharp"
                 size={20}
@@ -383,6 +385,7 @@ export default function NewAddressScreen() {
                 key={labelType}
                 style={[
                   styles.labelButton,
+                  { backgroundColor: label === labelType ? colors.backgroundSecondary : colors.surface },
                   label === labelType && styles.labelButtonActive,
                 ]}
                 onPress={() => setLabel(labelType)}
@@ -390,7 +393,7 @@ export default function NewAddressScreen() {
                 <Text
                   style={[
                     styles.labelButtonText,
-                    label === labelType && styles.labelButtonTextActive,
+                    { color: label === labelType ? "#E60549" : colors.textSecondary },
                   ]}
                 >
                   {labelType}
@@ -404,11 +407,11 @@ export default function NewAddressScreen() {
         <View style={styles.section}>
           <Text style={styles.label}>Landmark / Building Name *</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, { backgroundColor: colors.surface, color: colors.textPrimary, borderColor: colors.border }]}
             value={landmark}
             onChangeText={setLandmark}
             placeholder="e.g., Near City Mall, Building 5, Apartment 3B"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textMuted}
             multiline
             numberOfLines={3}
             textAlignVertical="top"
@@ -420,7 +423,7 @@ export default function NewAddressScreen() {
 
         {/* Set as Default */}
         <View style={styles.section}>
-          <View style={styles.switchRow}>
+          <View style={[styles.switchRow, { backgroundColor: colors.surface }]}>
             <View style={styles.switchLabel}>
               <Text style={styles.label}>Set as Default Address</Text>
               <Text style={styles.helpText}>
@@ -441,12 +444,12 @@ export default function NewAddressScreen() {
       </ScrollView>
 
       {/* Footer */}
-      <View style={styles.footer}>
+      <View style={[styles.footer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
         <TouchableOpacity
-          style={[styles.button, styles.cancelButton]}
+          style={[styles.button, styles.cancelButton, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}
           onPress={() => router.back()}
         >
-          <Text style={styles.cancelButtonText}>Cancel</Text>
+          <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>Cancel</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -562,7 +565,6 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   locationCard: {
-    backgroundColor: "white",
     borderRadius: 8,
     padding: 16,
     flexDirection: "row",
@@ -614,12 +616,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 2,
     borderColor: "#E0E0E0",
-    backgroundColor: "white",
     alignItems: "center",
   },
   labelButtonActive: {
     borderColor: "#E60549",
-    backgroundColor: "#E3F2FF",
   },
   labelButtonText: {
     fontSize: 14,
@@ -630,7 +630,6 @@ const styles = StyleSheet.create({
     color: "#E60549",
   },
   input: {
-    backgroundColor: "white",
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#E0E0E0",
@@ -643,7 +642,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    backgroundColor: "white",
     borderRadius: 8,
     padding: 16,
   },
@@ -654,7 +652,6 @@ const styles = StyleSheet.create({
   footer: {
     flexDirection: "row",
     padding: 16,
-    backgroundColor: "white",
     borderTopWidth: 1,
     borderTopColor: "#E0E0E0",
     gap: 12,

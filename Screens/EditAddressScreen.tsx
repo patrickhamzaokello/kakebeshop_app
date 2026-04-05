@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TextInput,
   TouchableOpacity,
@@ -11,8 +10,8 @@ import {
   Switch,
 } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
-import { Picker } from "@react-native-picker/picker";
 import { cartService } from "@/utils/services/cartService";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface Address {
   id: string;
@@ -26,18 +25,15 @@ interface Address {
 
 export default function EditAddressScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const { id } = useLocalSearchParams();
-  
-  // Form state
-  const [address, setAddress] = useState<Address | null>(null);
+
   const [label, setLabel] = useState<"HOME" | "WORK" | "OTHER">("HOME");
   const [region, setRegion] = useState("");
   const [district, setDistrict] = useState("");
   const [area, setArea] = useState("");
   const [landmark, setLandmark] = useState("");
   const [isDefault, setIsDefault] = useState(false);
-  
-  // Loading states
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -48,10 +44,8 @@ export default function EditAddressScreen() {
 
   const fetchAddress = async () => {
     try {
-     const data = await cartService.getAddressById(id as string)
-      
+      const data = await cartService.getAddressById(id as string);
       if (data) {
-        setAddress(data);
         setLabel(data.label);
         setRegion(data.region);
         setDistrict(data.district);
@@ -76,20 +70,12 @@ export default function EditAddressScreen() {
       Alert.alert("Validation Error", "Please enter a landmark");
       return;
     }
-
     setSaving(true);
-
     try {
-    
-
       const data = await cartService.patchAddressDetails(id as string, isDefault, label, landmark);
-
       if (data) {
         Alert.alert("Success", "Address updated successfully", [
-          {
-            text: "OK",
-            onPress: () => router.back(),
-          },
+          { text: "OK", onPress: () => router.back() },
         ]);
       } else {
         Alert.alert("Error", "Failed to update address");
@@ -103,86 +89,70 @@ export default function EditAddressScreen() {
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      "Delete Address",
-      "Are you sure you want to delete this address?",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            setDeleting(true);
-            try {
-              const data = await cartService.deleteAddressbyId(id as string);
-
-              if (data) {
-                Alert.alert("Success", "Address deleted successfully", [
-                  {
-                    text: "OK",
-                    onPress: () => router.back(),
-                  },
-                ]);
-              } else {
-                Alert.alert("Error", "Failed to delete address");
-              }
-            } catch (error) {
-              if (__DEV__) console.error("Error deleting address:", error);
-              Alert.alert("Error", "Something went wrong");
-            } finally {
-              setDeleting(false);
+    Alert.alert("Delete Address", "Are you sure you want to delete this address?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          setDeleting(true);
+          try {
+            const data = await cartService.deleteAddressbyId(id as string);
+            if (data) {
+              Alert.alert("Success", "Address deleted successfully", [
+                { text: "OK", onPress: () => router.back() },
+              ]);
+            } else {
+              Alert.alert("Error", "Failed to delete address");
             }
-          },
+          } catch (error) {
+            if (__DEV__) console.error("Error deleting address:", error);
+            Alert.alert("Error", "Something went wrong");
+          } finally {
+            setDeleting(false);
+          }
         },
-      ]
-    );
-  };
-
-  const handleSetDefault = async () => {
-    try {
-      const response = await cartService.setAddressAsDefault(id as string, true);
-      if (response) {
-        setIsDefault(true);
-        Alert.alert("Success", "Default address updated");
-      } else {
-        Alert.alert("Error", "Failed to update default address");
-      }
-    } catch (error) {
-      if (__DEV__) console.error("Error setting default:", error);
-      Alert.alert("Error", "Something went wrong");
-    }
+      },
+    ]);
   };
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" />
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: colors.background }}>
+        <ActivityIndicator size="large" color="#E60549" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <ScrollView style={styles.scrollView}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
+      <ScrollView style={{ flex: 1 }}>
         {/* Address Label */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Address Label *</Text>
-          <View style={styles.labelButtons}>
+        <View style={{ padding: 16 }}>
+          <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 8, color: colors.textPrimary }}>
+            Address Label *
+          </Text>
+          <View style={{ flexDirection: "row", gap: 12 }}>
             {(["HOME", "WORK", "OTHER"] as const).map((labelType) => (
               <TouchableOpacity
                 key={labelType}
-                style={[
-                  styles.labelButton,
-                  label === labelType && styles.labelButtonActive,
-                ]}
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  paddingHorizontal: 16,
+                  borderRadius: 8,
+                  borderWidth: 2,
+                  borderColor: label === labelType ? "#E60549" : colors.border,
+                  backgroundColor: label === labelType ? colors.backgroundSecondary : colors.surface,
+                  alignItems: "center",
+                }}
                 onPress={() => setLabel(labelType)}
               >
-                <Text
-                  style={[
-                    styles.labelButtonText,
-                    label === labelType && styles.labelButtonTextActive,
-                  ]}
-                >
+                <Text style={{
+                  fontSize: 14,
+                  fontWeight: "600",
+                  color: label === labelType ? "#E60549" : colors.textSecondary,
+                }}>
                   {labelType}
                 </Text>
               </TouchableOpacity>
@@ -191,27 +161,40 @@ export default function EditAddressScreen() {
         </View>
 
         {/* Location (Read-only) */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Location</Text>
-          <View style={styles.infoCard}>
-            <Text style={styles.infoText}>
+        <View style={{ padding: 16 }}>
+          <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 8, color: colors.textPrimary }}>
+            Location
+          </Text>
+          <View style={{ backgroundColor: colors.surface, borderRadius: 8, padding: 16, borderWidth: 1, borderColor: colors.border }}>
+            <Text style={{ fontSize: 16, color: colors.textPrimary, marginBottom: 4 }}>
               {area}, {district}, {region}
             </Text>
-            <Text style={styles.helpText}>
+            <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
               Location cannot be changed. Create a new address if needed.
             </Text>
           </View>
         </View>
 
         {/* Landmark */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Landmark / Building Name *</Text>
+        <View style={{ padding: 16 }}>
+          <Text style={{ fontSize: 16, fontWeight: "600", marginBottom: 8, color: colors.textPrimary }}>
+            Landmark / Building Name *
+          </Text>
           <TextInput
-            style={styles.input}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: colors.border,
+              padding: 12,
+              fontSize: 16,
+              color: colors.textPrimary,
+              minHeight: 80,
+            }}
             value={landmark}
             onChangeText={setLandmark}
             placeholder="e.g., Near City Mall, Building 5"
-            placeholderTextColor="#999"
+            placeholderTextColor={colors.textMuted}
             multiline
             numberOfLines={3}
             textAlignVertical="top"
@@ -219,198 +202,99 @@ export default function EditAddressScreen() {
         </View>
 
         {/* Set as Default */}
-        <View style={styles.section}>
-          <View style={styles.switchRow}>
-            <View style={styles.switchLabel}>
-              <Text style={styles.label}>Set as Default Address</Text>
-              <Text style={styles.helpText}>
+        <View style={{ padding: 16 }}>
+          <View style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+            backgroundColor: colors.surface,
+            borderRadius: 8,
+            padding: 16,
+          }}>
+            <View style={{ flex: 1, marginRight: 16 }}>
+              <Text style={{ fontSize: 16, fontWeight: "600", color: colors.textPrimary }}>
+                Set as Default Address
+              </Text>
+              <Text style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
                 Use this address for future orders
               </Text>
             </View>
             <Switch
               value={isDefault}
               onValueChange={setIsDefault}
-              trackColor={{ false: "#E0E0E0", true: "#007AFF" }}
-              thumbColor="white"
+              trackColor={{ false: colors.border, true: "#FFE5ED" }}
+              thumbColor={isDefault ? "#E60549" : colors.textMuted}
             />
           </View>
         </View>
 
-        {/* Delete Button */}
-        <View style={styles.section}>
+        {/* Delete */}
+        <View style={{ padding: 16 }}>
           <TouchableOpacity
-            style={styles.deleteButton}
+            style={{
+              backgroundColor: colors.surface,
+              borderRadius: 8,
+              padding: 16,
+              alignItems: "center",
+              borderWidth: 2,
+              borderColor: "#F44336",
+            }}
             onPress={handleDelete}
             disabled={deleting}
           >
             {deleting ? (
-              <ActivityIndicator color="#FF3B30" />
+              <ActivityIndicator color="#F44336" />
             ) : (
-              <Text style={styles.deleteButtonText}>Delete Address</Text>
+              <Text style={{ fontSize: 16, fontWeight: "600", color: "#F44336" }}>Delete Address</Text>
             )}
           </TouchableOpacity>
         </View>
       </ScrollView>
 
       {/* Footer */}
-      <View style={styles.footer}>
+      <View style={{
+        flexDirection: "row",
+        padding: 16,
+        backgroundColor: colors.surface,
+        borderTopWidth: 1,
+        borderTopColor: colors.border,
+        gap: 12,
+      }}>
         <TouchableOpacity
-          style={[styles.button, styles.cancelButton]}
+          style={{
+            flex: 1,
+            paddingVertical: 14,
+            borderRadius: 8,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: colors.backgroundSecondary,
+            borderWidth: 1,
+            borderColor: colors.border,
+          }}
           onPress={() => router.back()}
         >
-          <Text style={styles.cancelButtonText}>Cancel</Text>
+          <Text style={{ fontSize: 16, fontWeight: "600", color: colors.textSecondary }}>Cancel</Text>
         </TouchableOpacity>
-        
+
         <TouchableOpacity
-          style={[styles.button, styles.saveButton, saving && styles.disabledButton]}
+          style={{
+            flex: 1,
+            paddingVertical: 14,
+            borderRadius: 8,
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: saving ? colors.textMuted : "#E60549",
+          }}
           onPress={handleSave}
           disabled={saving}
         >
           {saving ? (
             <ActivityIndicator color="white" />
           ) : (
-            <Text style={styles.saveButtonText}>Save Changes</Text>
+            <Text style={{ fontSize: 16, fontWeight: "600", color: "white" }}>Save Changes</Text>
           )}
         </TouchableOpacity>
       </View>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  scrollView: {
-    flex: 1,
-  },
-  section: {
-    padding: 16,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 8,
-    color: "#333",
-  },
-  helpText: {
-    fontSize: 12,
-    color: "#666",
-    marginTop: 2,
-  },
-  labelButtons: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  labelButton: {
-    flex: 1,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: "#E0E0E0",
-    backgroundColor: "white",
-    alignItems: "center",
-  },
-  labelButtonActive: {
-    borderColor: "#007AFF",
-    backgroundColor: "#E3F2FF",
-  },
-  labelButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#666",
-  },
-  labelButtonTextActive: {
-    color: "#007AFF",
-  },
-  infoCard: {
-    backgroundColor: "white",
-    borderRadius: 8,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-  },
-  infoText: {
-    fontSize: 16,
-    color: "#333",
-    marginBottom: 4,
-  },
-  input: {
-    backgroundColor: "white",
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#E0E0E0",
-    padding: 12,
-    fontSize: 16,
-    color: "#333",
-    minHeight: 80,
-  },
-  switchRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    backgroundColor: "white",
-    borderRadius: 8,
-    padding: 16,
-  },
-  switchLabel: {
-    flex: 1,
-    marginRight: 16,
-  },
-  deleteButton: {
-    backgroundColor: "white",
-    borderRadius: 8,
-    padding: 16,
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#FF3B30",
-  },
-  deleteButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FF3B30",
-  },
-  footer: {
-    flexDirection: "row",
-    padding: 16,
-    backgroundColor: "white",
-    borderTopWidth: 1,
-    borderTopColor: "#E0E0E0",
-    gap: 12,
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cancelButton: {
-    backgroundColor: "white",
-    borderWidth: 2,
-    borderColor: "#E0E0E0",
-  },
-  cancelButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#666",
-  },
-  saveButton: {
-    backgroundColor: "#007AFF",
-  },
-  saveButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "white",
-  },
-  disabledButton: {
-    backgroundColor: "#CCC",
-  },
-});

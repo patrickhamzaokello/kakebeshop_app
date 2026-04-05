@@ -13,6 +13,7 @@ type CartState = {
   cart: Cart | null;
   isLoading: boolean;
   isUpdating: boolean;
+  isSyncing: boolean; // background sync while local data is shown
 
   // Actions
   setCartCount: (count: number) => void;
@@ -36,6 +37,7 @@ export const useCartStore = create<CartState>()(
       cart: null,
       isLoading: false,
       isUpdating: false,
+      isSyncing: false,
 
       setCartCount: (count: number) => set({ cartCount: count }),
 
@@ -61,21 +63,24 @@ export const useCartStore = create<CartState>()(
         }
       },
 
-      // Fetch full cart data
+      // Fetch full cart data — local-first: show cached data immediately,
+      // then sync with backend in background.
       fetchCart: async () => {
-        set({ isLoading: true });
+        const hasLocal = !!get().cart;
+        if (hasLocal) {
+          set({ isSyncing: true });
+        } else {
+          set({ isLoading: true });
+        }
         try {
-          const cart = await cartService.getCart();
-          if (cart) {
-            set({ 
-              cart,
-              cartCount: cart.total_items || 0,
-            });
+          const fresh = await cartService.getCart();
+          if (fresh) {
+            set({ cart: fresh, cartCount: fresh.total_items || 0 });
           }
         } catch (error) {
           if (__DEV__) console.error("Failed to fetch cart:", error);
         } finally {
-          set({ isLoading: false });
+          set({ isLoading: false, isSyncing: false });
         }
       },
 

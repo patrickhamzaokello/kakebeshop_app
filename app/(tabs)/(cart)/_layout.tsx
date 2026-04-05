@@ -1,17 +1,5 @@
-import { Stack, usePathname } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { Stack } from "expo-router";
 
 export default function CartLayout() {
-  const pathname = usePathname();
-  return (
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          animation: pathname.startsWith("/cart") ? "default" : "none",
-        }}
-      >
-
-      </Stack>
-      
-  );
+  return <Stack screenOptions={{ headerShown: false, animation: "default" }} />;
 }

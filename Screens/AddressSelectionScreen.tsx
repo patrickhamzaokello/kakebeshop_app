@@ -10,6 +10,7 @@ import {
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { cartService } from "@/utils/services/cartService";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface UserAddress {
   id: string;
@@ -23,19 +24,17 @@ interface UserAddress {
 
 export default function AddressSelectionScreen() {
   const router = useRouter();
+  const { colors } = useTheme();
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
 
-  // Fetch addresses on mount
   useEffect(() => {
     fetchAddresses();
   }, []);
 
-  // Auto-refresh when screen comes into focus (after returning from add/edit address)
   useFocusEffect(
     useCallback(() => {
-      // Refresh addresses every time the screen is focused
       fetchAddresses();
     }, [])
   );
@@ -44,21 +43,17 @@ export default function AddressSelectionScreen() {
     try {
       const data = await cartService.getAddresses();
       setAddresses(data);
-      
-      // Auto-select default address if no address is currently selected
+
       if (!selectedAddress) {
         const defaultAddr = data.find((addr: UserAddress) => addr.is_default);
         if (defaultAddr) {
           setSelectedAddress(defaultAddr.id);
         } else if (data.length > 0) {
-          // If no default, select the first address
           setSelectedAddress(data[0].id);
         }
       } else {
-        // Check if the currently selected address still exists
         const stillExists = data.find((addr: UserAddress) => addr.id === selectedAddress);
         if (!stillExists && data.length > 0) {
-          // If selected address was deleted, select default or first address
           const defaultAddr = data.find((addr: UserAddress) => addr.is_default);
           setSelectedAddress(defaultAddr ? defaultAddr.id : data[0].id);
         }
@@ -79,25 +74,19 @@ export default function AddressSelectionScreen() {
     }
   };
 
+  const styles = getStyles(colors);
+
   const renderAddressItem = ({ item }: { item: UserAddress }) => (
     <TouchableOpacity
-      style={[
-        styles.addressCard,
-        selectedAddress === item.id && styles.selectedCard,
-      ]}
+      style={[styles.addressCard, selectedAddress === item.id && styles.selectedCard]}
       onPress={() => setSelectedAddress(item.id)}
     >
       <View style={styles.radioContainer}>
-        <View
-          style={[
-            styles.radio,
-            selectedAddress === item.id && styles.radioSelected,
-          ]}
-        >
+        <View style={[styles.radio, selectedAddress === item.id && styles.radioSelected]}>
           {selectedAddress === item.id && <View style={styles.radioDot} />}
         </View>
       </View>
-      
+
       <View style={styles.addressInfo}>
         <View style={styles.labelContainer}>
           <Text style={styles.label}>{item.label}</Text>
@@ -114,8 +103,7 @@ export default function AddressSelectionScreen() {
           {item.district}, {item.region}
         </Text>
       </View>
-  
-      {/* Edit Button */}
+
       <TouchableOpacity
         style={styles.editButton}
         onPress={(e) => {
@@ -130,11 +118,9 @@ export default function AddressSelectionScreen() {
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
-      <Ionicons name="location-outline" size={64} color="#CCC" />
+      <Ionicons name="location-outline" size={64} color={colors.border} />
       <Text style={styles.emptyTitle}>No Addresses Yet</Text>
-      <Text style={styles.emptyText}>
-        Add a delivery address to continue with your order
-      </Text>
+      <Text style={styles.emptyText}>Add a delivery address to continue with your order</Text>
       <TouchableOpacity
         style={styles.emptyButton}
         onPress={() => router.push("/checkout/new-address")}
@@ -153,7 +139,6 @@ export default function AddressSelectionScreen() {
     );
   }
 
-  // Show empty state if no addresses
   if (addresses.length === 0) {
     return <View style={styles.container}>{renderEmptyState()}</View>;
   }
@@ -175,13 +160,10 @@ export default function AddressSelectionScreen() {
           </TouchableOpacity>
         }
       />
-      
+
       <View style={styles.footer}>
         <TouchableOpacity
-          style={[
-            styles.continueButton,
-            !selectedAddress && styles.disabledButton,
-          ]}
+          style={[styles.continueButton, !selectedAddress && styles.disabledButton]}
           onPress={handleContinue}
           disabled={!selectedAddress}
         >
@@ -192,20 +174,22 @@ export default function AddressSelectionScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
+    backgroundColor: colors.background,
   },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: colors.background,
   },
   listContainer: {
     padding: 16,
   },
   addressCard: {
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
@@ -225,7 +209,7 @@ const styles = StyleSheet.create({
     height: 24,
     borderRadius: 12,
     borderWidth: 2,
-    borderColor: "#CCC",
+    borderColor: colors.border,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -250,6 +234,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     marginRight: 8,
+    color: colors.textPrimary,
   },
   defaultBadge: {
     backgroundColor: "#E60549",
@@ -264,18 +249,18 @@ const styles = StyleSheet.create({
   },
   address: {
     fontSize: 14,
-    color: "#333",
+    color: colors.textSecondary,
     marginBottom: 2,
   },
   location: {
     fontSize: 12,
-    color: "#666",
+    color: colors.textMuted,
   },
   addButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     marginTop: 8,
@@ -291,9 +276,9 @@ const styles = StyleSheet.create({
   },
   footer: {
     padding: 16,
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: "#E0E0E0",
+    borderTopColor: colors.border,
   },
   continueButton: {
     backgroundColor: "#E60549",
@@ -302,7 +287,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   disabledButton: {
-    backgroundColor: "#CCC",
+    backgroundColor: colors.textMuted,
   },
   editButton: {
     padding: 8,
@@ -313,7 +298,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
   },
-  // Empty state styles
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
@@ -323,13 +307,13 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#333",
+    color: colors.textPrimary,
     marginTop: 16,
     marginBottom: 8,
   },
   emptyText: {
     fontSize: 14,
-    color: "#666",
+    color: colors.textSecondary,
     textAlign: "center",
     marginBottom: 24,
   },

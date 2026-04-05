@@ -7,14 +7,16 @@ import ScreenWrapper from "@/components/ScreenWrapper";
 import { useCallback } from "react";
 import { StatusBar } from "react-native";
 import OrdersListScreen from "@/Screens/OrderListScreen";
+import { useTheme } from "@/contexts/ThemeContext";
 
 
 export default function OrderSuccessMain() {
+  const { isDark } = useTheme();
 
    useFocusEffect(
       useCallback(() => {
-        StatusBar.setBarStyle("dark-content");
-      }, [])
+        StatusBar.setBarStyle(isDark ? "light-content" : "dark-content");
+      }, [isDark])
     );
 
   return (

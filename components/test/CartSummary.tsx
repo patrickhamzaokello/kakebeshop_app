@@ -1,14 +1,13 @@
 import React from 'react';
 import {
-  View,
+  ActivityIndicator,
+  StyleSheet,
   Text,
   TouchableOpacity,
-  StyleSheet,
-  ActivityIndicator,
+  View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/contexts/ThemeContext';
-
 
 interface CartSummaryProps {
   totalItems: number;
@@ -16,6 +15,7 @@ interface CartSummaryProps {
   onCheckout: () => void;
   loading?: boolean;
   disabled?: boolean;
+  isSyncing?: boolean;
 }
 
 export const CartSummary: React.FC<CartSummaryProps> = ({
@@ -24,57 +24,59 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
   onCheckout,
   loading = false,
   disabled = false,
+  isSyncing = false,
 }) => {
-  const priceValue = parseFloat(totalPrice);
   const { colors } = useTheme();
+  const total = parseFloat(totalPrice) || 0;
+  const canCheckout = !disabled && !loading;
 
   return (
-    <View style={[styles.container, { backgroundColor: colors.card }]}>
-      <View style={[styles.summaryCard, { backgroundColor: colors.card }]}>
-        {/* Items Count */}
-        <View style={styles.row}>
-          <View style={styles.labelContainer}>
-            <Ionicons name="cart-outline" size={16} color={colors.textSecondary} />
-            <Text style={[styles.label, {color: colors.textSecondary}]}>Items</Text>
-          </View>
-          <Text style={[styles.value, {color: colors.textPrimary}]}>{totalItems}</Text>
+    <View style={[styles.container, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+
+      {/* Background sync indicator */}
+      {isSyncing && (
+        <View style={[styles.syncRow, { backgroundColor: colors.backgroundSecondary }]}>
+          <ActivityIndicator size="small" color={colors.textMuted} />
+          <Text style={[styles.syncText, { color: colors.textMuted }]}>Syncing with server…</Text>
         </View>
+      )}
 
-        {/* Divider */}
-        <View style={[styles.divider, {backgroundColor: colors.border}]} />
-
-        {/* Total Price */}
-        <View style={[styles.totalRow, ]}>
-          <Text style={[styles.totalLabel, {color: colors.textSecondary}]}>Total</Text>
-          <Text style={[styles.totalValue, {color: colors.textPrimary}]}>
-            UGX {priceValue.toLocaleString()}
+      {/* Price + checkout */}
+      <View style={styles.mainRow}>
+        <View style={styles.priceBlock}>
+          <Text style={[styles.itemCountLabel, { color: colors.textSecondary }]}>
+            {totalItems} {totalItems === 1 ? 'item' : 'items'}
+          </Text>
+          <Text style={[styles.totalAmount, { color: colors.textPrimary }]}>
+            UGX {total.toLocaleString()}
           </Text>
         </View>
+
+        <TouchableOpacity
+          style={[
+            styles.checkoutBtn,
+            { backgroundColor: canCheckout ? '#E60549' : colors.border },
+          ]}
+          onPress={onCheckout}
+          disabled={!canCheckout}
+          activeOpacity={0.85}
+        >
+          {loading ? (
+            <ActivityIndicator size="small" color="#fff" />
+          ) : (
+            <>
+              <Text style={[styles.checkoutBtnText, { opacity: canCheckout ? 1 : 0.5 }]}>
+                Checkout
+              </Text>
+              {canCheckout && <Ionicons name="arrow-forward" size={18} color="#fff" />}
+            </>
+          )}
+        </TouchableOpacity>
       </View>
 
-      {/* Checkout Button */}
-      <TouchableOpacity
-        style={[
-          styles.checkoutButton, { backgroundColor: disabled || loading ? colors.primarySoft + '80' : colors.primary },
-        ]}
-        activeOpacity={0.8}
-        onPress={onCheckout}
-        disabled={disabled || loading}
-      >
-        {loading ? (
-          <ActivityIndicator color={colors.white} />
-        ) : (
-          <>
-            <Text style={[styles.checkoutText, {color: colors.black}]}>Proceed to Checkout</Text>
-            <Ionicons name="arrow-forward" size={20} color={colors.black} />
-          </>
-        )}
-      </TouchableOpacity>
-
-      {/* Helper Text */}
-      {disabled && (
-        <Text style={[styles.helperText, {color: colors.textSecondary}]}>
-          Add items to your cart to checkout
+      {disabled && !loading && (
+        <Text style={[styles.helperText, { color: colors.textMuted }]}>
+          Add items to your cart to proceed
         </Text>
       )}
     </View>
@@ -83,88 +85,55 @@ export const CartSummary: React.FC<CartSummaryProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    paddingHorizontal: 16,
-    paddingTop: 20,
-    paddingBottom: 24,
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 8,
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    paddingBottom: 28,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    gap: 10,
   },
-
-  summaryCard: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-  },
-
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-
-  labelContainer: {
+  syncRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
   },
-
-  label: {
-    fontSize: 14,
-    fontWeight: '500',
+  syncText: {
+    fontSize: 12,
   },
-
-  value: {
-    fontSize: 14,
-    fontWeight: '600',
-  },
-
-  divider: {
-    height: 1,
-    marginVertical: 8,
-  },
-
-  totalRow: {
+  mainRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 4,
+    justifyContent: 'space-between',
   },
-
-  totalLabel: {
+  priceBlock: {
+    gap: 2,
+  },
+  itemCountLabel: {
+    fontSize: 13,
+  },
+  totalAmount: {
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.3,
+  },
+  checkoutBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 22,
+    paddingVertical: 14,
+    borderRadius: 14,
+  },
+  checkoutBtnText: {
     fontSize: 16,
-    fontWeight: '600',
-  },
-
-  totalValue: {
-    fontSize: 20,
     fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 0.1,
   },
-
-  checkoutButton: {
-    flexDirection: 'row',
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-
-  disabledButton: {
-  },
-
-  checkoutText: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-
   helperText: {
     fontSize: 12,
     textAlign: 'center',
-    marginTop: 8,
   },
 });

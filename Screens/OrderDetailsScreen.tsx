@@ -12,6 +12,8 @@ import {
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { cartService } from "@/utils/services/cartService";
+import { merchantBase } from "@/utils/services/merchantService";
+import { useTheme } from "@/contexts/ThemeContext";
 
 interface OrderItem {
   id: string;
@@ -48,9 +50,12 @@ interface OrderDetail {
 
 export default function OrderDetailScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams();
+  const { colors } = useTheme();
+  const { id, isMerchant: isMerchantParam } = useLocalSearchParams();
+  const isMerchant = isMerchantParam === "true";
   const [order, setOrder] = useState<OrderDetail | null>(null);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
     fetchOrderDetail();
@@ -68,14 +73,14 @@ export default function OrderDetailScreen() {
   };
 
   const getStatusColor = (status: string) => {
-    const colors: { [key: string]: string } = {
+    const map: { [key: string]: string } = {
       NEW: "#2196F3",
       CONTACTED: "#FF9800",
       CONFIRMED: "#4CAF50",
       COMPLETED: "#8BC34A",
       CANCELLED: "#F44336",
     };
-    return colors[status] || "#666";
+    return map[status] || "#666";
   };
 
   const getStatusText = (status: string) => {
@@ -90,31 +95,69 @@ export default function OrderDetailScreen() {
   };
 
   const handleCancelOrder = () => {
-    Alert.alert(
-      "Cancel Order",
-      "Are you sure you want to cancel this order?",
-      [
-        { text: "No", style: "cancel" },
-        {
-          text: "Yes, Cancel",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await cartService.cancelOrder(id as string);
-              Alert.alert("Success", "Order cancelled successfully");
-              fetchOrderDetail();
-            } catch (error) {
-              Alert.alert("Error", "Failed to cancel order");
-            }
-          },
+    Alert.alert("Cancel Order", "Are you sure you want to cancel this order?", [
+      { text: "No", style: "cancel" },
+      {
+        text: "Yes, Cancel",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await cartService.cancelOrder(id as string);
+            Alert.alert("Success", "Order cancelled successfully");
+            fetchOrderDetail();
+          } catch (error) {
+            Alert.alert("Error", "Failed to cancel order");
+          }
         },
-      ]
-    );
+      },
+    ]);
+  };
+
+  const handleConfirmOrder = () => {
+    Alert.alert("Confirm Order", "Confirm that you have received this order and will fulfil it?", [
+      { text: "Not yet", style: "cancel" },
+      {
+        text: "Confirm",
+        onPress: async () => {
+          setActionLoading(true);
+          const ok = await merchantBase.confirmOrder(id as string);
+          setActionLoading(false);
+          if (ok) {
+            Alert.alert("Done", "Order confirmed successfully");
+            fetchOrderDetail();
+          } else {
+            Alert.alert("Error", "Failed to confirm order. Please try again.");
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleCompleteOrder = () => {
+    Alert.alert("Mark as Completed", "Mark this order as delivered and completed?", [
+      { text: "Not yet", style: "cancel" },
+      {
+        text: "Mark Complete",
+        onPress: async () => {
+          setActionLoading(true);
+          const ok = await merchantBase.completeOrder(id as string);
+          setActionLoading(false);
+          if (ok) {
+            Alert.alert("Done", "Order marked as completed");
+            fetchOrderDetail();
+          } else {
+            Alert.alert("Error", "Failed to update order. Please try again.");
+          }
+        },
+      },
+    ]);
   };
 
   const canCancelOrder = () => {
-    return order && ["NEW", "CONTACTED"].includes(order.status);
+    return !isMerchant && order && ["NEW", "CONTACTED"].includes(order.status);
   };
+
+  const styles = getStyles(colors);
 
   if (loading) {
     return (
@@ -134,18 +177,10 @@ export default function OrderDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Status Header */}
         <View style={styles.statusHeader}>
-          <View
-            style={[
-              styles.statusIcon,
-              { backgroundColor: `${getStatusColor(order.status)}20` },
-            ]}
-          >
+          <View style={[styles.statusIcon, { backgroundColor: `${getStatusColor(order.status)}20` }]}>
             <Ionicons
               name={
                 order.status === "COMPLETED"
@@ -162,7 +197,7 @@ export default function OrderDetailScreen() {
           <Text style={styles.orderNumber}>{order.order_number}</Text>
           {order.order_group_number && (
             <View style={styles.groupBadge}>
-              <Ionicons name="layers-outline" size={14} color="#666" />
+              <Ionicons name="layers-outline" size={14} color={colors.textSecondary} />
               <Text style={styles.groupText}>{order.order_group_number}</Text>
             </View>
           )}
@@ -175,16 +210,10 @@ export default function OrderDetailScreen() {
             {order.items.map((item, index) => (
               <View
                 key={item.id}
-                style={[
-                  styles.itemRow,
-                  index < order.items.length - 1 && styles.itemBorder,
-                ]}
+                style={[styles.itemRow, index < order.items.length - 1 && styles.itemBorder]}
               >
                 {item.listing.images && item.listing.images.length > 0 && (
-                  <Image
-                    source={{ uri: item.listing.images[0].image }}
-                    style={styles.itemImage}
-                  />
+                  <Image source={{ uri: item.listing.images[0].image }} style={styles.itemImage} />
                 )}
                 <View style={styles.itemInfo}>
                   <Text style={styles.itemTitle} numberOfLines={2}>
@@ -203,16 +232,18 @@ export default function OrderDetailScreen() {
           </View>
         </View>
 
-        {/* Merchant Info */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Merchant</Text>
-          <View style={styles.card}>
-            <View style={styles.infoRow}>
-              <Ionicons name="storefront-outline" size={20} color="#666" />
-              <Text style={styles.infoText}>{order.merchant_name}</Text>
+        {/* Merchant Info — only shown to buyers */}
+        {!isMerchant && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Merchant</Text>
+            <View style={styles.card}>
+              <View style={styles.infoRow}>
+                <Ionicons name="storefront-outline" size={20} color={colors.textSecondary} />
+                <Text style={styles.infoText}>{order.merchant_name}</Text>
+              </View>
             </View>
           </View>
-        </View>
+        )}
 
         {/* Delivery Address */}
         <View style={styles.section}>
@@ -239,8 +270,7 @@ export default function OrderDetailScreen() {
               <Text style={styles.summaryValue}>
                 UGX{" "}
                 {(
-                  parseFloat(order.total_amount) -
-                  parseFloat(order.delivery_fee || "0")
+                  parseFloat(order.total_amount) - parseFloat(order.delivery_fee || "0")
                 ).toLocaleString()}
               </Text>
             </View>
@@ -267,7 +297,7 @@ export default function OrderDetailScreen() {
           <Text style={styles.sectionTitle}>Order Information</Text>
           <View style={styles.card}>
             <View style={styles.infoRow}>
-              <Ionicons name="calendar-outline" size={18} color="#666" />
+              <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
               <View style={styles.infoContent}>
                 <Text style={styles.infoLabel}>Order Date</Text>
                 <Text style={styles.infoValue}>
@@ -282,7 +312,7 @@ export default function OrderDetailScreen() {
             </View>
             {order.notes && (
               <View style={[styles.infoRow, { marginTop: 12 }]}>
-                <Ionicons name="document-text-outline" size={18} color="#666" />
+                <Ionicons name="document-text-outline" size={18} color={colors.textSecondary} />
                 <View style={styles.infoContent}>
                   <Text style={styles.infoLabel}>Notes</Text>
                   <Text style={styles.infoValue}>{order.notes}</Text>
@@ -296,6 +326,46 @@ export default function OrderDetailScreen() {
       </ScrollView>
 
       {/* Footer Actions */}
+      {isMerchant && order.status === "NEW" && (
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.confirmButton]}
+            onPress={handleConfirmOrder}
+            disabled={actionLoading}
+            activeOpacity={0.7}
+          >
+            {actionLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+                <Text style={styles.confirmButtonText}>Confirm Order</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {isMerchant && order.status === "CONFIRMED" && (
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.completeButton]}
+            onPress={handleCompleteOrder}
+            disabled={actionLoading}
+            activeOpacity={0.7}
+          >
+            {actionLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="bag-check-outline" size={20} color="#fff" />
+                <Text style={styles.confirmButtonText}>Mark as Completed</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
+
       {canCancelOrder() && (
         <View style={styles.footer}>
           <TouchableOpacity
@@ -312,31 +382,31 @@ export default function OrderDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FAFAFA",
+    backgroundColor: colors.background,
   },
   centerContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: colors.background,
   },
   errorText: {
     fontSize: 15,
-    color: "#666",
+    color: colors.textSecondary,
   },
   scrollView: {
     flex: 1,
   },
 
-  // Status Header
   statusHeader: {
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     paddingVertical: 32,
     alignItems: "center",
     borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    borderBottomColor: colors.border,
   },
   statusIcon: {
     width: 64,
@@ -349,17 +419,17 @@ const styles = StyleSheet.create({
   statusTitle: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#1A1A1A",
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   orderNumber: {
     fontSize: 14,
-    color: "#666",
+    color: colors.textSecondary,
   },
   groupBadge: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F5F5F5",
+    backgroundColor: colors.backgroundSecondary,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -369,10 +439,9 @@ const styles = StyleSheet.create({
   groupText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#666",
+    color: colors.textSecondary,
   },
 
-  // Section
   section: {
     marginTop: 16,
     paddingHorizontal: 20,
@@ -380,33 +449,31 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 13,
     fontWeight: "700",
-    color: "#999",
+    color: colors.textMuted,
     textTransform: "uppercase",
     letterSpacing: 0.5,
     marginBottom: 12,
   },
 
-  // Card
   card: {
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
   },
 
-  // Item Row
   itemRow: {
     flexDirection: "row",
     paddingVertical: 12,
   },
   itemBorder: {
     borderBottomWidth: 1,
-    borderBottomColor: "#F5F5F5",
+    borderBottomColor: colors.border,
   },
   itemImage: {
     width: 60,
     height: 60,
     borderRadius: 8,
-    backgroundColor: "#F5F5F5",
+    backgroundColor: colors.backgroundSecondary,
   },
   itemInfo: {
     flex: 1,
@@ -415,26 +482,25 @@ const styles = StyleSheet.create({
   itemTitle: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#1A1A1A",
+    color: colors.textPrimary,
     marginBottom: 4,
   },
   itemQuantity: {
     fontSize: 13,
-    color: "#666",
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   itemPrice: {
     fontSize: 13,
-    color: "#999",
+    color: colors.textMuted,
   },
   itemTotal: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#1A1A1A",
+    color: colors.textPrimary,
     marginLeft: 8,
   },
 
-  // Info Row
   infoRow: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -445,20 +511,19 @@ const styles = StyleSheet.create({
   },
   infoText: {
     fontSize: 15,
-    color: "#1A1A1A",
+    color: colors.textPrimary,
     fontWeight: "500",
   },
   infoLabel: {
     fontSize: 13,
-    color: "#999",
+    color: colors.textMuted,
     marginBottom: 4,
   },
   infoValue: {
     fontSize: 14,
-    color: "#1A1A1A",
+    color: colors.textPrimary,
   },
 
-  // Address
   addressHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -468,19 +533,18 @@ const styles = StyleSheet.create({
   addressLabel: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#1A1A1A",
+    color: colors.textPrimary,
   },
   addressText: {
     fontSize: 14,
-    color: "#666",
+    color: colors.textSecondary,
     marginBottom: 4,
   },
   addressRegion: {
     fontSize: 13,
-    color: "#999",
+    color: colors.textMuted,
   },
 
-  // Summary
   summaryRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -488,22 +552,22 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 14,
-    color: "#666",
+    color: colors.textSecondary,
   },
   summaryValue: {
     fontSize: 14,
     fontWeight: "500",
-    color: "#1A1A1A",
+    color: colors.textPrimary,
   },
   divider: {
     height: 1,
-    backgroundColor: "#F0F0F0",
+    backgroundColor: colors.border,
     marginBottom: 12,
   },
   totalLabel: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#1A1A1A",
+    color: colors.textPrimary,
   },
   totalValue: {
     fontSize: 18,
@@ -511,13 +575,31 @@ const styles = StyleSheet.create({
     color: "#E60549",
   },
 
-  // Footer
   footer: {
     padding: 20,
     paddingBottom: 32,
-    backgroundColor: "white",
+    backgroundColor: colors.surface,
     borderTopWidth: 1,
-    borderTopColor: "#F0F0F0",
+    borderTopColor: colors.border,
+  },
+  actionButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 10,
+    gap: 8,
+  },
+  confirmButton: {
+    backgroundColor: "#4CAF50",
+  },
+  completeButton: {
+    backgroundColor: "#E60549",
+  },
+  confirmButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#fff",
   },
   cancelButton: {
     flexDirection: "row",
