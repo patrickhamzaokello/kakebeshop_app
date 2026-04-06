@@ -1,11 +1,18 @@
 import apiService from "@/utils/apiBase";
 import {
+  Listing,
   ListingDetail,
   CartCheckResponse,
   WishlistCheckResponse,
   SimilarFromMerchantResponse,
   SimilarFromMarketplaceResponse,
 } from "@/utils/types/models";
+
+export interface WishlistItem {
+  id: string;
+  listing: Listing;
+  created_at: string;
+}
 
 export const listingDetailsService = {
   async getListingDetails(listingID: string): Promise<ListingDetail | null> {
@@ -111,6 +118,19 @@ export const listingDetailsService = {
     } catch (error) {
       if (__DEV__) console.error("Error removing listing from wishlist", error);
       return false;
+    }
+  },
+
+  async getWishlist(page: number = 1): Promise<{ results: WishlistItem[]; next: string | null } | null> {
+    try {
+      const response = await apiService.get(`/api/v1/wishlist/?page=${page}`);
+      if (response.success && response.data) {
+        return response.data;
+      }
+      return null;
+    } catch (error) {
+      if (__DEV__) console.error("Error fetching wishlist", error);
+      return null;
     }
   },
 };

@@ -32,6 +32,8 @@ export default function EditAddressScreen() {
   const [region, setRegion] = useState("");
   const [district, setDistrict] = useState("");
   const [area, setArea] = useState("");
+  const [latitude, setLatitude] = useState("");
+  const [longitude, setLongitude] = useState("");
   const [landmark, setLandmark] = useState("");
   const [isDefault, setIsDefault] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -50,6 +52,8 @@ export default function EditAddressScreen() {
         setRegion(data.region);
         setDistrict(data.district);
         setArea(data.area);
+        setLatitude(data.latitude ?? "");
+        setLongitude(data.longitude ?? "");
         setLandmark(data.landmark);
         setIsDefault(data.is_default);
       } else {
@@ -72,7 +76,16 @@ export default function EditAddressScreen() {
     }
     setSaving(true);
     try {
-      const data = await cartService.patchAddressDetails(id as string, isDefault, label, landmark);
+      const data = await cartService.updateAddressDetails(id as string, {
+        label,
+        region,
+        district,
+        area,
+        landmark: landmark.trim(),
+        latitude,
+        longitude,
+        is_default: isDefault,
+      });
       if (data) {
         Alert.alert("Success", "Address updated successfully", [
           { text: "OK", onPress: () => router.back() },

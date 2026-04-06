@@ -72,12 +72,12 @@ export const cartService = {
     }
   },
 
-  // get addresses
+  // GET /api/v1/addresses/ — returns plain array (not paginated)
   async getAddresses(): Promise<any[]> {
     try {
       const response = await apiService.get("/api/v1/addresses/");
       if (response.success && response.data) {
-        return response.data.results;
+        return Array.isArray(response.data) ? response.data : response.data.results ?? [];
       }
       return [];
     } catch (error) {
@@ -86,6 +86,7 @@ export const cartService = {
     }
   },
 
+  // POST /api/v1/addresses/
   async createAddress(addressData: CreateAddress): Promise<boolean> {
     try {
       const response = await apiService.post("/api/v1/addresses/", addressData);
@@ -96,10 +97,11 @@ export const cartService = {
     }
   },
 
-  async setAddressAsDefault(addressId: string, is_default: boolean): Promise<boolean> {
+  // POST /api/v1/addresses/{id}/set-default/ — no body needed
+  async setAddressAsDefault(addressId: string): Promise<boolean> {
     try {
       const response = await apiService.post(
-        `api/v1/addresses/${addressId}/set-default/`, is_default
+        `/api/v1/addresses/${addressId}/set-default/`
       );
       return !!response.success;
     } catch (error) {
@@ -108,19 +110,32 @@ export const cartService = {
     }
   },
 
-  
-  async patchAddressDetails(addressId: string, is_default: boolean,label:string, landmark: string): Promise<boolean> {
+  // PUT /api/v1/addresses/{id}/ — full update, all fields required
+  async updateAddressDetails(
+    addressId: string,
+    data: { label: string; region: string; district: string; area: string; landmark: string; latitude: string; longitude: string; is_default: boolean }
+  ): Promise<boolean> {
     try {
-      const response = await apiService.post(
-        `/api/v1/addresses/${addressId}/`, {is_default, label, landmark}
-      );
+      const response = await apiService.put(`/api/v1/addresses/${addressId}/`, data);
       return !!response.success;
     } catch (error) {
-      if (__DEV__) console.error("Error setting address as default:", error);
+      if (__DEV__) console.error("Error updating address:", error);
       return false;
     }
   },
 
+  // PATCH /api/v1/addresses/{id}/ — partial update
+  async patchAddress(addressId: string, data: Partial<CreateAddress>): Promise<boolean> {
+    try {
+      const response = await apiService.patch(`/api/v1/addresses/${addressId}/`, data);
+      return !!response.success;
+    } catch (error) {
+      if (__DEV__) console.error("Error patching address:", error);
+      return false;
+    }
+  },
+
+  // GET /api/v1/addresses/{id}/
   async getAddressById(addressId: string): Promise<any | null> {
     try {
       const response = await apiService.get(`/api/v1/addresses/${addressId}/`);
@@ -134,15 +149,15 @@ export const cartService = {
     }
   },
 
+  // DELETE /api/v1/addresses/{id}/ — returns 204 no content
   async deleteAddressbyId(addressId: string): Promise<boolean> {
     try {
-      const response = await apiService.delete(
-        `/api/v1/addresses/${addressId}/`
-      );
+      const response = await apiService.delete(`/api/v1/addresses/${addressId}/`);
       return !!response.success;
-    } catch (error) {
-      if (__DEV__) console.error("Error deleting address:", error);
-      return false;
+    } catch (error: any) {
+      // Rethrow with the server's message so the caller can display it
+      const message = error?.message || error?.data?.error || "Failed to delete address";
+      throw new Error(message);
     }
   },
 

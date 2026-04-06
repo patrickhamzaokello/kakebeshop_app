@@ -1,18 +1,18 @@
-import React, { useState, useCallback } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  ActivityIndicator,
-  RefreshControl,
-  Alert,
-} from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter, useFocusEffect } from "expo-router";
-import apiService from "@/utils/apiBase";
 import { useTheme } from "@/contexts/ThemeContext";
+import { cartService } from "@/utils/services/cartService";
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 interface Address {
   id: string;
@@ -28,13 +28,6 @@ interface Address {
   created_at: string;
 }
 
-interface AddressResponse {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: Address[];
-}
-
 export default function AddressListScreen() {
   const router = useRouter();
   const { colors } = useTheme();
@@ -42,52 +35,29 @@ export default function AddressListScreen() {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
-  const [totalCount, setTotalCount] = useState(0);
 
   useFocusEffect(
     useCallback(() => {
-      fetchAddresses(1);
+      fetchAddresses();
     }, [])
   );
 
-  const fetchAddresses = async (page: number = 1, append: boolean = false) => {
+  const fetchAddresses = async () => {
     try {
-      if (page === 1) setLoading(true);
-      else setLoadingMore(true);
-
-      const response = await apiService.get<AddressResponse>(`/api/v1/addresses/?page=${page}`);
-
-      if (response.success && response.data) {
-        const data = response.data;
-        if (append) {
-          setAddresses((prev) => [...prev, ...data.results]);
-        } else {
-          setAddresses(data.results);
-        }
-        setTotalCount(data.count);
-        setHasMore(!!data.next);
-        setCurrentPage(page);
-      }
+      const result = await cartService.getAddresses();
+      setAddresses(result);
     } catch (error) {
       if (__DEV__) console.error("Error fetching addresses:", error);
       Alert.alert("Error", "Failed to load addresses. Please try again.");
     } finally {
       setLoading(false);
       setRefreshing(false);
-      setLoadingMore(false);
     }
   };
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await fetchAddresses(1);
-  };
-
-  const loadMore = () => {
-    if (hasMore && !loadingMore) fetchAddresses(currentPage + 1, true);
+    await fetchAddresses();
   };
 
   const handleAddNew = () => {
@@ -99,16 +69,14 @@ export default function AddressListScreen() {
   };
 
   const handleSetDefault = async (addressId: string) => {
-    try {
-      const response = await apiService.patch(`/api/v1/addresses/${addressId}/set-default/`);
-      if (response.success) {
-        setAddresses((prev) =>
-          prev.map((addr) => ({ ...addr, is_default: addr.id === addressId }))
-        );
-        Alert.alert("Success", "Default address updated");
-      }
-    } catch (error) {
-      if (__DEV__) console.error("Error setting default address:", error);
+    // Optimistic update
+    setAddresses((prev) =>
+      prev.map((addr) => ({ ...addr, is_default: addr.id === addressId }))
+    );
+    const ok = await cartService.setAddressAsDefault(addressId);
+    if (!ok) {
+      // Revert on failure
+      fetchAddresses();
       Alert.alert("Error", "Failed to update default address");
     }
   };
@@ -122,14 +90,10 @@ export default function AddressListScreen() {
 
   const deleteAddress = async (addressId: string) => {
     try {
-      const response = await apiService.delete(`/api/v1/addresses/${addressId}/`);
-      if (response.success) {
-        setAddresses((prev) => prev.filter((addr) => addr.id !== addressId));
-        setTotalCount((prev) => prev - 1);
-        Alert.alert("Success", "Address deleted successfully");
-      }
+      await cartService.deleteAddressbyId(addressId);
+      setAddresses((prev) => prev.filter((addr) => addr.id !== addressId));
     } catch (error: any) {
-      Alert.alert("Error", error.message || "Failed to delete address");
+      Alert.alert("Cannot Delete", error.message || "Failed to delete address");
     }
   };
 
@@ -225,22 +189,14 @@ export default function AddressListScreen() {
     );
   };
 
-  const renderFooter = () => {
-    if (!loadingMore) return null;
-    return (
-      <View style={styles.footerLoader}>
-        <ActivityIndicator size="small" color="#E60549" />
-        <Text style={styles.footerText}>Loading more...</Text>
-      </View>
-    );
-  };
+  const renderFooter = () => null;
 
   const renderHeader = () => {
     if (addresses.length === 0) return null;
     return (
       <View style={styles.listHeader}>
         <Text style={styles.countText}>
-          {totalCount} {totalCount === 1 ? "Address" : "Addresses"}
+          {addresses.length} {addresses.length === 1 ? "Address" : "Addresses"}
         </Text>
         <TouchableOpacity style={styles.addNewButton} onPress={handleAddNew} activeOpacity={0.7}>
           <Ionicons name="add-circle" size={20} color="#E60549" />
@@ -269,8 +225,6 @@ export default function AddressListScreen() {
         ListHeaderComponent={renderHeader}
         ListEmptyComponent={renderEmpty}
         ListFooterComponent={renderFooter}
-        onEndReached={loadMore}
-        onEndReachedThreshold={0.5}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#E60549" />

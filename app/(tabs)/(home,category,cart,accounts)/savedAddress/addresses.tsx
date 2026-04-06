@@ -1,8 +1,4 @@
-import {
-    StatusBar,
-  View,
-} from "react-native";
-import Typo from "@/components/Typo";
+import { StatusBar, View } from "react-native";
 import { useFocusEffect } from "expo-router";
 import { useCallback } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -10,7 +6,7 @@ import { DetailHeaderSection } from "@/components/test/DetailHeader";
 import AddressListScreen from "@/Screens/AddressListScreen";
 
 export default function ListAddressMain() {
-  const { isDark } = useTheme();
+  const { isDark, colors } = useTheme();
 
 
     useFocusEffect(
