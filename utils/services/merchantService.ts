@@ -2,6 +2,13 @@
 import apiService from "@/utils/apiBase";
 import { MerchantDetails } from "@/utils/types/models";
 
+export type MerchantOrderStatus =
+  | "NEW"
+  | "CONTACTED"
+  | "CONFIRMED"
+  | "COMPLETED"
+  | "CANCELLED";
+
 export const merchantBase = {
   async merchantProfile(merchantID: string): Promise<MerchantDetails | null> {
     try {
@@ -12,6 +19,19 @@ export const merchantBase = {
       return null;
     } catch (error) {
       if (__DEV__) console.error("Error fetching merchant profile:", error);
+      return null;
+    }
+  },
+
+  async getMyMerchantProfile(): Promise<MerchantDetails | null> {
+    try {
+      const response = await apiService.get("/api/v1/merchants/me/");
+      if (response.success && response.data) {
+        return response.data;
+      }
+      return null;
+    } catch (error) {
+      if (__DEV__) console.error("Error fetching own merchant profile:", error);
       return null;
     }
   },
@@ -31,15 +51,54 @@ export const merchantBase = {
     }
   },
 
-  async getMerchantOrders(page: number = 1): Promise<any> {
+  // GET /merchants/me/orders/ — newest first, supports ?status= and pagination
+  async getMerchantOrders(
+    page: number = 1,
+    status?: MerchantOrderStatus
+  ): Promise<any> {
     try {
-      const response = await apiService.get(`/api/v1/orders/merchant/?page=${page}`);
+      const statusParam = status ? `&status=${status}` : "";
+      const response = await apiService.get(
+        `/api/v1/merchants/me/orders/?page=${page}${statusParam}`
+      );
       if (response.success && response.data) {
         return response.data;
       }
       return null;
     } catch (error) {
       if (__DEV__) console.error("Error fetching merchant orders:", error);
+      return null;
+    }
+  },
+
+  // POST /merchants/me/update-logo/  { image_group_id }
+  async updateMerchantLogo(imageGroupId: string): Promise<MerchantDetails | null> {
+    try {
+      const response = await apiService.post("/api/v1/merchants/me/update-logo/", {
+        image_group_id: imageGroupId,
+      });
+      if (response.success && response.data) {
+        return response.data;
+      }
+      return null;
+    } catch (error) {
+      if (__DEV__) console.error("Error updating merchant logo:", error);
+      return null;
+    }
+  },
+
+  // POST /merchants/me/update-cover-image/  { image_group_id }
+  async updateMerchantCoverImage(imageGroupId: string): Promise<MerchantDetails | null> {
+    try {
+      const response = await apiService.post("/api/v1/merchants/me/update-cover-image/", {
+        image_group_id: imageGroupId,
+      });
+      if (response.success && response.data) {
+        return response.data;
+      }
+      return null;
+    } catch (error) {
+      if (__DEV__) console.error("Error updating merchant cover image:", error);
       return null;
     }
   },

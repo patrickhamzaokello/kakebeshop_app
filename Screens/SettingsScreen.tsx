@@ -80,58 +80,10 @@ export default function AccountScreen() {
     router.push("/merchant/apply/signup" as any);
   };
 
-  const accountMenuItems: MenuItem[] = [
-    {
-      id: "orders",
-      title: "My Orders",
-      icon: "receipt-outline",
-      route: "/orders/orders",
-      color: "#E60549",
-    },
-    {
-      id: "wishlist",
-      title: "Wishlist",
-      icon: "heart-outline",
-      route: "/wishlist/wishlist",
-      color: "#E60549",
-    },
-    {
-      id: "addresses",
-      title: "Saved Addresses",
-      icon: "location-outline",
-      route: "/savedAddress/addresses",
-      color: "#E60549",
-    },
-  ];
 
-  // Merchant menu items (only show if user is a merchant)
-  const merchantMenuItems: MenuItem[] = [
-   
-    {
-      id: "my-listings",
-      title: "My Listings",
-      icon: "pricetags-outline",
-      route: "/merchant/mylistings",
-      color: "#4CAF50",
-    },
-    {
-      id: "merchant-orders",
-      title: "Merchant Orders",
-      icon: "cube-outline",
-      route: "/merchant/orders",
-      color: "#4CAF50",
-    }
-   
-  ];
 
   const settingsMenuItems: MenuItem[] = [
-    {
-      id: "profile",
-      title: "Edit Profile",
-      icon: "person-outline",
-      route: "/editprofile/edit-profile",
-      color: "#666",
-    },
+   
     {
       id: "notifications",
       title: "Notifications",
@@ -222,106 +174,233 @@ export default function AccountScreen() {
         />
       }
     >
-      {/* Profile Header */}
-      <View style={[styles.profileHeader, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
-        <View style={styles.profileImageContainer}>
-          {profile?.profile_image ? (
-            <Image
-              source={{ uri: profile.profile_image }}
-              style={styles.profileImage}
-            />
-          ) : (
-            <View style={[styles.profileImagePlaceholder, { backgroundColor: colors.backgroundTertiary }]}>
-              <Ionicons name="person" size={40} color={colors.textMuted} />
+      {/* ── User profile card ── */}
+      <View style={[styles.profileCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+        {/* Top row: avatar + core info + edit */}
+        <View style={styles.profileTop}>
+          <View style={styles.avatarWrap}>
+            {profile?.profile_image ? (
+              <Image source={{ uri: profile.profile_image }} style={styles.avatar} />
+            ) : (
+              <View style={[styles.avatarPlaceholder, { backgroundColor: colors.backgroundSecondary }]}>
+                <Ionicons name="person" size={38} color={colors.textMuted} />
+              </View>
+            )}
+            {profile?.is_verified && (
+              <View style={[styles.verifiedRing, { backgroundColor: colors.surface }]}>
+                <Ionicons name="checkmark-circle" size={22} color="#4CAF50" />
+              </View>
+            )}
+          </View>
+
+          <View style={styles.profileMeta}>
+            <Text style={[styles.profileName, { color: colors.textPrimary }]} numberOfLines={1}>
+              {profile?.name || profile?.username || "Guest User"}
+            </Text>
+            <Text style={[styles.profileEmail, { color: colors.textSecondary }]} numberOfLines={1}>
+              {profile?.email || ""}
+            </Text>
+            {profile?.phone && (
+              <View style={styles.phoneRow}>
+                <Ionicons name="call-outline" size={12} color={colors.textMuted} />
+                <Text style={[styles.profilePhone, { color: colors.textMuted }]}>{profile.phone}</Text>
+              </View>
+            )}
+          </View>
+
+          <TouchableOpacity
+            style={[styles.editBtn, { backgroundColor: "#E6054912", borderColor: "#E6054930" }]}
+            onPress={() => router.push("/editprofile/edit-profile" as any)}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="create-outline" size={18} color="#E60549" />
+            <Text style={styles.editBtnText}>Edit</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Divider */}
+        <View style={[styles.profileDivider, { backgroundColor: colors.border }]} />
+
+        {/* Bottom row: intent badge + verification status */}
+        <View style={styles.profileBottom}>
+          {profile?.intent ? (
+            <View style={[styles.intentChip, { backgroundColor: colors.backgroundSecondary }]}>
+              <Ionicons
+                name={
+                  profile.intent.intent === "buy"
+                    ? "cart-outline"
+                    : profile.intent.intent === "sell"
+                    ? "pricetag-outline"
+                    : "swap-horizontal-outline"
+                }
+                size={13}
+                color={colors.textSecondary}
+              />
+              <Text style={[styles.intentChipText, { color: colors.textSecondary }]}>
+                {profile.intent.intent_display}
+              </Text>
+            </View>
+          ) : null}
+
+          {profile?.is_merchant && (
+            <View style={[styles.merchantChip, { backgroundColor: "#4CAF5015" }]}>
+              <Ionicons name="storefront-outline" size={13} color="#4CAF50" />
+              <Text style={[styles.merchantChipText, { color: "#4CAF50" }]}>Merchant</Text>
             </View>
           )}
-          {profile?.is_verified && (
-            <View style={[styles.verifiedBadge, { backgroundColor: colors.surface }]}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+
+          {profile?.phone_verified && (
+            <View style={[styles.verifiedChip, { backgroundColor: "#2196F315" }]}>
+              <Ionicons name="shield-checkmark-outline" size={13} color="#2196F3" />
+              <Text style={[styles.verifiedChipText, { color: "#2196F3" }]}>Verified</Text>
             </View>
           )}
         </View>
 
-        <View style={styles.profileInfo}>
-          <Text style={[styles.profileName,  {color: colors.textPrimary}]}>
-            {profile?.name || profile?.username || "Guest User"}
-          </Text>
-          <Text style={[styles.profileEmail,  {color: colors.textPrimary}]}>{profile?.email || ""}</Text>
-          {profile?.phone && (
-            <Text style={styles.profilePhone}>{profile.phone}</Text>
-          )}
-          {profile?.intent && (
-            <View style={styles.intentBadge}>
-              <Ionicons 
-                name={
-                  profile.intent.intent === "buy" 
-                    ? "cart-outline" 
-                    : profile.intent.intent === "sell" 
-                    ? "pricetag-outline" 
-                    : "swap-horizontal-outline"
-                } 
-                size={12} 
-                color="#666" 
-              />
-              <Text style={styles.intentText}>{profile.intent.intent_display}</Text>
-            </View>
-          )}
-        </View>
+        {/* Divider before account actions */}
+        <View style={[styles.profileDivider, { backgroundColor: colors.border }]} />
+
+        {/* Account action rows */}
+        <TouchableOpacity
+          style={styles.profileActionRow}
+          onPress={() => router.push("/orders/orders" as any)}
+          activeOpacity={0.6}
+        >
+          <View style={styles.profileActionLeft}>
+            <Ionicons name="receipt-outline" size={19} color="#E60549" />
+            <Text style={[styles.profileActionLabel, { color: colors.textPrimary }]}>My Orders</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.editButton}
-          onPress={() => router.push("/editprofile/edit-profile" as any)}
-          activeOpacity={0.7}
+          style={styles.profileActionRow}
+          onPress={() => router.push("/wishlist/wishlist" as any)}
+          activeOpacity={0.6}
         >
-          <Ionicons name="create-outline" size={20} color="#E60549" />
+          <View style={styles.profileActionLeft}>
+            <Ionicons name="heart-outline" size={19} color="#E60549" />
+            <Text style={[styles.profileActionLabel, { color: colors.textPrimary }]}>Wishlist</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.profileActionRow}
+          onPress={() => router.push("/savedAddress/addresses" as any)}
+          activeOpacity={0.6}
+        >
+          <View style={styles.profileActionLeft}>
+            <Ionicons name="location-outline" size={19} color="#E60549" />
+            <Text style={[styles.profileActionLabel, { color: colors.textPrimary }]}>Saved Addresses</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        </TouchableOpacity>
+
       </View>
 
-      {/* Merchant Status Card */}
+      {/* ── Merchant profile card ── */}
       {profile?.is_merchant && profile.merchant ? (
-        <View style={[styles.merchantCard, { borderColor: profile.merchant.verified ? "#4CAF50" : colors.cardBorder, backgroundColor: colors.card }]}>
-          <View style={styles.merchantHeader}>
-            <View style={styles.merchantLogoContainer}>
+        <View style={[styles.merchantCard, { backgroundColor: colors.surface }]}>
+
+          {/* Header — tinted identity section */}
+          <View style={styles.merchantCardHeader}>
+            {/* Logo */}
+            <View style={styles.merchantLogoWrap}>
               {profile.merchant.logo ? (
-                <Image
-                  source={{ uri: profile.merchant.logo }}
-                  style={styles.merchantLogo}
-                />
+                <Image source={{ uri: profile.merchant.logo }} style={styles.merchantLogo} />
               ) : (
                 <View style={styles.merchantLogoPlaceholder}>
-                  <Ionicons name="business" size={24} color="#4CAF50" />
+                  <Ionicons name="business" size={26} color="#4CAF50" />
                 </View>
               )}
               {profile.merchant.verified && (
-                <View style={styles.merchantVerifiedBadge}>
-                  <Ionicons name="checkmark-circle" size={16} color="#4CAF50" />
+                <View style={[styles.merchantVerifiedBadge, { backgroundColor: colors.surface }]}>
+                  <Ionicons name="checkmark-circle" size={17} color="#4CAF50" />
                 </View>
               )}
             </View>
-            <View style={styles.merchantInfo}>
-              <Text style={[styles.merchantName, {color: colors.textPrimary}]}>{profile.merchant.display_name}</Text>
-              <Text style={[styles.businessName, {color: colors.textPrimary}]}>{profile.merchant.business_name}</Text>
-              <View style={styles.merchantStats}>
-                <View style={styles.statItem}>
-                  <Ionicons name="star" size={14} color="#FF9800" />
-                  <Text style={styles.statText}>
-                    {profile.merchant.rating.toFixed(1)} ({profile.merchant.total_reviews})
-                  </Text>
-                </View>
-                <View style={[styles.statusBadge, { 
-                  backgroundColor: profile.merchant.status === "ACTIVE" ? "#E8F5E9" : "#E60549"  
-                }]}>
-                  <Text style={[styles.statusText, { 
-                    color: profile.merchant.status === "ACTIVE" ? "#4CAF50" : "#FFF" 
-                  }]}>
-                    {profile.merchant.status}
-                  </Text>
-                </View>
+
+            {/* Name + meta */}
+            <View style={styles.merchantIdentity}>
+              <Text style={[styles.merchantDisplayName, { color: colors.textPrimary }]} numberOfLines={1}>
+                {profile.merchant.display_name}
+              </Text>
+              <Text style={[styles.merchantBusinessName, { color: colors.textSecondary }]} numberOfLines={1}>
+                {profile.merchant.business_name}
+              </Text>
+              <View style={styles.merchantMeta}>
+                <Ionicons name="star" size={12} color="#FF9800" />
+                <Text style={styles.ratingText}>{profile.merchant.rating.toFixed(1)}</Text>
+                <Text style={[styles.reviewCount, { color: colors.textMuted }]}>
+                  · {profile.merchant.total_reviews} reviews
+                </Text>
               </View>
             </View>
+
+            {/* Status pill — top right */}
+            <View style={[
+              styles.statusPill,
+              { backgroundColor: profile.merchant.status === "ACTIVE" ? "#4CAF5018" : "#FF3B3015" },
+            ]}>
+              <View style={[
+                styles.statusDot,
+                { backgroundColor: profile.merchant.status === "ACTIVE" ? "#4CAF50" : "#FF3B30" },
+              ]} />
+              <Text style={[
+                styles.statusPillText,
+                { color: profile.merchant.status === "ACTIVE" ? "#4CAF50" : "#FF3B30" },
+              ]}>
+                {profile.merchant.status}
+              </Text>
+            </View>
           </View>
+
+          {/* Divider */}
+          <View style={[styles.merchantDivider, { backgroundColor: colors.border }]} />
+
+          {/* Action rows */}
           <TouchableOpacity
-            style={styles.manageMerchantButton}
+            style={styles.merchantActionRow}
+            onPress={() => router.push("/merchant/mylistings" as any)}
+            activeOpacity={0.6}
+          >
+            <View style={styles.merchantActionLeft}>
+              <Ionicons name="pricetags-outline" size={19} color="#4CAF50" />
+              <Text style={[styles.merchantActionLabel, { color: colors.textPrimary }]}>My Listings</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.merchantActionRow}
+            onPress={() => router.push("/merchant/orders" as any)}
+            activeOpacity={0.6}
+          >
+            <View style={styles.merchantActionLeft}>
+              <Ionicons name="cube-outline" size={19} color="#4CAF50" />
+              <Text style={[styles.merchantActionLabel, { color: colors.textPrimary }]}>Orders</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+
+          {/* Divider before primary CTAs */}
+          <View style={[styles.merchantDivider, { backgroundColor: colors.border }]} />
+
+          <TouchableOpacity
+            style={styles.merchantActionRow}
+            onPress={() => router.push("/merchant/edit-merchant-profile" as any)}
+            activeOpacity={0.6}
+          >
+            <View style={styles.merchantActionLeft}>
+              <Ionicons name="camera-outline" size={19} color={colors.textSecondary} />
+              <Text style={[styles.merchantActionLabel, { color: colors.textPrimary }]}>Edit Business Images</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.merchantActionRow}
             onPress={() => {
               if (profile?.merchant?.id) {
                 router.push(`/merchant/${profile.merchant.id}`);
@@ -329,49 +408,36 @@ export default function AccountScreen() {
                 Alert.alert("Error", "Merchant ID not found.");
               }
             }}
-            activeOpacity={0.7}
+            activeOpacity={0.6}
           >
-            <Text style={styles.manageMerchantText}>Manage Business</Text>
-            <Ionicons name="arrow-forward" size={16} color="#4CAF50" />
+            <View style={styles.merchantActionLeft}>
+              <Ionicons name="grid-outline" size={19} color={colors.textSecondary} />
+              <Text style={[styles.merchantActionLabel, { color: colors.textPrimary }]}>Manage Business</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </TouchableOpacity>
+
         </View>
-      ) : profile?.intent?.intent === "sell" || profile?.intent?.intent === "both" ? (
-        <View style={styles.becomeMerchantCard}>
-          <View style={styles.becomeMerchantContent}>
-            <Ionicons name="storefront-outline" size={32} color="#E60549" />
-            <Text style={styles.becomeMerchantTitle}>Start Selling</Text>
-            <Text style={styles.becomeMerchantText}>
-              Apply to become a merchant and start listing your products
+      ) : (profile?.intent?.intent === "sell" || profile?.intent?.intent === "both") ? (
+        <TouchableOpacity
+          style={[styles.sellBannerCard, { backgroundColor: colors.surface, borderColor: "#E6054930" }]}
+          onPress={handleBecomeMerchant}
+          activeOpacity={0.85}
+        >
+          <View style={[styles.sellBannerIcon, { backgroundColor: "#E6054912" }]}>
+            <Ionicons name="storefront-outline" size={26} color="#E60549" />
+          </View>
+          <View style={styles.sellBannerText}>
+            <Text style={[styles.sellBannerTitle, { color: colors.textPrimary }]}>Start Selling</Text>
+            <Text style={[styles.sellBannerSub, { color: colors.textSecondary }]}>
+              Apply to list your products and reach buyers
             </Text>
           </View>
-          <TouchableOpacity
-            style={styles.applyButton}
-            onPress={handleBecomeMerchant}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.applyButtonText}>Apply Now</Text>
-            <Ionicons name="arrow-forward" size={16} color="white" />
-          </TouchableOpacity>
-        </View>
-      ) : null}
-
-      {/* Merchant Section - Only show if user is merchant */}
-      {profile?.is_merchant && profile?.merchant?.verified && profile?.merchant?.is_active && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Merchant</Text>
-          <View style={[styles.menuCard, { backgroundColor: colors.card }]}>
-            {merchantMenuItems.map(renderMenuItem)}
+          <View style={[styles.sellBannerArrow, { backgroundColor: "#E60549" }]}>
+            <Ionicons name="arrow-forward" size={16} color="#fff" />
           </View>
-        </View>
-      )}
-
-      {/* Account Section */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Account</Text>
-        <View style={[styles.menuCard, { backgroundColor: colors.card }]}>
-          {accountMenuItems.map(renderMenuItem)}
-        </View>
-      </View>
+        </TouchableOpacity>
+      ) : null}
 
       {/* Settings Section */}
       <View style={styles.section}>
@@ -423,208 +489,281 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
-  // Profile Header
-  profileHeader: {
-    backgroundColor: "white",
-    padding: 24,
+  // ── User profile card ──────────────────────────────────────────────────────
+  profileCard: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 18,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+  },
+  profileTop: {
     flexDirection: "row",
     alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    padding: 18,
+    gap: 14,
   },
-  profileImageContainer: {
+  avatarWrap: {
     position: "relative",
   },
-  profileImage: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
+  avatar: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
   },
-  profileImagePlaceholder: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: "#F5F5F5",
-    justifyContent: "center",
+  avatarPlaceholder: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     alignItems: "center",
+    justifyContent: "center",
   },
-  verifiedBadge: {
+  verifiedRing: {
     position: "absolute",
-    bottom: 0,
-    right: 0,
-    backgroundColor: "white",
-    borderRadius: 10,
+    bottom: -2,
+    right: -2,
+    borderRadius: 12,
+    padding: 1,
   },
-  profileInfo: {
+  profileMeta: {
     flex: 1,
-    marginLeft: 16,
+    gap: 3,
   },
   profileName: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "700",
-    color: "#1A1A1A",
-    marginBottom: 4,
+    letterSpacing: -0.2,
   },
   profileEmail: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 2,
+    fontSize: 13,
+  },
+  phoneRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    marginTop: 2,
   },
   profilePhone: {
-    fontSize: 13,
-    color: "#999",
-    marginBottom: 4,
+    fontSize: 12,
   },
-  intentBadge: {
+  editBtn: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#F5F5F5",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
+    gap: 5,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
     alignSelf: "flex-start",
-    gap: 4,
   },
-  intentText: {
-    fontSize: 11,
+  editBtnText: {
+    fontSize: 13,
     fontWeight: "600",
-    color: "#666",
+    color: "#E60549",
   },
-  editButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#FFF5F8",
-    justifyContent: "center",
+  profileDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 18,
+  },
+  profileActionRow: {
+    flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 18,
+    paddingVertical: 15,
+  },
+  profileActionLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 13,
+  },
+  profileActionLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  profileBottom: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+  },
+  intentChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  intentChipText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  merchantChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  merchantChipText: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  verifiedChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  verifiedChipText: {
+    fontSize: 12,
+    fontWeight: "600",
   },
 
-  // Merchant Card
+  // ── Merchant profile card ───────────────────────────────────────────────────
   merchantCard: {
-    margin: 20,
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
+    marginHorizontal: 16,
+    marginTop: 14,
+    borderRadius: 18,
+    overflow: "hidden",
   },
-  merchantHeader: {
+  merchantCardHeader: {
     flexDirection: "row",
-    marginBottom: 12,
+    alignItems: "center",
+    gap: 14,
+    paddingHorizontal: 18,
+    paddingVertical: 18,
+    backgroundColor: "#4CAF500D",
   },
-  merchantLogoContainer: {
+  merchantLogoWrap: {
     position: "relative",
   },
   merchantLogo: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 58,
+    height: 58,
+    borderRadius: 14,
   },
   merchantLogoPlaceholder: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#E8F5E9",
-    justifyContent: "center",
+    width: 58,
+    height: 58,
+    borderRadius: 14,
+    backgroundColor: "#4CAF5020",
     alignItems: "center",
+    justifyContent: "center",
   },
   merchantVerifiedBadge: {
     position: "absolute",
-    bottom: 0,
-    right: 0,
-    backgroundColor: "white",
-    borderRadius: 8,
+    bottom: -3,
+    right: -3,
+    borderRadius: 10,
+    padding: 1,
   },
-  merchantInfo: {
+  merchantIdentity: {
     flex: 1,
-    marginLeft: 12,
+    gap: 2,
   },
-  merchantName: {
-    fontSize: 16,
+  merchantDisplayName: {
+    fontSize: 15,
     fontWeight: "700",
-    color: "#1A1A1A",
-    marginBottom: 2,
+    letterSpacing: -0.2,
   },
-  businessName: {
-    fontSize: 13,
-    color: "#666",
-    marginBottom: 6,
+  merchantBusinessName: {
+    fontSize: 12,
   },
-  merchantStats: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  statItem: {
+  merchantMeta: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    marginTop: 3,
   },
-  statText: {
+  ratingText: {
     fontSize: 12,
-    color: "#666",
+    fontWeight: "700",
+    color: "#FF9800",
   },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
+  reviewCount: {
+    fontSize: 12,
   },
-  statusText: {
+  statusPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 20,
+    alignSelf: "flex-start",
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusPillText: {
     fontSize: 11,
     fontWeight: "700",
+    letterSpacing: 0.3,
   },
-  manageMerchantButton: {
+  merchantDivider: {
+    height: StyleSheet.hairlineWidth,
+  },
+  merchantActionRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,
-    backgroundColor: "#E8F5E9",
-    borderRadius: 8,
-    gap: 6,
+    justifyContent: "space-between",
+    paddingHorizontal: 18,
+    paddingVertical: 15,
   },
-  manageMerchantText: {
+  merchantActionLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 13,
+  },
+  merchantActionLabel: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#4CAF50",
+    fontWeight: "500",
   },
 
-  // Become Merchant Card
-  becomeMerchantCard: {
-    margin: 20,
-    backgroundColor: "white",
-    borderRadius: 12,
-    padding: 20,
+  // ── Start Selling banner ────────────────────────────────────────────────────
+  sellBannerCard: {
+    marginHorizontal: 16,
+    marginTop: 14,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: "#FFE5ED",
-  },
-  becomeMerchantContent: {
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  becomeMerchantTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#1A1A1A",
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  becomeMerchantText: {
-    fontSize: 14,
-    color: "#666",
-    textAlign: "center",
-    lineHeight: 20,
-  },
-  applyButton: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 12,
-    backgroundColor: "#E60549",
-    borderRadius: 10,
-    gap: 6,
+    padding: 14,
+    gap: 14,
   },
-  applyButtonText: {
+  sellBannerIcon: {
+    width: 52,
+    height: 52,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sellBannerText: {
+    flex: 1,
+    gap: 3,
+  },
+  sellBannerTitle: {
     fontSize: 15,
-    fontWeight: "600",
-    color: "white",
+    fontWeight: "700",
+  },
+  sellBannerSub: {
+    fontSize: 12,
+    lineHeight: 17,
+  },
+  sellBannerArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   // Section

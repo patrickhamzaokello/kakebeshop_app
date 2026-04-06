@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -12,8 +12,10 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
-import { merchantBase } from "@/utils/services/merchantService";
+import { merchantBase, MerchantOrderStatus } from "@/utils/services/merchantService";
 import { useTheme } from "@/contexts/ThemeContext";
+
+// ─── Types ─────────────────���──────────────────────���───────────────────────────
 
 interface MerchantOrder {
   id: string;
@@ -21,34 +23,30 @@ interface MerchantOrder {
   buyer_name?: string;
   total_amount: string;
   delivery_fee?: string;
-  status: "NEW" | "CONTACTED" | "CONFIRMED" | "COMPLETED" | "CANCELLED";
+  status: MerchantOrderStatus;
   created_at: string;
   items_count: number;
   order_group_number?: string;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  NEW: { label: "New", color: "#2196F3", bg: "#E3F2FD" },
-  CONTACTED: { label: "Contacted", color: "#FF9800", bg: "#FFF3E0" },
-  CONFIRMED: { label: "Confirmed", color: "#4CAF50", bg: "#E8F5E9" },
-  COMPLETED: { label: "Completed", color: "#8BC34A", bg: "#F1F8E9" },
-  CANCELLED: { label: "Cancelled", color: "#F44336", bg: "#FFEBEE" },
+// ─── Config ──────────────────────────────────────────────��────────────────────
+
+const STATUS_CONFIG: Record<MerchantOrderStatus, { label: string; color: string; bg: string }> = {
+  NEW:       { label: "New",       color: "#2196F3", bg: "#2196F315" },
+  CONTACTED: { label: "Contacted", color: "#FF9800", bg: "#FF980015" },
+  CONFIRMED: { label: "Confirmed", color: "#4CAF50", bg: "#4CAF5015" },
+  COMPLETED: { label: "Completed", color: "#8BC34A", bg: "#8BC34A15" },
+  CANCELLED: { label: "Cancelled", color: "#F44336", bg: "#F4433615" },
 };
 
-const TABS = [
-  { key: "ALL", label: "All" },
-  { key: "NEW", label: "New" },
-  { key: "ACTIVE", label: "Active" },
+// Each tab maps directly to an API ?status= value (ALL = no filter)
+const TABS: { key: "ALL" | MerchantOrderStatus; label: string }[] = [
+  { key: "ALL",       label: "All" },
+  { key: "NEW",       label: "New" },
+  { key: "CONFIRMED", label: "Confirmed" },
   { key: "COMPLETED", label: "Done" },
+  { key: "CANCELLED", label: "Cancelled" },
 ];
-
-function filterOrders(orders: MerchantOrder[], tab: string): MerchantOrder[] {
-  if (tab === "ALL") return orders;
-  if (tab === "ACTIVE") return orders.filter((o) => ["NEW", "CONTACTED", "CONFIRMED"].includes(o.status));
-  if (tab === "COMPLETED") return orders.filter((o) => o.status === "COMPLETED");
-  if (tab === "NEW") return orders.filter((o) => o.status === "NEW");
-  return orders;
-}
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString("en-GB", {
@@ -58,13 +56,15 @@ function formatDate(dateStr: string): string {
   });
 }
 
+// ─── Order card ────────���────────────────────────��─────────────────────────────
+
 function OrderCard({ order, colors }: { order: MerchantOrder; colors: any }) {
-  const status = STATUS_CONFIG[order.status] || STATUS_CONFIG.NEW;
+  const status = STATUS_CONFIG[order.status];
   const isActionable = order.status === "NEW" || order.status === "CONFIRMED";
 
   return (
     <TouchableOpacity
-      style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}
+      style={[styles.card, { backgroundColor: colors.surface }]}
       onPress={() =>
         router.push({
           pathname: "/orderDetails/[id]",
@@ -87,11 +87,13 @@ function OrderCard({ order, colors }: { order: MerchantOrder; colors: any }) {
             </Text>
           ) : null}
         </View>
+
         <View style={styles.cardRight}>
           <Text style={[styles.amount, { color: colors.textPrimary }]}>
             UGX {parseFloat(order.total_amount).toLocaleString()}
           </Text>
           <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
+            <View style={[styles.statusDot, { backgroundColor: status.color }]} />
             <Text style={[styles.statusText, { color: status.color }]}>
               {status.label}
             </Text>
@@ -100,80 +102,85 @@ function OrderCard({ order, colors }: { order: MerchantOrder; colors: any }) {
       </View>
 
       <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
-        {isActionable ? (
-          <Text style={[styles.actionHint, { color: colors.primary }]}>
-            {order.status === "NEW" ? "Tap to confirm this order" : "Tap to mark as complete"}
-          </Text>
-        ) : (
-          <Text style={[styles.actionHint, { color: colors.textMuted }]}>
-            Tap to view details
-          </Text>
-        )}
+        <Text style={[styles.actionHint, { color: isActionable ? colors.primary : colors.textMuted }]}>
+          {order.status === "NEW"
+            ? "Tap to confirm this order"
+            : order.status === "CONFIRMED"
+            ? "Tap to mark as complete"
+            : "Tap to view details"}
+        </Text>
         <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
       </View>
     </TouchableOpacity>
   );
 }
 
+// ─── Main screen ─────────────────────���─────────────────��──────────────────────
+
 export default function MerchantOrdersScreen() {
   const { colors, isDark } = useTheme();
+  const [activeTab, setActiveTab] = useState<"ALL" | MerchantOrderStatus>("ALL");
+
   const [orders, setOrders] = useState<MerchantOrder[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState("ALL");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const loadOrders = useCallback(async (pageNum = 1, append = false) => {
-    try {
-      const data = await merchantBase.getMerchantOrders(pageNum);
-      if (data) {
-        const results: MerchantOrder[] = data.results || data;
-        if (append) {
-          setOrders((prev) => [...prev, ...results]);
-        } else {
-          setOrders(results);
-        }
-        setHasMore(!!data.next);
-      }
-    } catch (error) {
-      if (__DEV__) console.error("Failed to load merchant orders:", error);
-    }
-  }, []);
+  const loadOrders = useCallback(
+    async (tab: "ALL" | MerchantOrderStatus, pageNum = 1, append = false) => {
+      const status = tab === "ALL" ? undefined : tab;
+      const data = await merchantBase.getMerchantOrders(pageNum, status);
+      if (!data) return;
+      const results: MerchantOrder[] = data.results ?? data;
+      setOrders((prev) => (append ? [...prev, ...results] : results));
+      setHasMore(!!data.next);
+    },
+    []
+  );
 
+  // Reload when the screen gains focus
   useFocusEffect(
     useCallback(() => {
       setLoading(true);
       setPage(1);
-      loadOrders(1, false).finally(() => setLoading(false));
-    }, [loadOrders])
+      loadOrders(activeTab, 1, false).finally(() => setLoading(false));
+    }, [activeTab, loadOrders])
   );
+
+  const handleTabChange = (tab: "ALL" | MerchantOrderStatus) => {
+    if (tab === activeTab) return;
+    setActiveTab(tab);
+    setOrders([]);
+    setPage(1);
+    setHasMore(true);
+    setLoading(true);
+    loadOrders(tab, 1, false).finally(() => setLoading(false));
+  };
 
   const onRefresh = async () => {
     setRefreshing(true);
     setPage(1);
-    await loadOrders(1, false);
+    await loadOrders(activeTab, 1, false);
     setRefreshing(false);
   };
 
   const onLoadMore = async () => {
     if (loadingMore || !hasMore) return;
     setLoadingMore(true);
-    const nextPage = page + 1;
-    await loadOrders(nextPage, true);
-    setPage(nextPage);
+    const next = page + 1;
+    await loadOrders(activeTab, next, true);
+    setPage(next);
     setLoadingMore(false);
   };
-
-  const filtered = filterOrders(orders, activeTab);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={isDark ? "light" : "dark"} />
 
-      {/* Header */}
       <SafeAreaView edges={["top"]} style={{ backgroundColor: colors.background }}>
+        {/* Header */}
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <TouchableOpacity
             onPress={() => router.back()}
@@ -185,103 +192,72 @@ export default function MerchantOrdersScreen() {
           <View>
             <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Orders</Text>
             <Text style={[styles.headerSub, { color: colors.textMuted }]}>
-              {orders.length > 0 ? `${orders.length} orders received` : "Manage your orders"}
+              {loading ? "Loading…" : `${orders.length} order${orders.length !== 1 ? "s" : ""}`}
             </Text>
           </View>
           <View style={{ width: 36 }} />
         </View>
 
-        {/* Filter Tabs */}
-        <View style={[styles.tabBar, { backgroundColor: colors.background, borderBottomColor: colors.border }]}>
+        {/* Status filter tabs — server-side filtered */}
+        <View style={[styles.tabBar, { borderBottomColor: colors.border }]}>
           {TABS.map((tab) => {
-            const count =
-              tab.key === "ALL"
-                ? orders.length
-                : filterOrders(orders, tab.key).length;
             const isActive = activeTab === tab.key;
             return (
               <TouchableOpacity
                 key={tab.key}
-                style={[
-                  styles.tab,
-                  isActive && { borderBottomColor: colors.primary, borderBottomWidth: 2 },
-                ]}
-                onPress={() => setActiveTab(tab.key)}
+                style={[styles.tab, isActive && { borderBottomColor: colors.primary, borderBottomWidth: 2 }]}
+                onPress={() => handleTabChange(tab.key)}
               >
                 <Text
                   style={[
                     styles.tabLabel,
                     { color: isActive ? colors.primary : colors.textMuted },
-                    isActive && { fontWeight: "700" },
+                    isActive && styles.tabLabelActive,
                   ]}
                 >
                   {tab.label}
                 </Text>
-                {count > 0 && (
-                  <View
-                    style={[
-                      styles.tabCount,
-                      { backgroundColor: isActive ? colors.primary : colors.backgroundSecondary },
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.tabCountText,
-                        { color: isActive ? "#fff" : colors.textMuted },
-                      ]}
-                    >
-                      {count}
-                    </Text>
-                  </View>
-                )}
               </TouchableOpacity>
             );
           })}
         </View>
       </SafeAreaView>
 
-      {/* Content */}
       {loading ? (
         <View style={styles.centered}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <FlatList
-          data={filtered}
+          data={orders}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <OrderCard order={item} colors={colors} />}
-          contentContainerStyle={[
-            styles.list,
-            filtered.length === 0 && styles.listEmpty,
-          ]}
+          contentContainerStyle={[styles.list, orders.length === 0 && styles.listEmpty]}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
               tintColor={colors.primary}
+              colors={[colors.primary]}
             />
           }
           onEndReached={onLoadMore}
           onEndReachedThreshold={0.5}
           ListFooterComponent={
             loadingMore ? (
-              <ActivityIndicator
-                size="small"
-                color={colors.primary}
-                style={{ paddingVertical: 16 }}
-              />
+              <ActivityIndicator size="small" color={colors.primary} style={styles.listFooter} />
             ) : null
           }
           ListEmptyComponent={
             <View style={styles.emptyState}>
-              <Ionicons name="receipt-outline" size={56} color={colors.neutral300} />
+              <Ionicons name="receipt-outline" size={52} color={colors.textMuted} />
               <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
-                {activeTab === "ALL" ? "No orders yet" : `No ${TABS.find(t => t.key === activeTab)?.label.toLowerCase()} orders`}
+                {activeTab === "ALL" ? "No orders yet" : `No ${STATUS_CONFIG[activeTab as MerchantOrderStatus]?.label.toLowerCase()} orders`}
               </Text>
               <Text style={[styles.emptyMessage, { color: colors.textMuted }]}>
                 {activeTab === "ALL"
-                  ? "When customers order from your store, they'll appear here"
-                  : "Try switching to a different tab"}
+                  ? "When customers place orders, they'll appear here"
+                  : "Try another tab to see other orders"}
               </Text>
             </View>
           }
@@ -292,134 +268,69 @@ export default function MerchantOrdersScreen() {
   );
 }
 
+// ─── Styles ─────────────────��──────────────────────────���──────────────────────
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+  container: { flex: 1 },
+  centered: { flex: 1, alignItems: "center", justifyContent: "center" },
+
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  backBtn: {
-    width: 36,
-    height: 36,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    textAlign: "center",
-  },
-  headerSub: {
-    fontSize: 13,
-    textAlign: "center",
-    marginTop: 2,
-  },
+  backBtn: { width: 36, height: 36, alignItems: "center", justifyContent: "center" },
+  headerTitle: { fontSize: 17, fontWeight: "700", textAlign: "center" },
+  headerSub: { fontSize: 12, textAlign: "center", marginTop: 1 },
 
-  // Tabs
   tabBar: {
     flexDirection: "row",
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   tab: {
     flex: 1,
-    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 12,
-    gap: 6,
   },
-  tabLabel: {
-    fontSize: 14,
-  },
-  tabCount: {
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 6,
-  },
-  tabCountText: {
-    fontSize: 11,
-    fontWeight: "700",
-  },
+  tabLabel: { fontSize: 13 },
+  tabLabelActive: { fontWeight: "700" },
 
-  // List
-  list: {
-    padding: 16,
-    gap: 12,
-  },
-  listEmpty: {
-    flex: 1,
-  },
+  list: { padding: 16, gap: 10 },
+  listEmpty: { flex: 1 },
+  listFooter: { paddingVertical: 16 },
 
-  // Card
-  card: {
-    borderRadius: 12,
-    borderWidth: 1,
-    overflow: "hidden",
-  },
-  cardTop: {
-    flexDirection: "row",
-    padding: 14,
-    gap: 12,
-  },
-  cardLeft: {
-    flex: 1,
-    gap: 4,
-  },
-  cardRight: {
-    alignItems: "flex-end",
-    gap: 6,
-  },
-  orderNumber: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
-  orderMeta: {
-    fontSize: 13,
-  },
-  buyerName: {
-    fontSize: 13,
-    fontWeight: "500",
-  },
-  amount: {
-    fontSize: 15,
-    fontWeight: "700",
-  },
+  card: { borderRadius: 14, overflow: "hidden" },
+  cardTop: { flexDirection: "row", padding: 14, gap: 12 },
+  cardLeft: { flex: 1, gap: 4 },
+  cardRight: { alignItems: "flex-end", gap: 6 },
+  orderNumber: { fontSize: 15, fontWeight: "700" },
+  orderMeta: { fontSize: 12 },
+  buyerName: { fontSize: 13, fontWeight: "500" },
+  amount: { fontSize: 15, fontWeight: "700" },
   statusBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: 20,
   },
-  statusText: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusText: { fontSize: 12, fontWeight: "600" },
   cardFooter: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 14,
     paddingVertical: 10,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  actionHint: {
-    fontSize: 13,
-  },
+  actionHint: { fontSize: 13 },
 
-  // Empty
-  centered: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   emptyState: {
     flex: 1,
     alignItems: "center",
@@ -428,14 +339,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
     gap: 12,
   },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    textAlign: "center",
-  },
-  emptyMessage: {
-    fontSize: 14,
-    textAlign: "center",
-    lineHeight: 20,
-  },
+  emptyTitle: { fontSize: 18, fontWeight: "700", textAlign: "center" },
+  emptyMessage: { fontSize: 14, textAlign: "center", lineHeight: 20 },
 });
