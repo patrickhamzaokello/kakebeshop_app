@@ -91,7 +91,7 @@ export default function NotificationsScreen() {
 
     // Navigate based on notification type
     if (notification.order_id) {
-      router.push(`/orders/${notification.order_id}` as any);
+      router.push(`/(tabs)/(accounts)/orderDetails/${notification.order_id}` as any);
     } else if (notification.merchant_id) {
       router.push(`/merchant/dashboard` as any);
     } else if (notification.listing_id) {

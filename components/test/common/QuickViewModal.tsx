@@ -238,9 +238,9 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
                   scrollEventThrottle={16}
                   decelerationRate="fast"
                 >
-                  {images.map((img) => (
+                  {images.map((img, i) => (
                     <Image
-                      key={img.id}
+                      key={img.id ?? `img-${i}`}
                       source={{ uri: img.image }}
                       style={[styles.heroImage, { width: SCREEN_WIDTH }]}
                       resizeMode="cover"
@@ -388,8 +388,8 @@ export const QuickViewModal: React.FC<QuickViewModalProps> = ({
               {/* Tags */}
               {listingDetails.tags?.length > 0 && (
                 <View style={styles.tagsRow}>
-                  {listingDetails.tags.map((tag) => (
-                    <View key={tag.id} style={[styles.tag, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
+                  {listingDetails.tags.map((tag, i) => (
+                    <View key={tag.id ?? `tag-${i}`} style={[styles.tag, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
                       <Text style={[styles.tagText, { color: colors.textMuted }]}>#{tag.name}</Text>
                     </View>
                   ))}

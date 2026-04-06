@@ -1,17 +1,17 @@
+import { useTheme } from "@/contexts/ThemeContext";
+import { cartService } from "@/utils/services/cartService";
+import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
   ActivityIndicator,
   Animated,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-import { cartService } from "@/utils/services/cartService";
-import { useTheme } from "@/contexts/ThemeContext";
 
 interface OrderGroup {
   id: string;
@@ -84,12 +84,9 @@ export default function OrderSuccessScreen({ orderIds, orderGroupId }: OrderSucc
             ? idsArray[0].split(",")
             : idsArray;
 
-        const orderPromises = ids.map(async (id) => {
-          const data = await cartService.getOrderbyID(id);
-          return data;
-        });
-
-        const fetchedOrders = await Promise.all(orderPromises);
+        const orderPromises = ids.map((id) => cartService.getOrderbyID(id));
+        const results = await Promise.all(orderPromises);
+        const fetchedOrders = results.filter((o): o is Order => o !== null);
         setOrders(fetchedOrders);
 
         if (fetchedOrders.length > 0 && fetchedOrders[0].order_group_number) {
@@ -111,7 +108,7 @@ export default function OrderSuccessScreen({ orderIds, orderGroupId }: OrderSucc
   };
 
   const handleViewOrder = (orderId: string) => {
-    router.push(`/(tabs)/orders/${orderId}` as any);
+    router.push(`/(tabs)/(accounts)/orderDetails/${orderId}` as any);
   };
 
   const handleContinueShopping = () => {
@@ -119,7 +116,7 @@ export default function OrderSuccessScreen({ orderIds, orderGroupId }: OrderSucc
   };
 
   const handleViewAllOrders = () => {
-    router.replace("/orders/");
+    router.replace("/(tabs)/(accounts)/orders/orders");
   };
 
   const styles = getStyles(colors);
@@ -133,7 +130,7 @@ export default function OrderSuccessScreen({ orderIds, orderGroupId }: OrderSucc
     );
   }
 
-  const totalAmount = orders.reduce((sum, order) => sum + parseFloat(order.total_amount), 0);
+  const totalAmount = orders.reduce((sum, order) => sum + (order ? parseFloat(order.total_amount) : 0), 0);
 
   return (
     <View style={styles.container}>
@@ -153,7 +150,7 @@ export default function OrderSuccessScreen({ orderIds, orderGroupId }: OrderSucc
           <Animated.View style={{ opacity: fadeAnim, alignItems: "center" }}>
             <Text style={styles.successTitle}>Order Placed Successfully!</Text>
             <Text style={styles.successSubtitle}>
-              {orders.length === 1
+              {orders.length <= 1
                 ? "Your order has been confirmed"
                 : `${orders.length} orders have been confirmed`}
             </Text>
@@ -263,7 +260,7 @@ export default function OrderSuccessScreen({ orderIds, orderGroupId }: OrderSucc
 
               <TouchableOpacity
                 style={styles.actionButton}
-                onPress={() => router.push("/(tabs)/accounts/support" as any)}
+                onPress={() => router.push("/help/help" as any)}
                 activeOpacity={0.7}
               >
                 <View style={styles.actionIcon}>
