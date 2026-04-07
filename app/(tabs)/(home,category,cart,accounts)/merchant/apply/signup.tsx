@@ -335,7 +335,7 @@ export default function BecomeMerchantScreen() {
         </Text>
         <TextInput
           style={[styles.input, errors.business_phone && styles.inputError]}
-          placeholder="+256 700 123 456"
+          placeholder="+256770650636"
           placeholderTextColor={colors.textMuted}
           value={formData.business_phone}
           onChangeText={(text) => {

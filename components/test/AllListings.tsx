@@ -12,6 +12,7 @@ import {
 import { Listing } from '@/utils/types/models';
 import { ListingImage } from '@/components/test/common/ListingImage';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { QuickViewModal } from '@/components/test/common/QuickViewModal';
 import { useTheme } from '@/contexts/ThemeContext';
 import { JSX } from 'react/jsx-runtime';
@@ -189,10 +190,14 @@ export const AllListings: React.FC<AllListingsProps> = ({
                                     <Text style={styles.featuredTextLarge}>Featured</Text>
                                 </View>
                             )}
-                            <View style={styles.gradientOverlay} />
+                            <LinearGradient
+                                colors={['transparent', 'rgba(0,0,0,0.55)', 'rgba(0,0,0,0.88)']}
+                                locations={[0, 0.45, 1]}
+                                style={styles.gradientOverlay}
+                            />
                             <View style={styles.bentoContentOverlay}>
                                 <View style={styles.merchantBadge}>
-                                    <Ionicons name="storefront" size={12} color={colors.textInverse} />
+                                    <Ionicons name="storefront" size={12} color="#fff" />
                                     <Text style={styles.merchantNameOverlay} numberOfLines={1}>
                                         {item.merchant.business_name}
                                     </Text>
@@ -409,8 +414,7 @@ const styles = StyleSheet.create({
         bottom: 0,
         left: 0,
         right: 0,
-        height: 180,
-        backgroundColor: 'transparent',
+        height: 220,
     },
     bentoContentOverlay: {
         position: 'absolute',
@@ -424,12 +428,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         alignSelf: 'flex-start',
-        backgroundColor: 'rgba(255, 255, 255, 0.25)',
+        backgroundColor: 'rgba(0,0,0,0.45)',
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: 12,
         gap: 4,
-        backdropFilter: 'blur(10px)',
     },
     merchantNameOverlay: {
         fontSize: 11,
@@ -441,6 +444,9 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: '#fff',
         lineHeight: 24,
+        textShadowColor: 'rgba(0,0,0,0.6)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 4,
     },
     priceRow: {
         flexDirection: 'row',
@@ -452,6 +458,9 @@ const styles = StyleSheet.create({
         fontWeight: 'bold',
         color: '#fff',
         flex: 1,
+        textShadowColor: 'rgba(0,0,0,0.5)',
+        textShadowOffset: { width: 0, height: 1 },
+        textShadowRadius: 3,
     },
     featuredBadgeLarge: {
         position: 'absolute',

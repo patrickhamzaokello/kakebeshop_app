@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   Animated,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
@@ -158,16 +159,24 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
 
         <View style={styles.topRow}>
           <View style={styles.userInfo}>
-            <View style={[styles.avatar, { backgroundColor: colors.textPrimary }]}>
-              <Text style={[styles.avatarText, { color: colors.textInverse }]}>
-                {data?.profile.name
-                  ?.split(" ")
-                  .map((word) => word[0])
-                  .join("")
-                  .toUpperCase()
-                  .slice(0, 2) || "U"}
-              </Text>
-            </View>
+            {data?.profile.profile_image ? (
+              <Image
+                source={{ uri: data.profile.profile_image }}
+                style={styles.avatar}
+                resizeMode="cover"
+              />
+            ) : (
+              <View style={[styles.avatar, { backgroundColor: colors.textPrimary }]}>
+                <Text style={[styles.avatarText, { color: colors.textInverse }]}>
+                  {data?.profile.name
+                    ?.split(" ")
+                    .map((word) => word[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2) || "U"}
+                </Text>
+              </View>
+            )}
             <View>
               <Text style={[styles.welcomeText, { color: colors.textSecondary }]}>Hey, Welcome back,</Text>
               <Text style={[styles.userName, { color: colors.textPrimary }]}>{data?.profile.name}</Text>

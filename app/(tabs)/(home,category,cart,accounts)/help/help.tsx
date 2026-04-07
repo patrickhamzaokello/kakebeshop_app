@@ -48,10 +48,10 @@ const CONTACT_CHANNELS = [
   {
     id: "whatsapp",
     label: "WhatsApp",
-    detail: "+256 700 000 000",
+    detail: "+256 770 650 636",
     icon: "logo-whatsapp" as const,
     color: "#25D366",
-    onPress: () => Linking.openURL("https://wa.me/256700000000"),
+    onPress: () => Linking.openURL("https://wa.me/256770650636"),
   },
   {
     id: "email",
@@ -64,10 +64,10 @@ const CONTACT_CHANNELS = [
   {
     id: "phone",
     label: "Call Us",
-    detail: "+256 700 000 000",
+    detail: "+256 770 650 636",
     icon: "call-outline" as const,
     color: "#2196F3",
-    onPress: () => Linking.openURL("tel:+256700000000"),
+    onPress: () => Linking.openURL("tel:256770650636"),
   },
 ];
 

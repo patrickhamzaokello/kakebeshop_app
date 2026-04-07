@@ -1,9 +1,8 @@
-import React, { useEffect, useState, useRef, useMemo } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   StyleSheet,
   View,
   Text,
-  ScrollView,
   FlatList,
   TouchableOpacity,
   Image,
@@ -19,121 +18,96 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { router, useLocalSearchParams } from "expo-router";
-import {
-  spacingX,
-  spacingY,
-  borderRadius,
-  fontSize,
-  fontWeight,
-  shadow,
-  ThemeColors,
-} from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import { merchantBase } from "@/utils/services/merchantService";
-import { MerchantDetails as MerchantDetailsType } from "@/types/merchant";
+import { MerchantDetails, Listing } from "@/utils/types/models";
 import { ListingImage } from "@/components/test/common/ListingImage";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const COLUMN_GAP = 12;
-const HORIZONTAL_PADDING = 16;
-const PRODUCT_CARD_WIDTH =
-  (SCREEN_WIDTH - HORIZONTAL_PADDING * 2 - COLUMN_GAP) / 2;
+const { width: W } = Dimensions.get("window");
+const PAD = 16;
+const GAP = 10;
+const CARD_W = (W - PAD * 2 - GAP) / 2;
+const BANNER_H = 210;
 
-const STORE_BANNER_HEIGHT = 220;
-const STORE_HEADER_COLLAPSED_HEIGHT = 56;
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-interface Product {
-  id: string;
-  title: string;
-  price: string;
-  images: string[];
-  condition?: string;
-  location?: { name: string };
+function formatPrice(listing: Listing): string {
+  if (listing.price_type === "ON_REQUEST") return "Price on request";
+  if (listing.price_type === "RANGE" && listing.price_min && listing.price_max)
+    return `${listing.currency} ${parseInt(listing.price_min).toLocaleString()} – ${parseInt(listing.price_max).toLocaleString()}`;
+  if (listing.price_type === "FIXED" && listing.price)
+    return `${listing.currency} ${parseInt(listing.price).toLocaleString()}`;
+  return "—";
 }
 
-/* ─────────────────────────────────────────────────────────── ProductCard ── */
-const ProductCard: React.FC<{ product: Product; onPress: () => void }> = ({
-  product,
-  onPress,
-}) => {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+function memberSince(dateString: string): string {
+  const months = Math.floor(
+    (Date.now() - new Date(dateString).getTime()) / (1000 * 60 * 60 * 24 * 30)
+  );
+  if (months < 1) return "New";
+  if (months < 12) return `${months}mo`;
+  const y = Math.floor(months / 12);
+  return `${y}yr${y > 1 ? "s" : ""}`;
+}
 
+// ─── Listing card ─────────────────────────────────────────────────────────────
+
+function ListingCard({ item, colors }: { item: Listing; colors: any }) {
   return (
     <TouchableOpacity
-      style={styles.productCard}
-      onPress={onPress}
+      style={[styles.card, { backgroundColor: colors.surface }]}
+      onPress={() => router.push({ pathname: "/listing/[id]", params: { id: item.id } })}
       activeOpacity={0.85}
     >
-      <View style={styles.productImageWrap}>
-        {product.images?.length > 0 ? (
-          <ListingImage
-          primaryImage={product.images[0]}
-          style={styles.productImage}
-                                          />
-        ) : (
-          <View style={[styles.productImage, styles.productImageEmpty]}>
-            <Ionicons name="image-outline" size={28} color={colors.neutral400} />
-          </View>
-        )}
-        {product.condition && (
-          <View style={styles.conditionBadge}>
-            <Text style={styles.conditionText}>{product.condition}</Text>
+      <View style={styles.cardImageWrap}>
+        <ListingImage primaryImage={item.primary_image} style={styles.cardImage as any} />
+        {item.is_featured && (
+          <View style={styles.featuredBadge}>
+            <Ionicons name="star" size={9} color="#fff" />
+            <Text style={styles.featuredText}>Featured</Text>
           </View>
         )}
       </View>
-      <View style={styles.productMeta}>
-        <Text style={styles.productTitle} numberOfLines={2}>
-          {product.title}
+      <View style={styles.cardBody}>
+        <Text style={[styles.cardTitle, { color: colors.textPrimary }]} numberOfLines={2}>
+          {item.title}
         </Text>
-        <Text style={styles.productPrice}>UGX {product.price}</Text>
-        {product.location && (
-          <View style={styles.productLocationRow}>
-            <Ionicons name="location-outline" size={11} color={colors.textMuted} />
-            <Text style={styles.productLocation} numberOfLines={1}>
-              {product.location.name}
-            </Text>
-          </View>
-        )}
+        <Text style={[styles.cardPrice, { color: colors.primary }]} numberOfLines={1}>
+          {formatPrice(item)}
+        </Text>
       </View>
     </TouchableOpacity>
   );
-};
+}
 
-/* ──────────────────────────────────────────────────────── StatBubble ── */
-const StatBubble: React.FC<{ value: string | number; label: string }> = ({
-  value,
-  label,
-}) => {
-  const { colors } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+// ─── Stat chip ────────────────────────────────────────────────────────────────
 
+function StatChip({ value, label, colors }: { value: string | number; label: string; colors: any }) {
   return (
-    <View style={styles.statBubble}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+    <View style={styles.statChip}>
+      <Text style={[styles.statValue, { color: colors.textPrimary }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: colors.textMuted }]}>{label}</Text>
     </View>
   );
-};
+}
 
-/* ════════════════════════════════════════════════════ Main Screen ════════ */
-export default function MerchantDetailsScreen() {
-  const { id } = useLocalSearchParams();
+// ─── Main screen ──────────────────────────────────────────────────────────────
+
+export default function MerchantProfileScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
   const insets = useSafeAreaInsets();
   const { colors, isDark } = useTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
 
-  const [merchant, setMerchant] = useState<MerchantDetailsType | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [merchant, setMerchant] = useState<MerchantDetails | null>(null);
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+  const [loadingListings, setLoadingListings] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
-  /* ── header fade / shrink ────────────────────────── */
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [STORE_BANNER_HEIGHT - 80, STORE_BANNER_HEIGHT],
+  const headerBg = scrollY.interpolate({
+    inputRange: [BANNER_H - 60, BANNER_H],
     outputRange: [0, 1],
     extrapolate: "clamp",
   });
@@ -143,38 +117,28 @@ export default function MerchantDetailsScreen() {
     extrapolate: "clamp",
   });
 
-  useEffect(() => {
-    fetchMerchantProfile();
-    fetchMerchantProducts();
-  }, [id]);
-
-  const fetchMerchantProfile = async () => {
+  const load = useCallback(async () => {
     try {
-      const data = await merchantBase.merchantProfile(id as string);
-      setMerchant(data);
+      const [profile, products] = await Promise.all([
+        merchantBase.merchantProfile(id),
+        merchantBase.merchantProducts(id, 1, 40),
+      ]);
+      setMerchant(profile);
+      setListings(products ?? []);
     } catch {
       Alert.alert("Error", "Failed to load merchant profile");
     } finally {
-      setLoading(false);
+      setLoadingProfile(false);
+      setLoadingListings(false);
     }
-  };
+  }, [id]);
 
-  const fetchMerchantProducts = async () => {
-    try {
-      const data = await merchantBase.merchantProducts(id as string, 1, 40);
-      setProducts(data ?? []);
-    } catch {
-      /* silent */
-    } finally {
-      setLoadingProducts(false);
-    }
-  };
+  useEffect(() => { load(); }, [load]);
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    Promise.all([fetchMerchantProfile(), fetchMerchantProducts()]).finally(
-      () => setRefreshing(false)
-    );
+    await load();
+    setRefreshing(false);
   };
 
   const renderStars = (rating: number) =>
@@ -182,26 +146,14 @@ export default function MerchantDetailsScreen() {
       <Ionicons
         key={i}
         name={i < Math.floor(rating) ? "star" : "star-outline"}
-        size={13}
-        color={colors.star}
+        size={12}
+        color="#FFB800"
       />
     ));
 
-  const formatJoined = (dateString: string) => {
-    const months = Math.floor(
-      (Date.now() - new Date(dateString).getTime()) /
-        (1000 * 60 * 60 * 24 * 30)
-    );
-    if (months < 1) return "New seller";
-    if (months < 12) return `${months}mo ago`;
-    const years = Math.floor(months / 12);
-    return `${years}yr${years > 1 ? "s" : ""} ago`;
-  };
-
-  /* ── Loading ─────────────────────────────────────── */
-  if (loading) {
+  if (loadingProfile) {
     return (
-      <View style={styles.loadingScreen}>
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
@@ -209,213 +161,164 @@ export default function MerchantDetailsScreen() {
 
   if (!merchant) {
     return (
-      <View style={styles.loadingScreen}>
-        <Ionicons name="alert-circle-outline" size={56} color={colors.neutral400} />
-        <Text style={styles.notFoundText}>Merchant not found</Text>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn2}>
-          <Text style={styles.backBtn2Text}>Go back</Text>
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <Ionicons name="alert-circle-outline" size={52} color={colors.textMuted} />
+        <Text style={[styles.notFoundText, { color: colors.textMuted }]}>Merchant not found</Text>
+        <TouchableOpacity style={[styles.backPill, { backgroundColor: colors.primary }]} onPress={() => router.back()}>
+          <Text style={{ color: "#fff", fontWeight: "600" }}>Go back</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  /* ── render two-column item ──────────────────────── */
-  const renderProduct = ({
-    item,
-    index,
-  }: {
-    item: Product;
-    index: number;
-  }) => (
-    <View
-      style={[
-        styles.productColumn,
-        index % 2 === 0 ? { marginRight: COLUMN_GAP / 2 } : { marginLeft: COLUMN_GAP / 2 },
-      ]}
-    >
-      <ProductCard
-        product={item}
-        onPress={() => router.push({ pathname: `/listing/${item.id}` })}
-      />
-    </View>
-  );
-
-  /* ── Store Header content (inside scroll) ────────── */
-  const StoreHeaderContent = () => (
+  // ── Header content (scrolls with the list) ──
+  const Header = (
     <View>
-      {/* ── Banner + Avatar ─────────────────────────── */}
-      <View style={{ height: STORE_BANNER_HEIGHT }}>
-        {/* Banner background */}
-        <Animated.View
-          style={[styles.banner, { transform: [{ scale: bannerScale }] }]}
-        >
-          {merchant.banner_image ? (
-            <ListingImage
-                                                primaryImage={merchant.banner_image}
-                                                style={StyleSheet.absoluteFillObject}
-                                                                                />
+      {/* Banner */}
+      <View style={{ height: BANNER_H }}>
+        <Animated.View style={[styles.banner, { transform: [{ scale: bannerScale }] }]}>
+          {merchant.cover_image ? (
+            <Image source={{ uri: merchant.cover_image }} style={StyleSheet.absoluteFill} resizeMode="cover" />
           ) : (
             <LinearGradient
-              colors={isDark ? [colors.primaryDark, colors.primary] : ["#1A6EFF", "#0047CC"]}
+              colors={isDark ? ["#1A1A2E", "#16213E"] : ["#E60549", "#FF6B6B"]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFillObject}
+              style={StyleSheet.absoluteFill}
             />
           )}
-          {/* Subtle pattern overlay */}
-          <View style={styles.bannerPattern} />
-          {/* Dark scrim at bottom for avatar contrast */}
           <LinearGradient
-            colors={["transparent", "rgba(0,0,0,0.35)"]}
+            colors={["transparent", "rgba(0,0,0,0.4)"]}
             style={styles.bannerScrim}
           />
         </Animated.View>
 
-        {/* Avatar floating on the banner bottom edge */}
-        <View style={styles.avatarWrapper}>
+        {/* Avatar */}
+        <View style={styles.avatarWrap}>
           {merchant.logo ? (
-            <Image source={{ uri: merchant.logo }} style={styles.avatar} />
+            <Image source={{ uri: merchant.logo }} style={styles.avatar} resizeMode="cover" />
           ) : (
-            <View style={[styles.avatar, styles.avatarFallback]}>
-              <Ionicons name="storefront" size={36} color={colors.primary} />
+            <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: colors.backgroundSecondary }]}>
+              <Ionicons name="storefront" size={32} color={colors.primary} />
             </View>
           )}
           {merchant.verified && (
-            <View style={styles.verifiedDot}>
-              <Ionicons name="checkmark-circle" size={20} color={colors.success} />
+            <View style={[styles.verifiedBadge, { backgroundColor: colors.surface }]}>
+              <Ionicons name="checkmark-circle" size={18} color="#4CAF50" />
             </View>
           )}
         </View>
       </View>
 
-      {/* ── Name / Meta ───────────────────────────────── */}
-      <View style={styles.storeInfo}>
+      {/* Info section */}
+      <View style={[styles.infoSection, { backgroundColor: colors.surface }]}>
+        {/* Name row */}
         <View style={styles.nameRow}>
-          <Text style={styles.storeName}>{merchant.display_name}</Text>
+          <Text style={[styles.storeName, { color: colors.textPrimary }]}>{merchant.display_name}</Text>
           {merchant.verified && (
             <View style={styles.verifiedChip}>
-              <Ionicons name="shield-checkmark" size={11} color={colors.success} />
+              <Ionicons name="shield-checkmark" size={10} color="#4CAF50" />
               <Text style={styles.verifiedChipText}>Verified</Text>
             </View>
           )}
         </View>
 
+        {merchant.business_name !== merchant.display_name && (
+          <Text style={[styles.businessName, { color: colors.textMuted }]}>{merchant.business_name}</Text>
+        )}
+
         {/* Stars */}
         <View style={styles.ratingRow}>
-          <View style={styles.starsRow}>{renderStars(merchant.rating)}</View>
-          <Text style={styles.ratingNum}>
-            {merchant.rating > 0
-              ? merchant.rating.toFixed(1)
-              : "\u2014"}
+          <View style={{ flexDirection: "row", gap: 2 }}>{renderStars(merchant.rating)}</View>
+          <Text style={[styles.ratingNum, { color: colors.textSecondary }]}>
+            {merchant.rating > 0 ? merchant.rating.toFixed(1) : "—"}
           </Text>
           {merchant.total_reviews > 0 && (
-            <Text style={styles.reviewCount}>
-              ({merchant.total_reviews} reviews)
+            <Text style={[styles.ratingReviews, { color: colors.textMuted }]}>
+              ({merchant.total_reviews})
             </Text>
           )}
         </View>
 
         {/* Description */}
-        {merchant.description && (
-          <Text style={styles.storeDesc} numberOfLines={3}>
+        {!!merchant.description && (
+          <Text style={[styles.description, { color: colors.textSecondary }]} numberOfLines={3}>
             {merchant.description}
           </Text>
         )}
 
-        {/* Stats row */}
-        <View style={styles.statsRow}>
-          <StatBubble value={products.length} label="Listings" />
-          <View style={styles.statDivider} />
-          <StatBubble value={merchant.total_reviews ?? 0} label="Reviews" />
-          <View style={styles.statDivider} />
-          <StatBubble
-            value={formatJoined(merchant.created_at)}
-            label="Member"
-          />
+        {/* Stats */}
+        <View style={[styles.statsRow, { backgroundColor: colors.backgroundSecondary }]}>
+          <StatChip value={listings.length} label="Listings" colors={colors} />
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+          <StatChip value={merchant.total_reviews ?? 0} label="Reviews" colors={colors} />
+          <View style={[styles.statDivider, { backgroundColor: colors.border }]} />
+          <StatChip value={memberSince(merchant.created_at)} label="Member" colors={colors} />
         </View>
 
         {/* Contact pills */}
-        <View style={styles.contactPills}>
-          {merchant.business_phone && (
+        <View style={styles.contactRow}>
+          {!!merchant.business_phone && (
             <TouchableOpacity
-              style={styles.pill}
-              onPress={() =>
-                Linking.openURL(
-                  `tel:${merchant.business_phone!.replace(/\s/g, "")}`
-                )
-              }
-              activeOpacity={0.8}
+              style={[styles.contactPill, { backgroundColor: "#E6054910", borderColor: "#E6054930" }]}
+              onPress={() => Linking.openURL(`tel:${merchant.business_phone.replace(/\s/g, "")}`)}
+              activeOpacity={0.75}
             >
-              <Ionicons name="call" size={15} color={colors.primary} />
-              <Text style={styles.pillText}>{merchant.business_phone}</Text>
+              <Ionicons name="call" size={14} color="#E60549" />
+              <Text style={[styles.contactPillText, { color: "#E60549" }]}>{merchant.business_phone}</Text>
             </TouchableOpacity>
           )}
-          {merchant.location && (
-            <View style={[styles.pill, styles.pillMuted]}>
-              <Ionicons name="location-outline" size={15} color={colors.textMuted} />
-              <Text style={[styles.pillText, { color: colors.textSecondary }]}>
-                {merchant.location.name}
-              </Text>
-            </View>
+          {!!merchant.business_email && (
+            <TouchableOpacity
+              style={[styles.contactPill, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}
+              onPress={() => Linking.openURL(`mailto:${merchant.business_email}`)}
+              activeOpacity={0.75}
+            >
+              <Ionicons name="mail-outline" size={14} color={colors.textSecondary} />
+              <Text style={[styles.contactPillText, { color: colors.textSecondary }]}>{merchant.business_email}</Text>
+            </TouchableOpacity>
           )}
         </View>
       </View>
 
-      {/* ── Products section header ──────────────────── */}
-      <View style={styles.productsSectionHeader}>
-        <Text style={styles.productsSectionTitle}>
+      {/* Listings header */}
+      <View style={[styles.sectionHeader, { backgroundColor: colors.background }]}>
+        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
           Listings
-          {products.length > 0 && (
-            <Text style={styles.productCount}> {products.length}</Text>
-          )}
+          {listings.length > 0 && <Text style={{ color: colors.primary }}> · {listings.length}</Text>}
         </Text>
-        
       </View>
     </View>
   );
 
-  /* ── Product grid data ───────────────────────────── */
-  const pairedProducts: Array<[Product, Product | null]> = [];
-  for (let i = 0; i < products.length; i += 2) {
-    pairedProducts.push([products[i], products[i + 1] ?? null]);
-  }
-
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: colors.background }]}>
       <StatusBar barStyle="light-content" />
 
-      {/* ── Sticky collapsed header (appears on scroll) ── */}
+      {/* Collapsing sticky header */}
       <Animated.View
-        style={[
-          styles.stickyHeader,
-          { paddingTop: insets.top, opacity: headerOpacity },
-        ]}
+        style={[styles.stickyBar, { paddingTop: insets.top, opacity: headerBg, backgroundColor: colors.surface }]}
         pointerEvents="none"
       >
-        <Text style={styles.stickyHeaderTitle} numberOfLines={1}>
+        <Text style={[styles.stickyTitle, { color: colors.textPrimary }]} numberOfLines={1}>
           {merchant.display_name}
         </Text>
       </Animated.View>
 
-      {/* ── Floating back button ─────────────────────── */}
-      <SafeAreaView
-        edges={["top"]}
-        style={styles.floatingNavBar}
-        pointerEvents="box-none"
-      >
-        <TouchableOpacity
-          style={styles.floatingBackBtn}
-          onPress={() => router.back()}
-          activeOpacity={0.85}
-        >
-          <Ionicons name="arrow-back" size={20} color="#fff" />
+      {/* Floating back button */}
+      <SafeAreaView edges={["top"]} style={styles.floatingNav} pointerEvents="box-none">
+        <TouchableOpacity style={styles.floatingBackBtn} onPress={() => router.back()} activeOpacity={0.85}>
+          <Ionicons name="chevron-back" size={20} color="#fff" />
         </TouchableOpacity>
       </SafeAreaView>
 
-      {/* ── Main scroll ──────────────────────────────── */}
-      <Animated.ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
+      <Animated.FlatList
+        data={listings}
+        keyExtractor={(item) => item.id}
+        numColumns={2}
+        ListHeaderComponent={Header}
+        columnWrapperStyle={styles.gridRow}
+        contentContainerStyle={styles.gridContent}
         showsVerticalScrollIndicator={false}
         onScroll={Animated.event(
           [{ nativeEvent: { contentOffset: { y: scrollY } } }],
@@ -427,99 +330,54 @@ export default function MerchantDetailsScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor={colors.primary}
-            progressViewOffset={STORE_BANNER_HEIGHT}
+            progressViewOffset={BANNER_H}
           />
         }
-      >
-        <StoreHeaderContent />
-
-        {/* ── 2-col product grid ─────────────────────── */}
-        <View style={styles.grid}>
-          {loadingProducts ? (
-            <View style={styles.gridLoading}>
+        renderItem={({ item }) => <ListingCard item={item} colors={colors} />}
+        ListEmptyComponent={
+          loadingListings ? (
+            <View style={styles.centered}>
               <ActivityIndicator size="large" color={colors.primary} />
-              <Text style={styles.gridLoadingText}>Loading products…</Text>
-            </View>
-          ) : products.length === 0 ? (
-            <View style={styles.emptyGrid}>
-              <Ionicons name="cube-outline" size={52} color={colors.neutral300} />
-              <Text style={styles.emptyGridTitle}>No listings yet</Text>
-              <Text style={styles.emptyGridSub}>
-                This seller hasn't posted any products
-              </Text>
             </View>
           ) : (
-            <FlatList
-              data={products}
-              renderItem={renderProduct}
-              keyExtractor={(item) => item.id}
-              numColumns={2}
-              scrollEnabled={false}
-              columnWrapperStyle={styles.gridRow}
-              ItemSeparatorComponent={() => (
-                <View style={{ height: COLUMN_GAP }} />
-              )}
-              contentContainerStyle={{ paddingBottom: 24 }}
-            />
-          )}
-        </View>
-      </Animated.ScrollView>
+            <View style={styles.emptyState}>
+              <Ionicons name="cube-outline" size={48} color={colors.textMuted} />
+              <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No listings yet</Text>
+              <Text style={[styles.emptyMsg, { color: colors.textMuted }]}>
+                This seller hasn't posted any products yet
+              </Text>
+            </View>
+          )
+        }
+        ListFooterComponent={<View style={{ height: 32 }} />}
+      />
     </View>
   );
 }
 
-/* ══════════════════════════════════════════════════════════ Styles ════════ */
-const createStyles = (colors: ThemeColors) => StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: colors.backgroundTertiary,
-  },
-  loadingScreen: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: colors.background,
-  },
-  notFoundText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: colors.textMuted,
-  },
-  backBtn2: {
-    marginTop: 16,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    backgroundColor: colors.primary,
-    borderRadius: 24,
-  },
-  backBtn2Text: {
-    color: colors.textInverse,
-    fontWeight: "600",
-    fontSize: 14,
-  },
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
-  /* ── Sticky header ─────────────────────────────── */
-  stickyHeader: {
+const styles = StyleSheet.create({
+  root: { flex: 1 },
+  centered: { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, paddingVertical: 60 },
+  notFoundText: { fontSize: 15 },
+  backPill: { paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20, marginTop: 4 },
+
+  stickyBar: {
     position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     zIndex: 20,
-    backgroundColor: colors.primary,
-    height: STORE_HEADER_COLLAPSED_HEIGHT + 44,
+    height: 56 + 44,
     justifyContent: "flex-end",
     alignItems: "center",
     paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  stickyHeaderTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#fff",
-    letterSpacing: 0.2,
-  },
+  stickyTitle: { fontSize: 16, fontWeight: "700" },
 
-  /* ── Floating back button ────────────────────────── */
-  floatingNavBar: {
+  floatingNav: {
     position: "absolute",
     top: 0,
     left: 0,
@@ -527,32 +385,17 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     padding: 12,
   },
   floatingBackBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "rgba(0,0,0,0.38)",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(0,0,0,0.4)",
     alignItems: "center",
     justifyContent: "center",
   },
 
-  /* ── Scroll ──────────────────────────────────────── */
-  scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 32 },
-
-  /* ── Banner ─────────────────────────────────────── */
   banner: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: STORE_BANNER_HEIGHT,
-    overflow: "hidden",
-    backgroundColor: colors.primary,
-  },
-  bannerPattern: {
     ...StyleSheet.absoluteFillObject,
-    opacity: 0.07,
-    backgroundColor: "transparent",
+    overflow: "hidden",
   },
   bannerScrim: {
     position: "absolute",
@@ -562,277 +405,142 @@ const createStyles = (colors: ThemeColors) => StyleSheet.create({
     height: 80,
   },
 
-  /* ── Avatar ─────────────────────────────────────── */
-  avatarWrapper: {
+  avatarWrap: {
     position: "absolute",
-    bottom: -44,
-    left: HORIZONTAL_PADDING,
+    bottom: -40,
+    left: PAD,
     zIndex: 10,
   },
   avatar: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    borderWidth: 4,
-    borderColor: colors.surface,
-    backgroundColor: colors.backgroundSecondary,
+    width: 80,
+    height: 80,
+    borderRadius: 20,
+    borderWidth: 3,
+    borderColor: "#fff",
   },
   avatarFallback: {
     alignItems: "center",
     justifyContent: "center",
   },
-  verifiedDot: {
+  verifiedBadge: {
     position: "absolute",
-    bottom: 2,
-    right: 2,
-    backgroundColor: colors.surface,
-    borderRadius: 11,
+    bottom: -2,
+    right: -2,
+    borderRadius: 10,
     padding: 1,
   },
 
-  /* ── Store info card ─────────────────────────────── */
-  storeInfo: {
-    backgroundColor: colors.surface,
-    paddingTop: 56,
-    paddingHorizontal: HORIZONTAL_PADDING,
+  infoSection: {
+    paddingTop: 52,
+    paddingHorizontal: PAD,
     paddingBottom: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
   },
   nameRow: {
     flexDirection: "row",
     alignItems: "center",
-    flexWrap: "wrap",
     gap: 8,
-    marginBottom: 6,
+    flexWrap: "wrap",
+    marginBottom: 2,
   },
-  storeName: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: colors.text,
-    letterSpacing: -0.4,
-    flexShrink: 1,
-  },
+  storeName: { fontSize: 20, fontWeight: "800", letterSpacing: -0.3, flexShrink: 1 },
   verifiedChip: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.successLight,
-    borderRadius: 20,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
     gap: 3,
+    backgroundColor: "#E8F5E9",
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 20,
   },
-  verifiedChipText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: colors.success,
-  },
+  verifiedChipText: { fontSize: 10, fontWeight: "700", color: "#4CAF50" },
+  businessName: { fontSize: 13, marginBottom: 6 },
+
   ratingRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 10,
     gap: 4,
+    marginBottom: 10,
   },
-  starsRow: { flexDirection: "row", gap: 2 },
-  ratingNum: {
+  ratingNum: { fontSize: 13, fontWeight: "700" },
+  ratingReviews: { fontSize: 12 },
+
+  description: {
     fontSize: 13,
-    fontWeight: "700",
-    color: colors.textSecondary,
-    marginLeft: 4,
+    lineHeight: 20,
+    marginBottom: 14,
   },
-  reviewCount: {
-    fontSize: 12,
-    color: colors.textMuted,
-  },
-  storeDesc: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    lineHeight: 21,
-    marginBottom: 16,
-  },
+
   statsRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: colors.backgroundSecondary,
     borderRadius: 14,
     paddingVertical: 14,
-    paddingHorizontal: 8,
-    marginBottom: 16,
+    marginBottom: 14,
   },
-  statBubble: {
-    flex: 1,
-    alignItems: "center",
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: "800",
-    color: colors.text,
-    letterSpacing: -0.3,
-  },
-  statLabel: {
-    fontSize: 11,
-    color: colors.textMuted,
-    marginTop: 2,
-    fontWeight: "500",
-  },
-  statDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: colors.border,
-  },
-  contactPills: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  pill: {
+  statChip: { flex: 1, alignItems: "center", gap: 2 },
+  statValue: { fontSize: 16, fontWeight: "800", letterSpacing: -0.3 },
+  statLabel: { fontSize: 11, fontWeight: "500" },
+  statDivider: { width: 1, height: 26 },
+
+  contactRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  contactPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    borderRadius: 24,
-    backgroundColor: colors.backgroundTertiary,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
     borderWidth: 1,
-    borderColor: colors.border,
   },
-  pillMuted: {
-    backgroundColor: colors.backgroundSecondary,
-    borderColor: colors.border,
-  },
-  pillText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: colors.primary,
-  },
+  contactPillText: { fontSize: 13, fontWeight: "600" },
 
-  /* ── Products section header ─────────────────────── */
-  productsSectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: HORIZONTAL_PADDING,
-    paddingTop: 20,
-    paddingBottom: 12,
+  sectionHeader: {
+    paddingHorizontal: PAD,
+    paddingTop: 18,
+    paddingBottom: 10,
   },
-  productsSectionTitle: {
-    fontSize: 17,
-    fontWeight: "800",
-    color: colors.text,
-    letterSpacing: -0.3,
-  },
-  productCount: {
-    color: colors.primary,
-    fontWeight: "700",
-  },
-  viewAllLink: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: colors.primary,
-  },
+  sectionTitle: { fontSize: 16, fontWeight: "800" },
 
-  /* ── Grid ────────────────────────────────────────── */
-  grid: {
-    paddingHorizontal: HORIZONTAL_PADDING,
-  },
-  gridRow: {
-    justifyContent: "space-between",
-  },
-  productColumn: {
-    flex: 1,
-  },
-  gridLoading: {
-    alignItems: "center",
-    paddingVertical: 48,
-    gap: 12,
-  },
-  gridLoadingText: {
-    fontSize: 14,
-    color: colors.textMuted,
-  },
-  emptyGrid: {
-    alignItems: "center",
-    paddingVertical: 64,
-    gap: 8,
-  },
-  emptyGridTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.textSecondary,
-    marginTop: 8,
-  },
-  emptyGridSub: {
-    fontSize: 13,
-    color: colors.textMuted,
-    textAlign: "center",
-  },
+  gridContent: { paddingHorizontal: PAD, paddingBottom: 8 },
+  gridRow: { gap: GAP, marginBottom: GAP },
 
-  /* ── Product Card ────────────────────────────────── */
-  productCard: {
-    backgroundColor: colors.card,
+  card: {
+    width: CARD_W,
     borderRadius: 14,
     overflow: "hidden",
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
   },
-  productImageWrap: {
+  cardImageWrap: {
     width: "100%",
-    aspectRatio: 1,
+    height: CARD_W,
     position: "relative",
   },
-  productImage: {
+  cardImage: {
     width: "100%",
     height: "100%",
   },
-  productImageEmpty: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  conditionBadge: {
+  featuredBadge: {
     position: "absolute",
     top: 8,
     left: 8,
-    backgroundColor: "rgba(0,0,0,0.55)",
-    borderRadius: 6,
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-  },
-  conditionText: {
-    fontSize: 10,
-    fontWeight: "700",
-    color: "#fff",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
-  },
-  productMeta: {
-    padding: 10,
-  },
-  productTitle: {
-    fontSize: 12.5,
-    fontWeight: "600",
-    color: colors.text,
-    lineHeight: 18,
-    marginBottom: 4,
-    height: 36,
-  },
-  productPrice: {
-    fontSize: 14,
-    fontWeight: "800",
-    color: colors.primary,
-    letterSpacing: -0.2,
-    marginBottom: 4,
-  },
-  productLocationRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
+    gap: 3,
+    backgroundColor: "#E60549",
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 20,
   },
-  productLocation: {
-    fontSize: 11,
-    color: colors.textMuted,
-    flex: 1,
+  featuredText: { fontSize: 10, fontWeight: "700", color: "#fff" },
+  cardBody: { padding: 10, gap: 3 },
+  cardTitle: { fontSize: 12.5, fontWeight: "600", lineHeight: 18 },
+  cardPrice: { fontSize: 13, fontWeight: "800" },
+
+  emptyState: {
+    alignItems: "center",
+    paddingVertical: 60,
+    paddingHorizontal: 32,
+    gap: 10,
   },
+  emptyTitle: { fontSize: 16, fontWeight: "700" },
+  emptyMsg: { fontSize: 13, textAlign: "center", lineHeight: 20 },
 });

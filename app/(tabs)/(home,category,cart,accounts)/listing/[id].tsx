@@ -17,6 +17,7 @@ import {
   StatusBar,
   NativeSyntheticEvent,
   NativeScrollEvent,
+  Linking,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -36,6 +37,7 @@ import {
   ThemeColors,
 } from "@/constants/theme";
 import { listingDetailsService } from "@/utils/services/listingDetailsService";
+import apiService from "@/utils/apiBase";
 import { useCartStore } from "@/utils/stores/useCartStore";
 import { useListingDetailStore } from "@/utils/stores/useListingDetailStore";
 import { useAuthStore } from "@/utils/authStore";
@@ -269,7 +271,7 @@ const SimilarListingCard: React.FC<{
       activeOpacity={0.75}
     >
       <ListingImage
-        primaryImage={item.primary_image?.image}
+        primaryImage={item.primary_image ?? null}
         style={styles.similarCardImage}
       />
       <View style={styles.similarCardContent}>
@@ -319,6 +321,8 @@ export default function ListingDetailsScreen() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [contactModalVisible, setContactModalVisible] = useState(false);
+  const [merchantPhone, setMerchantPhone] = useState<string | null>(null);
+  const [fetchingPhone, setFetchingPhone] = useState(false);
   const [descExpanded, setDescExpanded] = useState(false);
   const [headerShown, setHeaderShown] = useState(false);
   const [lightboxVisible, setLightboxVisible] = useState(false);
@@ -468,31 +472,63 @@ export default function ListingDetailsScreen() {
     }
   };
 
-  const handleContactMerchant = () => setContactModalVisible(true);
+  const handleContactMerchant = async () => {
+    setContactModalVisible(true);
+    if (!merchantPhone && listing?.merchant?.id && !fetchingPhone) {
+      setFetchingPhone(true);
+      try {
+        const response = await apiService.get<{ business_phone?: string }>(
+          `/api/v1/merchants/${listing.merchant.id}/`
+        );
+        if (response.success && response.data?.business_phone) {
+          setMerchantPhone(response.data.business_phone);
+        }
+      } catch {
+        // phone will stay null — handled gracefully in handlers
+      } finally {
+        setFetchingPhone(false);
+      }
+    }
+  };
 
   const handleCallMerchant = async () => {
     setContactModalVisible(false);
-    Alert.alert(
-      "Contact Merchant",
-      `Would you like to call ${listing?.merchant.display_name}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "Call", onPress: () => Alert.alert("Info", "Merchant contact will be available soon.") },
-      ]
-    );
+    const phone = merchantPhone;
+    if (!phone) {
+      Alert.alert("Unavailable", "Merchant phone number is not available.");
+      return;
+    }
+    const url = `tel:${phone}`;
+    const supported = await Linking.canOpenURL(url);
+    if (supported) {
+      Linking.openURL(url);
+    } else {
+      Alert.alert("Unavailable", "Phone calls are not supported on this device.");
+    }
   };
 
   const handleMessageMerchant = () => {
     setContactModalVisible(false);
-    Alert.alert(
-      "Message Merchant",
-      `Send a message to ${listing?.merchant.display_name}`,
-      [
-        { text: "Cancel", style: "cancel" },
-        { text: "WhatsApp", onPress: () => Alert.alert("Info", "WhatsApp contact will be available soon.") },
-        { text: "In-App Message", onPress: () => Alert.alert("Info", "In-app messaging coming soon.") },
-      ]
-    );
+    Alert.alert("Coming Soon", "In-app messaging will be available soon.");
+  };
+
+  const handleWhatsAppMerchant = async () => {
+    setContactModalVisible(false);
+    const phone = merchantPhone;
+    if (!phone) {
+      Alert.alert("Unavailable", "Merchant WhatsApp number is not available.");
+      return;
+    }
+    // Strip non-digit characters, ensure international format
+    const cleaned = phone.replace(/\D/g, "");
+    const url = `whatsapp://send?phone=${cleaned}&text=${encodeURIComponent("Hi, I'm interested in your listing on Kakebe Shop.")}`;
+    const supported = await Linking.canOpenURL(url);
+    if (supported) {
+      Linking.openURL(url);
+    } else {
+      // Fallback to wa.me link (opens in browser/app)
+      Linking.openURL(`https://wa.me/${cleaned}?text=${encodeURIComponent("Hi, I'm interested in your listing on Kakebe Shop.")}`);
+    }
   };
 
   // ── Price formatting ──
@@ -1039,7 +1075,7 @@ export default function ListingDetailsScreen() {
                 iconColor: "#4CAF50",
                 bgColor: "rgba(76,175,80,0.12)",
                 title: "Call",
-                desc: "Speak directly with the merchant",
+                desc: fetchingPhone ? "Loading contact…" : merchantPhone ? merchantPhone : "Speak directly with the merchant",
                 onPress: handleCallMerchant,
               },
               {
@@ -1047,7 +1083,7 @@ export default function ListingDetailsScreen() {
                 iconColor: colors.primary,
                 bgColor: colors.backgroundSecondary,
                 title: "Send Message",
-                desc: "Send an inquiry about this listing",
+                desc: "In-app messaging coming soon",
                 onPress: handleMessageMerchant,
               },
               {
@@ -1055,11 +1091,8 @@ export default function ListingDetailsScreen() {
                 iconColor: "#25D366",
                 bgColor: "rgba(37,211,102,0.12)",
                 title: "WhatsApp",
-                desc: "Chat on WhatsApp",
-                onPress: () => {
-                  setContactModalVisible(false);
-                  Alert.alert("Info", "WhatsApp contact will be available soon.");
-                },
+                desc: fetchingPhone ? "Loading contact…" : merchantPhone ? `Chat with ${listing.merchant.display_name}` : "Chat on WhatsApp",
+                onPress: handleWhatsAppMerchant,
               },
             ].map((opt) => (
               <TouchableOpacity
@@ -1075,7 +1108,11 @@ export default function ListingDetailsScreen() {
                   <Text style={[styles.contactOptTitle, { color: colors.textPrimary }]}>{opt.title}</Text>
                   <Text style={[styles.contactOptDesc, { color: colors.textMuted }]}>{opt.desc}</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                {fetchingPhone && (opt.title === "Call" || opt.title === "WhatsApp") ? (
+                  <ActivityIndicator size="small" color={colors.textMuted} />
+                ) : (
+                  <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+                )}
               </TouchableOpacity>
             ))}
 

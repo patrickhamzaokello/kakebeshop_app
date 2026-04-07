@@ -19,7 +19,8 @@
       "Bash(grep -r listing 'C:\\\\React Native Projects\\\\KakebeShop' --include=*.tsx --include=*.ts -l)",
       "Bash(wc:*)",
       "Bash(ls:*)",
-      "Bash(grep -E \"\\\\.\\(tsx|ts|jsx|js\\)$\")"
+      "Bash(grep -E \"\\\\.\\(tsx|ts|jsx|js\\)$\")",
+      "Bash(grep -rn HeaderSection 'C:\\\\React Native Projects\\\\KakebeShop' --include=*.tsx --include=*.ts)"
     ]
   }
 }

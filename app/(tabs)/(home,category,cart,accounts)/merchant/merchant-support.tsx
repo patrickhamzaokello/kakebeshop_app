@@ -219,8 +219,8 @@ export default function SupportScreen() {
             icon={<Ionicons name="call" size={22} color={colors.primary} />}
             title="Phone Support"
             description="Mon–Fri, 8am–6pm EAT"
-            actionText="+256 787 250 196"
-            onPress={() => handleCall("256787250196")}
+            actionText="+256 770 650 636"
+            onPress={() => handleCall("256770650636")}
           />
           <ContactMethod
             icon={<Ionicons name="mail" size={22} color={colors.primary} />}
@@ -455,7 +455,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderRadius: borderRadius.lg,
-    padding: spacingX._14,
+    padding: spacingX._15,
     marginBottom: spacingY._10,
     borderWidth: 1,
   },
@@ -501,7 +501,7 @@ const styles = StyleSheet.create({
   categoryButton: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: spacingX._14,
+    paddingHorizontal: spacingX._15,
     paddingVertical: spacingY._8,
     borderRadius: borderRadius.full,
     borderWidth: 1,
@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
   },
   inputContainer: {
-    marginBottom: spacingY._18,
+    marginBottom: spacingY._15,
   },
   inputLabel: {
     fontSize: fontSize.md,
@@ -538,7 +538,7 @@ const styles = StyleSheet.create({
   },
   input: {
     borderRadius: borderRadius.md,
-    padding: spacingX._14,
+    padding: spacingX._15,
     fontSize: fontSize.md,
     borderWidth: 1,
   },
@@ -580,7 +580,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     borderRadius: borderRadius.lg,
-    padding: spacingX._14,
+    padding: spacingX._15,
     marginBottom: spacingY._10,
     borderWidth: 1,
     gap: 10,

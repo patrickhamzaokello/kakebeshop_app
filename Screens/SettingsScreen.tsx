@@ -1,22 +1,22 @@
+import { useTheme } from "@/contexts/ThemeContext";
+import apiService from "@/utils/apiBase";
+import { useAuthStore } from "@/utils/authStore";
+import { MenuItem, UserProfile } from "@/utils/types/models";
+import { Ionicons } from "@expo/vector-icons";
+import { useScrollToTop } from "@react-navigation/native";
+import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-  Alert,
-  RefreshControl,
   ActivityIndicator,
+  Alert,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { useRouter } from "expo-router";
-import { useScrollToTop } from "@react-navigation/native";
-import { Ionicons } from "@expo/vector-icons";
-import { useAuthStore } from "@/utils/authStore";
-import apiService from "@/utils/apiBase";
-import { MenuItem, UserProfile } from "@/utils/types/models";
-import { useTheme } from "@/contexts/ThemeContext";
 
 
 
@@ -102,7 +102,6 @@ export default function AccountScreen() {
       id: "language",
       title: "Language",
       icon: "language-outline",
-      route: "/language/language",
       badge: "English",
       color: "#666",
     },
@@ -210,7 +209,7 @@ export default function AccountScreen() {
 
           <TouchableOpacity
             style={[styles.editBtn, { backgroundColor: "#E6054912", borderColor: "#E6054930" }]}
-            onPress={() => router.push("/editprofile/edit-profile" as any)}
+            onPress={() => router.push("/userprofile/edit-profile" as any)}
             activeOpacity={0.7}
           >
             <Ionicons name="create-outline" size={18} color="#E60549" />
@@ -284,7 +283,6 @@ export default function AccountScreen() {
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </TouchableOpacity>
-
         <TouchableOpacity
           style={styles.profileActionRow}
           onPress={() => router.push("/savedAddress/addresses" as any)}
@@ -296,6 +294,20 @@ export default function AccountScreen() {
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </TouchableOpacity>
+        
+        <TouchableOpacity
+            style={styles.merchantActionRow}
+            onPress={() => router.push("/userprofile/edit-user-profile-image" as any)}
+            activeOpacity={0.6}
+          >
+            <View style={styles.merchantActionLeft}>
+              <Ionicons name="camera-outline" size={19} color="#E60549" />
+              <Text style={[styles.merchantActionLabel, { color: colors.textPrimary }]}>Edit Profile Image</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+
+        
 
       </View>
 

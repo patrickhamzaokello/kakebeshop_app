@@ -17,9 +17,10 @@ import { useRouter } from "expo-router";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";
 import { Ionicons } from "@expo/vector-icons";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { cartService } from "@/utils/services/cartService";
 import { useTheme } from "@/contexts/ThemeContext";
+import { StatusBar } from "expo-status-bar";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 interface LocationData {
   latitude: number;
@@ -448,9 +449,18 @@ export default function NewAddressScreen() {
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
-      {/* Step indicator */}
+    <View style={{ flex: 1, backgroundColor: colors.surface }}>
+      <SafeAreaView />
+      {/* Step indicator bar */}
       <View style={[indicator.bar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <TouchableOpacity
+          style={indicator.backBtn}
+          onPress={() => (step === 1 ? router.back() : setStep(1))}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <Ionicons name="chevron-back" size={22} color={colors.textPrimary} />
+        </TouchableOpacity>
+
         {([1, 2] as const).map((s) => (
           <View key={s} style={indicator.step}>
             <View
@@ -679,10 +689,19 @@ const indicator = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 14,
-    paddingHorizontal: 32,
+    paddingHorizontal: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
     position: "relative",
     gap: 0,
+  },
+  backBtn: {
+    position: "absolute",
+    left: 16,
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
   },
   line: {
     position: "absolute",
