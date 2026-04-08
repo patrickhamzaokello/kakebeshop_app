@@ -177,8 +177,9 @@ export const cartService = {
     expected_delivery_date?: string;
   }) => {
     try {
-      const response = await apiService.post("/api/v1/orders/checkout/", data); // Returns: { message: "Order(s) placed successfully", orders: [...] }
+      const response = await apiService.post("/api/v1/orders/checkout/", data);
       if (response.success && response.data) {
+        // Backend: { success, message, data: { orders: [...], order_group: {...} } }
         return response.data.data;
       }
       return null;
@@ -191,10 +192,11 @@ export const cartService = {
   getOrdersByGroupID: async (groupID: string) => {
     try {
       const response = await apiService.get(
-        `/api/v1/order-groups/${groupID}/`
+        `/api/v1/orders/order-groups/${groupID}/`
       );
       if (response.success && response.data) {
-        return response.data;
+        // Backend: { success, data: { id, group_number, orders: [...], ... } }
+        return response.data.data;
       }
       return null;
     } catch (error) {
@@ -205,11 +207,10 @@ export const cartService = {
 
   getOrders: async () => {
     try {
-      const response = await apiService.get(
-        `/api/v1/orders/`
-      );
+      const response = await apiService.get(`/api/v1/orders/`);
       if (response.success && response.data) {
-        return response.data.results;
+        // Backend: { success, count, data: [...] }
+        return response.data.data ?? [];
       }
       return [];
     } catch (error) {
@@ -217,14 +218,13 @@ export const cartService = {
       return [];
     }
   },
-  
+
   getOrderbyID: async (orderID: string) => {
     try {
-      const response = await apiService.get(
-        `/api/v1/orders/${orderID}/`
-      );
+      const response = await apiService.get(`/api/v1/orders/${orderID}/`);
       if (response.success && response.data) {
-        return response.data;
+        // Backend: { success, data: { ...order object... } }
+        return response.data.data;
       }
       return null;
     } catch (error) {

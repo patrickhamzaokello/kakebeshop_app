@@ -146,7 +146,7 @@ interface OrderItem {
     id: string;
     title: string;
     price: string;
-    images: Array<{ image: string }>;
+    primary_image: { image: string } | null;
   };
   quantity: number;
   unit_price: string;
@@ -161,7 +161,7 @@ interface ItemCardProps {
 }
 
 const OrderItemCard: React.FC<ItemCardProps> = ({ item, isLast, colors, onImagePress }) => {
-  const images = item.listing.images?.map((img) => img.image) ?? [];
+  const images = item.listing.primary_image ? [item.listing.primary_image.image] : [];
   const [activeThumb, setActiveThumb] = useState(0);
 
   return (
@@ -468,11 +468,11 @@ export default function OrderDetailScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Order Items</Text>
           <View style={styles.card}>
-            {order.items.map((item, index) => (
+            {(order.items ?? []).map((item, index) => (
               <OrderItemCard
                 key={item.id}
                 item={item}
-                isLast={index === order.items.length - 1}
+                isLast={index === (order.items?.length ?? 1) - 1}
                 colors={colors}
                 onImagePress={openLightbox}
               />
@@ -526,20 +526,22 @@ export default function OrderDetailScreen() {
         )}
 
         {/* Delivery Address */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Delivery Address</Text>
-          <View style={styles.card}>
-            <View style={styles.addressHeader}>
-              <Ionicons name="location" size={20} color="#E60549" />
-              <Text style={styles.addressLabel}>{order.address.label}</Text>
+        {order.address && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Delivery Address</Text>
+            <View style={styles.card}>
+              <View style={styles.addressHeader}>
+                <Ionicons name="location" size={20} color="#E60549" />
+                <Text style={styles.addressLabel}>{order.address.label}</Text>
+              </View>
+              <Text style={styles.addressText}>{order.address.landmark}</Text>
+              <Text style={styles.addressText}>
+                {order.address.area}, {order.address.district}
+              </Text>
+              <Text style={styles.addressRegion}>{order.address.region}</Text>
             </View>
-            <Text style={styles.addressText}>{order.address.landmark}</Text>
-            <Text style={styles.addressText}>
-              {order.address.area}, {order.address.district}
-            </Text>
-            <Text style={styles.addressRegion}>{order.address.region}</Text>
           </View>
-        </View>
+        )}
 
         {/* Order Summary */}
         <View style={styles.section}>
@@ -549,13 +551,13 @@ export default function OrderDetailScreen() {
               <Text style={styles.summaryLabel}>Subtotal</Text>
               <Text style={styles.summaryValue}>
                 UGX{" "}
-                {(parseFloat(order.total_amount) - parseFloat(order.delivery_fee || "0")).toLocaleString()}
+                {(parseFloat(order.total_amount ?? "0") - parseFloat(order.delivery_fee || "0")).toLocaleString()}
               </Text>
             </View>
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Delivery Fee</Text>
               <Text style={styles.summaryValue}>
-                {order.delivery_fee === "0.00" || !order.delivery_fee
+                {!order.delivery_fee || order.delivery_fee === "0.00" || order.delivery_fee === "0"
                   ? "FREE"
                   : `UGX ${parseFloat(order.delivery_fee).toLocaleString()}`}
               </Text>
@@ -563,7 +565,7 @@ export default function OrderDetailScreen() {
             <View style={styles.divider} />
             <View style={styles.summaryRow}>
               <Text style={styles.totalLabel}>Total</Text>
-              <Text style={styles.totalValue}>UGX {parseFloat(order.total_amount).toLocaleString()}</Text>
+              <Text style={styles.totalValue}>UGX {parseFloat(order.total_amount ?? "0").toLocaleString()}</Text>
             </View>
           </View>
         </View>

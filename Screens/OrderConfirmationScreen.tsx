@@ -150,9 +150,9 @@ export default function OrderConfirmationScreen() {
           {cart.items?.map((item: any) => (
             <View key={item.id} style={styles.itemCard}>
               <View style={styles.itemContent}>
-                {item.listing.images && item.listing.images.length > 0 && (
+                {item.listing.primary_image && (
                   <Image
-                    source={{ uri: item.listing.images[0].image }}
+                    source={{ uri: item.listing.primary_image.image }}
                     style={styles.itemImage}
                     resizeMode="cover"
                   />

@@ -20,7 +20,7 @@ interface Order {
   total_amount: string;
   status: string;
   created_at: string;
-  items_count: number;
+  items: Array<any>;
   order_group_number?: string;
 }
 
@@ -131,7 +131,7 @@ export default function OrdersListScreen() {
           <View style={styles.detailRow}>
             <Ionicons name="cube-outline" size={14} color={colors.textMuted} />
             <Text style={styles.detailText}>
-              {item.items_count} {item.items_count === 1 ? "item" : "items"}
+              {item.items?.length ?? 0} {(item.items?.length ?? 0) === 1 ? "item" : "items"}
             </Text>
           </View>
         </View>
