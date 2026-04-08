@@ -17,7 +17,7 @@ export default function ListAddressMain() {
    
      return (
        <View style={{ flex: 1, backgroundColor: colors.background }}>
-            <DetailHeaderSection title="Addresses" subheading="All saved Addresses list" />
+            <DetailHeaderSection title="Addresses" subheading="All saved Addresses list" showBackButton />
 
             <AddressListScreen />
        </View>

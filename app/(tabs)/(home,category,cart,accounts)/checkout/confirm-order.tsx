@@ -11,6 +11,7 @@ export default function OrderConfirmationMain() {
       <DetailHeaderSection
         title="Review Your Order"
         subheading="Check details before placing order"
+        showBackButton
       />
       <OrderConfirmationScreen />
     </View>

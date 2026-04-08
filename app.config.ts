@@ -38,6 +38,7 @@ export default ({config}: ConfigContext): ExpoConfig => ({
       "supportsTablet": true,
       bundleIdentifier: getUniqueIdentifier(),
       usesAppleSignIn: true,
+      associatedDomains: ["applinks:kakebeshop.com"],
       icon: {
         dark: "./assets/icons/ios-dark.png",
         light: "./assets/icons/ios-light.png",
@@ -61,7 +62,21 @@ export default ({config}: ConfigContext): ExpoConfig => ({
       permissions: [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
-      ]
+      ],
+      intentFilters: [
+        {
+          action: "VIEW",
+          autoVerify: true,
+          data: [
+            {
+              scheme: "https",
+              host: "kakebeshop.com",
+              pathPrefix: "/listing",
+            },
+          ],
+          category: ["BROWSABLE", "DEFAULT"],
+        },
+      ],
     },
     web: {
       output: "static",

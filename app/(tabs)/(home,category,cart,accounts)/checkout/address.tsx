@@ -11,6 +11,7 @@ export default function SelectDeliveryAddressMain() {
       <DetailHeaderSection
         title="Select Delivery Location"
         subheading="Pick a delivery address for your order"
+        showBackButton
       />
       <AddressSelectionScreen />
     </View>

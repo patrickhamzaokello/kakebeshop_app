@@ -20,7 +20,7 @@ export default function WishlistMain() {
    
      return (
        <View style={{ flex: 1, backgroundColor: colors.background }}>
-            <DetailHeaderSection title="Preferences" subheading="Choose the notifications you would like to receive" />
+            <DetailHeaderSection title="Preferences" subheading="Choose the notifications you would like to receive" showBackButton />
             <NotificationPreferencesScreen />
        </View>
      );

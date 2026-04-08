@@ -74,6 +74,7 @@ export default function AboutLegalMain() {
       <DetailHeaderSection
         title="About & Legal"
         subheading="App info, privacy, and terms"
+        showBackButton
       />
       <ScrollView
         contentContainerStyle={styles.scroll}

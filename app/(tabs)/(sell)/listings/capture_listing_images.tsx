@@ -534,6 +534,13 @@ export default function CaptureListingImages() {
          <SafeAreaView edges={["top"]} />
         {/* Header */}
         <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backBtn}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
+          </TouchableOpacity>
           <Typo size={24} fontWeight="700" color={colors.textPrimary}>
             Add Listing Photos
           </Typo>
@@ -626,6 +633,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacingX._16,
     paddingTop: spacingY._20,
     paddingBottom: spacingY._16,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
   },
   scrollContent: {
     paddingHorizontal: spacingX._16,

@@ -21,7 +21,7 @@ export default function OrderSuccessMain() {
 
   return (
     <View style={{ flex: 1 }}>
-         <DetailHeaderSection title="My Orders" subheading="Track and manage all orders you placed" />
+         <DetailHeaderSection title="My Orders" subheading="Track and manage all orders you placed" showBackButton />
       <OrdersListScreen />
     </View>
   );

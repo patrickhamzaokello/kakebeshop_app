@@ -16,7 +16,7 @@ export default function OrderDetailsMain() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <DetailHeaderSection title="Order Details" subheading="Manage your order details" />
+      <DetailHeaderSection title="Order Details" subheading="Manage your order details" showBackButton />
       <OrderDetailScreen />
     </View>
   );

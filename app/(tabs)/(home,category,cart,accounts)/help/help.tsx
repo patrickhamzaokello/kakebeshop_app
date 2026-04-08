@@ -121,6 +121,7 @@ export default function HelpSupportMain() {
       <DetailHeaderSection
         title="Help & Support"
         subheading="Get answers or reach our team"
+        showBackButton
       />
       <ScrollView
         contentContainerStyle={styles.scroll}

@@ -20,7 +20,10 @@
       "Bash(wc:*)",
       "Bash(ls:*)",
       "Bash(grep -E \"\\\\.\\(tsx|ts|jsx|js\\)$\")",
-      "Bash(grep -rn HeaderSection 'C:\\\\React Native Projects\\\\KakebeShop' --include=*.tsx --include=*.ts)"
+      "Bash(grep -rn HeaderSection 'C:\\\\React Native Projects\\\\KakebeShop' --include=*.tsx --include=*.ts)",
+      "Bash(python -c \"import sys,json; p=json.load\\(sys.stdin\\); deps={**p.get\\('dependencies',{}\\), **p.get\\('devDependencies',{}\\)}; [print\\(k,v\\) for k,v in deps.items\\(\\) if 'notif' in k.lower\\(\\) or 'expo-device' in k or 'expo-constants' in k]\")",
+      "Bash(python -c \"import sys,json; p=json.load\\(sys.stdin\\); deps={**p.get\\('dependencies',{}\\), **p.get\\('devDependencies',{}\\)}; [print\\(k,v\\) for k,v in deps.items\\(\\) if 'expo-application' in k or 'expo-crypto' in k or 'uuid' in k]\")",
+      "Bash(python -c \"import sys,json; p=json.load\\(sys.stdin\\); [print\\(k,v\\) for k,v in {**p.get\\('dependencies',{}\\),**p.get\\('devDependencies',{}\\)}.items\\(\\)]\")"
     ]
   }
 }

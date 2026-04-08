@@ -23,7 +23,7 @@ export default function NotificationMain() {
    
      return (
        <View style={{ flex: 1 }}>
-            <DetailHeaderSection title="Notification" subheading="Catch up on the latest updates" />
+            <DetailHeaderSection title="Notification" subheading="Catch up on the latest updates" showBackButton />
 
             <NotificationsScreen />
        </View>

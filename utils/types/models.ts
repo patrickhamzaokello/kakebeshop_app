@@ -223,6 +223,7 @@ export interface ListingDetail extends Listing   {
     deleted_at: string | null;
     images: ListingDetailImageType[];
     business_hours: any[];
+    share_url: string;
 }
 
 

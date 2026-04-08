@@ -16,7 +16,7 @@ export default function LanguageMain() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.background }}>
-      <DetailHeaderSection title="Language" subheading="Choose your preferred language" />
+      <DetailHeaderSection title="Language" subheading="Choose your preferred language" showBackButton />
       <Typo>Language page</Typo>
     </View>
   );

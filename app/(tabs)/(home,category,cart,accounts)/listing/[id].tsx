@@ -451,11 +451,22 @@ export default function ListingDetailsScreen() {
 
   const handleShare = async () => {
     if (!listing) return;
+    const shareUrl = listing.share_url ?? `https://kakebeshop.com/listing/${id}`;
+    const priceText =
+      listing.price_type === "FIXED"
+        ? `${listing.currency} ${parseFloat(listing.price).toLocaleString()}`
+        : listing.price_type === "RANGE"
+        ? `${listing.currency} ${parseFloat(listing.price_min).toLocaleString()} – ${parseFloat(listing.price_max).toLocaleString()}`
+        : "Price negotiable";
     try {
+      // Always embed the URL in `message`. The separate `url` field causes most
+      // iOS share targets (WhatsApp, iMessage, etc.) to drop the message text
+      // and only send the URL. Putting everything in `message` is the only way
+      // to guarantee both the description and link arrive together regardless of
+      // the target app or whether the user taps "Copy".
       await Share.share({
         title: listing.title,
-        message: `Check out ${listing.title} on Kakebe Shop!\n\n${listing.currency} ${parseFloat(listing.price).toLocaleString()}`,
-        url: `https://kakebeshop.com/listing/${id}`,
+        message: `Check out "${listing.title}" on Kakebe Shop!\n\n${priceText}\n\n${shareUrl}`,
       });
     } catch (error) {
       if (__DEV__) console.error("Error sharing:", error);

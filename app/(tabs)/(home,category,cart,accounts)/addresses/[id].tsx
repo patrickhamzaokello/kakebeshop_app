@@ -11,6 +11,7 @@ export default function EditAddressMain() {
       <DetailHeaderSection
         title="Edit Address"
         subheading="Delete or modify your address details"
+        showBackButton
       />
       <EditAddressScreen />
     </View>
