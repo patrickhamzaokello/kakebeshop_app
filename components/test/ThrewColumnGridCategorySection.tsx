@@ -1,22 +1,22 @@
-import React, { useEffect } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-  Dimensions,
-} from "react-native";
-import { FontAwesome6, MaterialIcons } from "@expo/vector-icons";
-import { Category } from "@/utils/types/models";
 import { SectionHeader } from "@/components/test/common/SectionHeader";
 import { useTheme } from "@/contexts/ThemeContext";
+import { Category } from "@/utils/types/models";
+import React, { useEffect, useRef } from "react";
+import {
+  Animated,
+  Dimensions,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 const { width } = Dimensions.get("window");
-const CARD_WIDTH = width * 0.42; // Responsive width (42% of screen)
-const CARD_HEIGHT = 65; // Fixed height - more compact
+const CARD_WIDTH = width * 0.42;
+const CARD_HEIGHT = 55;
 const CARD_SPACING = 10;
+const ROWS_PER_COLUMN = 3;
 
 interface ThrewColumnGridCategorySectionProps {
   data: Category[] | null;
@@ -26,50 +26,147 @@ interface ThrewColumnGridCategorySectionProps {
   onSeeAll?: () => void;
 }
 
-const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
-  const animatedValue = new Animated.Value(0);
+// ─── Shimmer ────────────────────────────────────────────────────────────────
+
+const ShimmerCard: React.FC<{ delay: number }> = ({ delay }) => {
+  const shimmer = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    Animated.loop(
+    const anim = Animated.loop(
       Animated.sequence([
-        Animated.timing(animatedValue, {
+        Animated.timing(shimmer, {
           toValue: 1,
-          duration: 1000,
+          duration: 900,
+          delay,
           useNativeDriver: true,
         }),
-        Animated.timing(animatedValue, {
+        Animated.timing(shimmer, {
           toValue: 0,
-          duration: 1000,
+          duration: 900,
           useNativeDriver: true,
         }),
       ])
-    ).start();
+    );
+    anim.start();
+    return () => anim.stop();
   }, []);
 
-  const opacity = animatedValue.interpolate({
+  const opacity = shimmer.interpolate({
     inputRange: [0, 1],
-    outputRange: [0.3, 0.7],
+    outputRange: [0.08, 0.2],
   });
-
-  const { colors } = useTheme();
 
   return (
     <Animated.View
-      style={[
-        {
-          backgroundColor: colors.card,
-          opacity,
-        },
-        style,
-      ]}
+      style={[styles.shimmerCard, { opacity, backgroundColor: "#888" }]}
     />
   );
+};
+
+// ─── Card ────────────────────────────────────────────────────────────────────
+
+const CategoryCard: React.FC<{
+  category: Category;
+  globalIndex: number;
+  onPress: (category: Category) => void;
+  colors: any;
+}> = ({ category, globalIndex, onPress, colors }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(10)).current;
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+
+  const initial = category.name?.charAt(0).toUpperCase() ?? "?";
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 320,
+        delay: globalIndex * 45,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 320,
+        delay: globalIndex * 45,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, []);
+
+  const handlePressIn = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 0.97,
+      useNativeDriver: true,
+      speed: 50,
+      bounciness: 0,
+    }).start();
+  };
+
+  const handlePressOut = () => {
+    Animated.spring(scaleAnim, {
+      toValue: 1,
+      useNativeDriver: true,
+      speed: 30,
+      bounciness: 3,
+    }).start();
+  };
+
+  return (
+    <Animated.View
+      style={{
+        opacity: fadeAnim,
+        transform: [{ translateY: slideAnim }, { scale: scaleAnim }],
+      }}
+    >
+      <TouchableOpacity
+        style={[
+          styles.card,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.cardBorder,
+          },
+        ]}
+        onPress={() => onPress(category)}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={1}
+      >
+        <View
+          style={[styles.badge, { backgroundColor: colors.primary + "18" }]}
+        >
+          <Text style={[styles.badgeLetter, { color: colors.primary }]}>
+            {initial}
+          </Text>
+        </View>
+
+        <Text
+          style={[styles.categoryTitle, { color: colors.textPrimary }]}
+          numberOfLines={2}
+          ellipsizeMode="tail"
+        >
+          {category.name}
+        </Text>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+
+// ─── Section ─────────────────────────────────────────────────────────────────
+
+const organizeIntoColumns = (data: Category[]): Category[][] => {
+  const columns: Category[][] = [];
+  for (let i = 0; i < data.length; i += ROWS_PER_COLUMN) {
+    columns.push(data.slice(i, i + ROWS_PER_COLUMN));
+  }
+  return columns;
 };
 
 export const ThrewColumnGridCategorySection: React.FC<
   ThrewColumnGridCategorySectionProps
 > = ({ titleText, data, loading, onCategoryPress, onSeeAll }) => {
   const { colors } = useTheme();
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -78,26 +175,16 @@ export const ThrewColumnGridCategorySection: React.FC<
           onSeeAll={onSeeAll}
           showSeeAll={!!onSeeAll}
         />
-
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           scrollEnabled={false}
         >
-          {/* Create 2 columns of 3 rows each for shimmer */}
           {[0, 1].map((col) => (
             <View key={col} style={styles.column}>
-              {[1, 2, 3].map((row) => (
-                <View key={row} style={styles.shimmerCard}>
-                  <ShimmerPlaceholder
-                    style={{
-                      width: "100%",
-                      height: "100%",
-                      borderRadius: 8,
-                    }}
-                  />
-                </View>
+              {[0, 1, 2].map((row) => (
+                <ShimmerCard key={row} delay={(col * 3 + row) * 80} />
               ))}
             </View>
           ))}
@@ -106,32 +193,9 @@ export const ThrewColumnGridCategorySection: React.FC<
     );
   }
 
-  // Organize data into columns (each column has 3 rows)
-  const organizeIntoColumns = () => {
-    if (!data) return [];
+  if (!data || data.length === 0) return null;
 
-    const columns: Category[][] = [];
-    let currentColumn: Category[] = [];
-
-    data.forEach((category, index) => {
-      currentColumn.push(category);
-
-      // Every 3 items, start a new column
-      if ((index + 1) % 3 === 0) {
-        columns.push([...currentColumn]);
-        currentColumn = [];
-      }
-    });
-
-    // Add remaining items as last column
-    if (currentColumn.length > 0) {
-      columns.push(currentColumn);
-    }
-
-    return columns;
-  };
-
-  const columns = organizeIntoColumns();
+  const columns = organizeIntoColumns(data);
 
   return (
     <View style={styles.container}>
@@ -140,7 +204,6 @@ export const ThrewColumnGridCategorySection: React.FC<
         onSeeAll={onSeeAll}
         showSeeAll={!!onSeeAll}
       />
-
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -148,34 +211,14 @@ export const ThrewColumnGridCategorySection: React.FC<
       >
         {columns.map((column, colIndex) => (
           <View key={colIndex} style={styles.column}>
-            {column.map((category) => (
-              <TouchableOpacity
+            {column.map((category, rowIndex) => (
+              <CategoryCard
                 key={category.id}
-                style={[
-                  styles.card,
-                  {
-                    borderColor: colors.cardBorder,
-                    backgroundColor: colors.card,
-                  },
-                ]}
-                onPress={() => onCategoryPress(category)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.defaultIconContainer}>
-                  <FontAwesome6
-                    name="layer-group"
-                    size={20}
-                    color={colors.textPrimary}
-                  />
-                </View>
-                <Text
-                  style={[styles.categoryTitle, { color: colors.textPrimary }]}
-                  numberOfLines={2}
-                  ellipsizeMode="tail"
-                >
-                  {category.name}
-                </Text>
-              </TouchableOpacity>
+                category={category}
+                globalIndex={colIndex * ROWS_PER_COLUMN + rowIndex}
+                onPress={onCategoryPress}
+                colors={colors}
+              />
             ))}
           </View>
         ))}
@@ -184,9 +227,11 @@ export const ThrewColumnGridCategorySection: React.FC<
   );
 };
 
+// ─── Styles ──────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
   container: {
-    paddingVertical: 30,
+    paddingVertical: 10,
   },
   scrollContent: {
     paddingHorizontal: 16,
@@ -198,38 +243,35 @@ const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    borderRadius: 8,
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 10,
-    paddingVertical: 8,
     borderWidth: 1,
+    borderRadius: 0,
     overflow: "hidden",
   },
   shimmerCard: {
     width: CARD_WIDTH,
     height: CARD_HEIGHT,
-    borderRadius: 8,
+    borderRadius: 0,
     overflow: "hidden",
   },
-  categoryImage: {
-    width: 34,
-    height: 34,
-    borderRadius: 6,
-    marginRight: 10,
-  },
-  defaultIconContainer: {
-    width: 34,
-    height: 34,
-    borderRadius: 6,
-    marginRight: 10,
+  badge: {
+    width: CARD_HEIGHT,
+    alignSelf: "stretch",
     alignItems: "center",
     justifyContent: "center",
+  },
+  badgeLetter: {
+    fontSize: 17,
+    fontWeight: "800",
+    letterSpacing: -0.5,
   },
   categoryTitle: {
     flex: 1,
     fontSize: 13,
-    fontWeight: "600",
-    lineHeight: 16,
+    fontWeight: "700",
+    lineHeight: 17,
+    letterSpacing: -0.1,
+    paddingHorizontal: 10,
   },
 });

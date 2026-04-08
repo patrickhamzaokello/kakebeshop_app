@@ -1,15 +1,15 @@
+import { radius, spacingX, spacingY } from "@/constants/theme";
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
+  ActivityIndicator,
   FlatList,
   Image,
-  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import { spacingX, spacingY, radius } from "@/constants/theme";
 
 import { useTheme } from "@/contexts/ThemeContext";
 
@@ -43,15 +43,21 @@ export const CategorySubCategorySection: React.FC<
   const renderSubcategory = (subcategory: Subcategory) => (
     <TouchableOpacity
       key={subcategory.id}
-      style={styles.subcategoryCard}
+      style={[styles.subcategoryCard]}
       onPress={() => onListingPress(subcategory)}
       activeOpacity={0.7}
     >
-      <Image
-        source={{ uri: subcategory.image_url }}
-        style={styles.subcategoryImage}
-        resizeMode="cover"
-      />
+      {subcategory.image_url ? (
+        <Image
+          source={{ uri: subcategory.image_url }}
+          style={styles.subcategoryImage}
+          resizeMode="cover"
+        />
+      ) : (
+        <View style={[styles.subcategoryImage, styles.imagePlaceholder, { backgroundColor: colors.backgroundSecondary }]}>
+          <Ionicons name="image-outline" size={32} color={colors.neutral300} />
+        </View>
+      )}
       <Text style={[styles.subcategoryName, {color: colors.textPrimary}]} numberOfLines={2}>
         {subcategory.name}
       </Text>
@@ -79,7 +85,7 @@ export const CategorySubCategorySection: React.FC<
 
       {/* Subcategories Grid */}
       <View style={styles.subcategoriesGrid}>
-        {category.subcategories.map((subcategory) =>
+        {(category.subcategories ?? []).map((subcategory) =>
           renderSubcategory(subcategory)
         )}
       </View>
@@ -182,11 +188,16 @@ const styles = StyleSheet.create({
     height: 140,
   },
   subcategoryName: {
-    paddingVertical: spacingX._12,
+    paddingVertical: spacingY._8,
+    paddingHorizontal: spacingX._8,
     fontSize: 14,
     fontWeight: "600",
   },
   
+  imagePlaceholder: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
   footerLoader: {
     paddingVertical: spacingY._16,
     alignItems: "center",

@@ -6,73 +6,87 @@ import {
   TouchableOpacity,
   ScrollView,
   RefreshControl,
-  FlatList,
-  Animated,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { useScrollToTop } from "@react-navigation/native";
-import {  spacingX, spacingY, radius } from "@/constants/theme";
+import { spacingX, spacingY, radius } from "@/constants/theme";
 import { useSectionData } from "@/hooks/useSectionData";
 import { categoryService } from "@/utils/services/categoryService";
-import { useInfiniteScroll } from "@/hooks/useInfiniteScroll";
 import { SeparateCarouselType } from "@/components/test/SeparateCarouselType";
 import { ThrewColumnGridCategorySection } from "@/components/test/ThrewColumnGridCategorySection";
 import { CategorySubCategorySection } from "@/components/test/CategorySubCategorySection";
 import { useTheme } from "@/contexts/ThemeContext";
+
+const PAGE_SIZE = 10;
 
 export default function ExplorePage() {
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
   const { colors } = useTheme();
 
-  // Scroll to top when category tab is pressed
   useScrollToTop(scrollRef);
 
-  // Section data hooks - inline functions are now safe
-  const carouselData = useSectionData(() =>
-    categoryService.getCurrentPromoAds()
-  );
-  const mainCategoriesData = useSectionData(() =>
-    categoryService.getMaincategories()
-  );
+  const carouselData = useSectionData(() => categoryService.getCurrentPromoAds());
+  const mainCategoriesData = useSectionData(() => categoryService.getMaincategories());
 
+  // ── Categories with subcategories — simple direct fetch, no hook ──────────
+  const [categories, setCategories] = useState<any[]>([]);
+  const [listingsLoading, setListingsLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [nextPage, setNextPage] = useState(2);
+  const isFetchingRef = useRef(false);
 
-  const handleSearchPress = () => {
-    router.push("/(tabs)/(category)/search");
-  };
+  const fetchCategories = useCallback(async (page: number, reset: boolean) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
 
- 
+    if (reset) setListingsLoading(true);
+    else setLoadingMore(true);
 
-  const {
-    data: categories,
-    loading: listingsLoading,
-    hasMore,
-    loadMore,
-    refresh: refreshListings,
-  } = useInfiniteScroll(
-    (page, limit) => categoryService.getMainCategoriesandSubcategories(page, limit),
-    10
-  );
+    try {
+      const result = await categoryService.getMainCategoriesandSubcategories(page, PAGE_SIZE);
+      if (__DEV__) console.log(`[categories] page=${page} results=${result.results.length} hasMore=${result.hasMore}`);
 
-  const [refreshing, setRefreshing] = useState<boolean>(false);
+      setCategories(prev => reset ? result.results : [...prev, ...result.results]);
+      setHasMore(result.hasMore ?? result.next != null);
+      setNextPage(page + 1);
+    } finally {
+      isFetchingRef.current = false;
+      if (reset) setListingsLoading(false);
+      else setLoadingMore(false);
+    }
+  }, []);
 
-  // Pull to refresh all sections
+  useEffect(() => {
+    fetchCategories(1, true);
+  }, [fetchCategories]);
+
+  const loadMore = useCallback(() => {
+    if (!loadingMore && hasMore) fetchCategories(nextPage, false);
+  }, [loadingMore, hasMore, nextPage, fetchCategories]);
+
+  const refreshCategories = useCallback(async () => {
+    setNextPage(2);
+    await fetchCategories(1, true);
+  }, [fetchCategories]);
+
+  // ── Pull-to-refresh all ───────────────────────────────────────────────────
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleSearchPress = () => router.push("/(tabs)/(category)/search");
+
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
     await Promise.all([
       carouselData.refetch(),
       mainCategoriesData.refetch(),
-      refreshListings(),
+      refreshCategories(),
     ]);
     setRefreshing(false);
-  }, [
-    carouselData.refetch,
-    mainCategoriesData.refetch,
-    refreshListings,
-  ]);
+  }, [carouselData.refetch, mainCategoriesData.refetch, refreshCategories]);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
