@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
-  StyleSheet,
-  View,
-  TouchableOpacity,
-  ScrollView,
-  TextInput,
-  Platform,
-  Modal,
-  FlatList,
-  Pressable,
-  KeyboardAvoidingView,
   ActivityIndicator,
   Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -19,8 +19,8 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { router, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import apiService from "@/utils/apiBase";
-import { Tag } from "@/utils/types/models";
 import Typo from "@/components/Typo";
+import { categoryService } from "@/utils/services/categoryService";
 
 // ─── Local types ──────────────────────────────────────────────────────────────
 
@@ -121,11 +121,15 @@ export default function CaptureListingDetails() {
   const [priceMax, setPriceMax] = useState("");
   const [isPriceNegotiable, setIsPriceNegotiable] = useState(false);
   const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedCategoryObj, setSelectedCategoryObj] = useState<Category | null>(null);
+  // free-text tags: committed chips + current input
+  const [tagChips, setTagChips] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+  const tagInputRef = useRef<TextInput>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   // ── Data state ──
   const [categories, setCategories] = useState<Category[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -136,16 +140,26 @@ export default function CaptureListingDetails() {
   const [showCategoryModal, setShowCategoryModal] = useState(false);
   const [showPriceTypeModal, setShowPriceTypeModal] = useState(false);
 
+  // ── Category pagination ──
+  const [catPage, setCatPage] = useState(1);
+  const [catHasMore, setCatHasMore] = useState(false);
+  const [catLoadingMore, setCatLoadingMore] = useState(false);
+  const catFetchingRef = useRef(false);
+
+  // ── Category search ──
+  const [categoryQuery, setCategoryQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Category[]>([]);
+  const [searching, setSearching] = useState(false);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   // ── Load data ──
   useEffect(() => {
     (async () => {
       try {
-        const [catRes, tagRes] = await Promise.all([
-          apiService.get<{ results: Category[] }>("/api/v1/categories/"),
-          apiService.get<{ results: Tag[] }>("/api/v1/tags/"),
-        ]);
-        if (catRes.success && catRes.data) setCategories(catRes.data.results ?? []);
-        if (tagRes.success && tagRes.data) setTags(tagRes.data.results ?? []);
+        const catResult = await categoryService.getParentCategories(1);
+        setCategories(catResult.results as unknown as Category[]);
+        setCatHasMore(catResult.hasMore);
+        setCatPage(1);
       } catch {
         Alert.alert("Error", "Failed to load categories. Please go back and try again.");
       } finally {
@@ -154,15 +168,65 @@ export default function CaptureListingDetails() {
     })();
   }, []);
 
+  const loadMoreCategories = async () => {
+    if (catFetchingRef.current || !catHasMore || categoryQuery.trim()) return;
+    catFetchingRef.current = true;
+    setCatLoadingMore(true);
+    try {
+      const nextPage = catPage + 1;
+      const result = await categoryService.getParentCategories(nextPage);
+      setCategories(prev => [...prev, ...result.results as unknown as Category[]]);
+      setCatHasMore(result.hasMore);
+      setCatPage(nextPage);
+    } finally {
+      catFetchingRef.current = false;
+      setCatLoadingMore(false);
+    }
+  };
+
+  const handleCategorySearch = (q: string) => {
+    setCategoryQuery(q);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    if (!q.trim()) { setSearchResults([]); setSearching(false); return; }
+    setSearching(true);
+    searchTimerRef.current = setTimeout(async () => {
+      const results = await categoryService.searchCategories(q.trim());
+      setSearchResults(results as unknown as Category[]);
+      setSearching(false);
+    }, 300);
+  };
+
+  const closeCategoryModal = () => {
+    setShowCategoryModal(false);
+    setCategoryQuery("");
+    setSearchResults([]);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+  };
+
   const clearError = (field: string) => {
     if (errors[field]) setErrors((prev) => { const n = { ...prev }; delete n[field]; return n; });
   };
 
-  const toggleTag = (tagId: string) => {
-    setSelectedTags((prev) =>
-      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
-    );
-  };
+  /** Commit the current tagInput text as a chip (on space / comma / return). */
+  const commitTag = useCallback((raw: string) => {
+    const value = raw.trim().replace(/^[,\s]+|[,\s]+$/g, "").toLowerCase();
+    if (!value) return;
+    setTagChips(prev => prev.includes(value) ? prev : [...prev, value]);
+    setTagInput("");
+  }, []);
+
+  const handleTagInputChange = useCallback((text: string) => {
+    // Commit on space or comma
+    if (text.endsWith(" ") || text.endsWith(",")) {
+      commitTag(text);
+    } else {
+      setTagInput(text);
+    }
+  }, [commitTag]);
+
+  const removeTag = useCallback((tag: string) => {
+    setTagChips(prev => prev.filter(t => t !== tag));
+  }, []);
 
   // ── Validation ──
   const validate = (): boolean => {
@@ -202,7 +266,12 @@ export default function CaptureListingDetails() {
         body.price_min = parseFloat(priceMin);
         body.price_max = parseFloat(priceMax);
       }
-      if (selectedTags.length > 0) body.tags = selectedTags;
+      // Commit any text still in the input box before submitting
+      const pendingTag = tagInput.trim().toLowerCase();
+      const allTags = pendingTag && !tagChips.includes(pendingTag)
+        ? [...tagChips, pendingTag]
+        : tagChips;
+      if (allTags.length > 0) body.tags = allTags;
 
       const listingRes = await apiService.post<{ id: string }>("/api/v1/listings/", body);
       if (!listingRes.success || !listingRes.data?.id) {
@@ -250,7 +319,7 @@ export default function CaptureListingDetails() {
     );
   };
 
-  const selectedCategory = categories.find((c) => c.id === categoryId);
+  const selectedCategory = selectedCategoryObj;
   const priceTypeLabel = priceType === "FIXED" ? "Fixed Price" : priceType === "RANGE" ? "Price Range" : "On Request";
 
   // ── Loading state ──
@@ -299,6 +368,7 @@ export default function CaptureListingDetails() {
         keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.scroll}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -509,35 +579,55 @@ export default function CaptureListingDetails() {
           )}
 
           {/* ── Tags (optional) ── */}
-          {tags.length > 0 && (
-            <>
-              <SectionHeader title="Tags (Optional)" colors={colors} />
-              <View style={styles.tagsWrap}>
-                {tags.map((tag) => {
-                  const active = selectedTags.includes(tag.id);
-                  return (
-                    <TouchableOpacity
-                      key={tag.id}
-                      style={[
-                        styles.tagChip,
-                        {
-                          borderColor: active ? colors.primary : colors.border,
-                          backgroundColor: active ? colors.primary + "15" : colors.inputBackground,
-                        },
-                      ]}
-                      onPress={() => toggleTag(tag.id)}
-                      disabled={submitting}
-                    >
-                      {active && <Ionicons name="checkmark" size={12} color={colors.primary} style={{ marginRight: 4 }} />}
-                      <Typo size={13} fontWeight={active ? "700" : "500"} color={active ? colors.primary : colors.textSecondary}>
-                        {tag.name}
-                      </Typo>
-                    </TouchableOpacity>
-                  );
-                })}
+          <SectionHeader title="Tags (Optional)" colors={colors} />
+          <View
+            style={[
+              styles.tagInputBox,
+              { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground },
+            ]}
+          >
+            {/* Committed chips */}
+            {tagChips.length > 0 && (
+              <View style={styles.tagChipsRow}>
+                {tagChips.map((tag) => (
+                  <TouchableOpacity
+                    key={tag}
+                    style={[styles.tagChip, { backgroundColor: colors.primary + "18", borderColor: colors.primary + "40" }]}
+                    onPress={() => removeTag(tag)}
+                    disabled={submitting}
+                    activeOpacity={0.7}
+                  >
+                    <Typo size={12} fontWeight="600" color={colors.primary}>{tag}</Typo>
+                    <Ionicons name="close" size={12} color={colors.primary} style={{ marginLeft: 4 }} />
+                  </TouchableOpacity>
+                ))}
               </View>
-            </>
-          )}
+            )}
+
+            {/* Text input inline */}
+            <TextInput
+              ref={tagInputRef}
+              style={[styles.tagTextInput, { color: colors.textPrimary }]}
+              placeholder={tagChips.length === 0 ? "e.g. electronics phone apple  (space to add)" : "Add another tag…"}
+              placeholderTextColor={colors.textPlaceholder}
+              value={tagInput}
+              onChangeText={handleTagInputChange}
+              onSubmitEditing={() => commitTag(tagInput)}
+              onBlur={() => commitTag(tagInput)}
+              returnKeyType="done"
+              autoCorrect={false}
+              autoCapitalize="none"
+              blurOnSubmit={false}
+              editable={!submitting}
+              onFocus={() => {
+                // Scroll down so the tag field isn't behind the keyboard
+                setTimeout(() => scrollRef.current?.scrollToEnd({ animated: true }), 200);
+              }}
+            />
+          </View>
+          <Typo size={11} color={colors.textMuted} style={styles.tagHint}>
+            Press space or comma after each tag · tap a chip to remove it
+          </Typo>
 
           {/* ── Info notice ── */}
           <View style={[styles.notice, { backgroundColor: colors.primary + "10", borderColor: colors.primary + "30" }]}>
@@ -570,47 +660,128 @@ export default function CaptureListingDetails() {
         </SafeAreaView>
       </KeyboardAvoidingView>
 
-      {/* ── Category modal ── */}
+      {/* ── Category picker — full-screen modal ── */}
       <Modal
         visible={showCategoryModal}
-        transparent
         animationType="slide"
-        onRequestClose={() => setShowCategoryModal(false)}
+        onRequestClose={closeCategoryModal}
+        statusBarTranslucent={false}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setShowCategoryModal(false)}>
-          <Pressable style={[styles.modalSheet, { backgroundColor: colors.surface }]} onPress={(e) => e.stopPropagation()}>
-            <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
-            <View style={[styles.modalHeader, { borderBottomColor: colors.border }]}>
-              <Typo size={17} fontWeight="700" color={colors.textPrimary}>Select Category</Typo>
-              <TouchableOpacity onPress={() => setShowCategoryModal(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="close" size={22} color={colors.textPrimary} />
+        <SafeAreaView style={[styles.catModal, { backgroundColor: colors.background }]} edges={["top", "bottom"]}>
+          {/* Header */}
+          <View style={[styles.catHeader, { borderBottomColor: colors.border, backgroundColor: colors.background }]}>
+            <TouchableOpacity
+              onPress={closeCategoryModal}
+              style={styles.catHeaderBtn}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
+              <Ionicons name="close" size={22} color={colors.textPrimary} />
+            </TouchableOpacity>
+            <Typo size={17} fontWeight="700" color={colors.textPrimary}>Select Category</Typo>
+            <View style={styles.catHeaderBtn} />
+          </View>
+
+          {/* Search bar — always visible, never pushed off screen */}
+          <View style={[styles.catSearchWrap, { backgroundColor: colors.inputBackground, borderColor: colors.inputBorder }]}>
+            <Ionicons name="search" size={18} color={colors.textMuted} />
+            <TextInput
+              style={[styles.catSearchInput, { color: colors.textPrimary }]}
+              placeholder="Search categories…"
+              placeholderTextColor={colors.textPlaceholder}
+              value={categoryQuery}
+              onChangeText={handleCategorySearch}
+              autoCorrect={false}
+              autoCapitalize="none"
+              returnKeyType="search"
+              clearButtonMode="while-editing"
+            />
+            {categoryQuery.length > 0 && Platform.OS === "android" && (
+              <TouchableOpacity onPress={() => handleCategorySearch("")} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close-circle" size={18} color={colors.textMuted} />
               </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Hint row */}
+          {!categoryQuery && categories.length > 0 && (
+            <View style={styles.catHint}>
+              <Typo size={12} color={colors.textMuted}>
+                {selectedCategoryObj
+                  ? `Currently: ${selectedCategoryObj.name}`
+                  : "Browse below or type to search all categories"}
+              </Typo>
             </View>
+          )}
+
+          {/* Results */}
+          {searching ? (
+            <View style={styles.catLoader}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Typo size={13} color={colors.textMuted} style={{ marginTop: 10 }}>Searching…</Typo>
+            </View>
+          ) : (
             <FlatList
-              data={categories}
+              data={categoryQuery.trim() ? searchResults : categories}
               keyExtractor={(item) => item.id.toString()}
               showsVerticalScrollIndicator={false}
-              renderItem={({ item }) => (
-                <TouchableOpacity
-                  style={[
-                    styles.modalRow,
-                    { borderBottomColor: colors.border },
-                    categoryId === item.id && { backgroundColor: colors.primary + "10" },
-                  ]}
-                  onPress={() => { setCategoryId(item.id); clearError("category"); setShowCategoryModal(false); }}
-                >
-                  <Typo size={15} color={categoryId === item.id ? colors.primary : colors.textPrimary}>
-                    {item.name}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              contentContainerStyle={styles.catList}
+              onEndReached={loadMoreCategories}
+              onEndReachedThreshold={0.4}
+              ListFooterComponent={
+                catLoadingMore && !categoryQuery.trim() ? (
+                  <View style={styles.catFooterLoader}>
+                    <ActivityIndicator size="small" color={colors.primary} />
+                  </View>
+                ) : null
+              }
+              ListEmptyComponent={
+                <View style={styles.catEmpty}>
+                  <Ionicons
+                    name={categoryQuery.trim() ? "search-outline" : "grid-outline"}
+                    size={40}
+                    color={colors.neutral300}
+                  />
+                  <Typo size={15} fontWeight="600" color={colors.textPrimary} style={{ marginTop: 12 }}>
+                    {categoryQuery.trim() ? "No results" : "No categories"}
                   </Typo>
-                  {categoryId === item.id && (
-                    <Ionicons name="checkmark" size={18} color={colors.primary} />
-                  )}
-                </TouchableOpacity>
-              )}
+                  <Typo size={13} color={colors.textMuted} style={{ marginTop: 4, textAlign: "center" }}>
+                    {categoryQuery.trim()
+                      ? `Nothing matched "${categoryQuery}". Try a different term.`
+                      : "Categories could not be loaded. Pull to refresh."}
+                  </Typo>
+                </View>
+              }
+              renderItem={({ item }) => {
+                const selected = categoryId === item.id;
+                return (
+                  <TouchableOpacity
+                    style={[
+                      styles.catRow,
+                      { borderBottomColor: colors.border },
+                      selected && { backgroundColor: colors.primary + "10" },
+                    ]}
+                    onPress={() => { setCategoryId(item.id); setSelectedCategoryObj(item); clearError("category"); closeCategoryModal(); }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.catRowIcon, { backgroundColor: selected ? colors.primary + "20" : colors.backgroundSecondary }]}>
+                      <Ionicons
+                        name="grid-outline"
+                        size={16}
+                        color={selected ? colors.primary : colors.textMuted}
+                      />
+                    </View>
+                    <Typo size={15} color={selected ? colors.primary : colors.textPrimary} fontWeight={selected ? "700" : "500"} style={{ flex: 1, marginLeft: 12 }}>
+                      {item.name}
+                    </Typo>
+                    {selected && <Ionicons name="checkmark-circle" size={20} color={colors.primary} />}
+                  </TouchableOpacity>
+                );
+              }}
             />
-            <View style={{ height: 16 }} />
-          </Pressable>
-        </Pressable>
+          )}
+        </SafeAreaView>
       </Modal>
 
       {/* ── Price type modal ── */}
@@ -761,14 +932,36 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
 
-  tagsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 8, marginBottom: 20 },
+  tagInputBox: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingTop: 10,
+    paddingBottom: 6,
+    marginBottom: 6,
+    minHeight: 52,
+  },
+  tagChipsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: 6,
+  },
   tagChip: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 20,
     borderWidth: 1,
+  },
+  tagTextInput: {
+    fontSize: 14,
+    paddingVertical: 4,
+    minHeight: 28,
+  },
+  tagHint: {
+    marginBottom: 20,
   },
 
   notice: {
@@ -792,6 +985,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
   },
 
+  // ── Price-type modal (shared sheet styles) ──────────────────────────────────
   modalOverlay: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.5)",
@@ -831,5 +1025,79 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
+  },
+
+  // ── Full-screen category picker ──────────────────────────────────────────────
+  catModal: {
+    flex: 1,
+  },
+  catHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  catHeaderBtn: {
+    width: 36,
+    height: 36,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  catSearchWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    paddingHorizontal: 12,
+    paddingVertical: Platform.OS === "ios" ? 11 : 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 8,
+  },
+  catSearchInput: {
+    flex: 1,
+    fontSize: 16,
+    paddingVertical: 0,
+  },
+  catHint: {
+    paddingHorizontal: 16,
+    paddingTop: 6,
+    paddingBottom: 2,
+  },
+  catList: {
+    paddingBottom: 24,
+  },
+  catRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  catRowIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  catLoader: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  catFooterLoader: {
+    paddingVertical: 16,
+    alignItems: "center",
+  },
+  catEmpty: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 40,
+    paddingTop: 80,
   },
 });

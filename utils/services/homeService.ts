@@ -38,11 +38,14 @@ export const homeService = {
         }
     },
 
-    // Categories
+    // Featured categories
     async getCategories(): Promise<Category[]> {
         try {
-            const response = await apiService.get<Category[]>('/api/v1/categories/featured/');
-            return response.data;
+            const response = await apiService.get<any>('/api/v1/categories/featured/');
+            const data = response.data;
+            if (Array.isArray(data)) return data;
+            if (Array.isArray(data?.results)) return data.results;
+            return [];
         } catch (error) {
             return [];
         }

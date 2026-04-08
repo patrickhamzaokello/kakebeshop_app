@@ -60,9 +60,39 @@ function formatPrice(listing: Listing): string {
 
 // ─── Listing card ─────────────────────────────────────────────────────────────
 
+/**
+ * Extract the best available image URL from a listing regardless of which
+ * serializer shape the API returned:
+ *   Shape A (list endpoint): { primary_image: { image, thumbnail } }
+ *   Shape B (detail endpoint): { images: [{ thumb, medium, large }] }
+ *   Shape C: { primary_image: { thumb, medium, large } }  (nested variant)
+ */
+function getListingImageUri(item: any): string | null {
+  // Shape A — flat primary_image
+  if (item.primary_image?.image) return item.primary_image.image;
+  if (item.primary_image?.thumbnail) return item.primary_image.thumbnail;
+
+  // Shape C — nested variant inside primary_image
+  const pi = item.primary_image;
+  if (pi?.large?.image) return pi.large.image;
+  if (pi?.medium?.image) return pi.medium.image;
+  if (pi?.thumb?.image) return pi.thumb.image;
+
+  // Shape B — images array with variant groups
+  const firstGroup = Array.isArray(item.images) ? item.images[0] : null;
+  if (firstGroup?.large?.image) return firstGroup.large.image;
+  if (firstGroup?.medium?.image) return firstGroup.medium.image;
+  if (firstGroup?.thumb?.image) return firstGroup.thumb.image;
+  // images might be a flat array of { image, thumbnail } objects
+  if (firstGroup?.image) return firstGroup.image;
+  if (firstGroup?.thumbnail) return firstGroup.thumbnail;
+
+  return null;
+}
+
 function ListingCard({ item, colors }: { item: Listing; colors: any }) {
   const status = getStatus(item.status ?? "ACTIVE");
-  const imageUri = item.primary_image?.image ?? item.primary_image?.thumbnail ?? null;
+  const imageUri = getListingImageUri(item);
 
   return (
     <TouchableOpacity
@@ -160,11 +190,26 @@ export default function MerchantListings() {
   const fetchListings = useCallback(async (pageNum = 1, append = false) => {
     try {
       setError(false);
-      const response = await apiService.get<PaginatedResponse>(
+      const response = await apiService.get<any>(
         `/api/v1/listings/my_listings/?page=${pageNum}`
       );
       if (response.success && response.data) {
-        const { results, next } = response.data;
+        // Unwrap envelope: some endpoints return { success, data: { results } }
+        // others return { results } directly.
+        const payload = response.data?.results !== undefined
+          ? response.data
+          : (response.data?.data ?? response.data);
+
+        if (__DEV__) {
+          const first = payload?.results?.[0];
+          console.log('[mylistings] first item images:', JSON.stringify({
+            primary_image: first?.primary_image,
+            images: first?.images,
+          }, null, 2));
+        }
+
+        const results: Listing[] = payload?.results ?? [];
+        const next: string | null = payload?.next ?? null;
         setListings((prev) => (append ? [...prev, ...results] : results));
         setHasMore(!!next);
         setPage(pageNum);

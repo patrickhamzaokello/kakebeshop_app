@@ -4,7 +4,6 @@ import {
     CarouselImage,
     Category,
     Listing,
-    Merchant,
     PaginatedResponse
 } from '@/utils/types/models';
 
@@ -84,6 +83,36 @@ export const categoryService = {
             return response.data.subcategories;
         } catch (error) {
             return [];
+        }
+    },
+
+    // Search categories by name / description
+    async searchCategories(q: string): Promise<Category[]> {
+        try {
+            const response = await apiService.get<any>(
+                `/api/v1/categories/search/?q=${encodeURIComponent(q)}`
+            );
+            const data = response.data;            
+            if (Array.isArray(data?.data)) return data.data;
+            return [];
+        } catch (error) {
+            if (__DEV__) console.error('[categoryService.searchCategories] error:', error);
+            return [];
+        }
+    },
+
+    // Paginated root (parent) categories
+    async getParentCategories(page: number = 1, limit: number = 30): Promise<{ results: Category[]; hasMore: boolean }> {
+        try {
+            const response = await apiService.get<any>(
+                `/api/v1/categories/?page=${page}&limit=${limit}`
+            );
+            const data = response.data;
+            const results = Array.isArray(data?.results) ? data.results : Array.isArray(data) ? data : [];
+            return { results, hasMore: data?.next != null };
+        } catch (error) {
+            if (__DEV__) console.error('[categoryService.getParentCategories] error:', error);
+            return { results: [], hasMore: false };
         }
     },
 
