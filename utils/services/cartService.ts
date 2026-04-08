@@ -249,4 +249,35 @@ export const cartService = {
       return null;
     }
   },
+
+  // GET /api/v1/orders/orders/buyer-search/
+  buyerOrderSearch: async (params: {
+    q?: string;
+    status?: string;
+    date_from?: string;
+    date_to?: string;
+    min_amount?: string;
+    max_amount?: string;
+  }): Promise<any[]> => {
+    try {
+      const query = new URLSearchParams();
+      if (params.q)          query.append("q",          params.q);
+      if (params.status)     query.append("status",     params.status);
+      if (params.date_from)  query.append("date_from",  params.date_from);
+      if (params.date_to)    query.append("date_to",    params.date_to);
+      if (params.min_amount) query.append("min_amount", params.min_amount);
+      if (params.max_amount) query.append("max_amount", params.max_amount);
+      const response = await apiService.get(
+        `/api/v1/orders/buyer-search/?${query.toString()}`
+      );
+      if (response.success && response.data) {
+        // Backend: { success, count, data: [...] }
+        return response.data.data ?? [];
+      }
+      return [];
+    } catch (error) {
+      if (__DEV__) console.error("Buyer order search error:", error);
+      return [];
+    }
+  },
 };

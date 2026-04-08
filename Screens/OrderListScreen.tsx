@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   View,
   Text,
@@ -7,11 +7,18 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  TextInput,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
 } from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { cartService } from "@/utils/services/cartService";
 import { useTheme } from "@/contexts/ThemeContext";
+
+// ─── Types ───────────────────────────────────────────────────────────────────
 
 interface Order {
   id: string;
@@ -24,354 +31,489 @@ interface Order {
   order_group_number?: string;
 }
 
-export default function OrdersListScreen() {
-  const router = useRouter();
-  const { colors } = useTheme();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>("all");
+interface Filters {
+  date_from: string;
+  date_to: string;
+  min_amount: string;
+  max_amount: string;
+}
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchOrders();
-    }, [])
-  );
+const EMPTY_FILTERS: Filters = { date_from: "", date_to: "", min_amount: "", max_amount: "" };
 
-  const fetchOrders = async () => {
-    try {
-      const data = await cartService.getOrders();
-      setOrders(data);
-    } catch (error) {
-      if (__DEV__) console.error("Error fetching orders:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+const TABS = [
+  { key: "all",       label: "All" },
+  { key: "NEW",       label: "New" },
+  { key: "CONFIRMED", label: "Confirmed" },
+  { key: "COMPLETED", label: "Done" },
+  { key: "CANCELLED", label: "Cancelled" },
+];
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    fetchOrders();
-  };
+const STATUS_COLORS: Record<string, string> = {
+  NEW: "#2196F3",
+  CONTACTED: "#FF9800",
+  CONFIRMED: "#4CAF50",
+  COMPLETED: "#8BC34A",
+  CANCELLED: "#F44336",
+};
 
-  const getStatusColor = (status: string) => {
-    const map: { [key: string]: string } = {
-      NEW: "#2196F3",
-      CONTACTED: "#FF9800",
-      CONFIRMED: "#4CAF50",
-      COMPLETED: "#8BC34A",
-      CANCELLED: "#F44336",
-    };
-    return map[status] || "#666";
-  };
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
-  const getStatusText = (status: string) => {
-    const texts: { [key: string]: string } = {
-      NEW: "New",
-      CONTACTED: "Contacted",
-      CONFIRMED: "Confirmed",
-      COMPLETED: "Delivered",
-      CANCELLED: "Cancelled",
-    };
-    return texts[status] || status;
-  };
+function filtersActive(filters: Filters) {
+  return !!(filters.date_from || filters.date_to || filters.min_amount || filters.max_amount);
+}
 
-  const filterOrders = (orders: Order[]) => {
-    if (activeTab === "all") return orders;
-    return orders.filter((order) => {
-      if (activeTab === "active") return ["NEW", "CONTACTED", "CONFIRMED"].includes(order.status);
-      if (activeTab === "completed") return order.status === "COMPLETED";
-      if (activeTab === "cancelled") return order.status === "CANCELLED";
-      return true;
-    });
-  };
+function filterCount(filters: Filters) {
+  return [filters.date_from, filters.date_to, filters.min_amount, filters.max_amount].filter(Boolean).length;
+}
 
-  const styles = getStyles(colors);
+// ─── Filter Sheet ─────────────────────────────────────────────────────────────
 
-  const renderOrderItem = ({ item }: { item: Order }) => (
-    <TouchableOpacity
-      style={styles.orderCard}
-      onPress={() => router.push(`/orderDetails/${item.id}` as any)}
-      activeOpacity={0.7}
-    >
-      <View style={styles.orderHeader}>
-        <View style={styles.orderNumberRow}>
-          <Text style={styles.orderNumber}>{item.order_number}</Text>
-          {item.order_group_number && (
-            <View style={styles.groupBadge}>
-              <Ionicons name="layers-outline" size={12} color={colors.textMuted} />
-            </View>
-          )}
-        </View>
-        <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item.status)}20` }]}>
-          <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>
-            {getStatusText(item.status)}
-          </Text>
-        </View>
-      </View>
+interface FilterSheetProps {
+  visible: boolean;
+  filters: Filters;
+  onApply: (f: Filters) => void;
+  onClose: () => void;
+  colors: any;
+}
 
-      <View style={styles.orderBody}>
-        <View style={styles.merchantRow}>
-          <Ionicons name="storefront-outline" size={16} color={colors.textSecondary} />
-          <Text style={styles.merchantName}>{item.merchant_name}</Text>
-        </View>
+function FilterSheet({ visible, filters, onApply, onClose, colors }: FilterSheetProps) {
+  const [draft, setDraft] = useState<Filters>(filters);
 
-        <View style={styles.orderDetails}>
-          <View style={styles.detailRow}>
-            <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
-            <Text style={styles.detailText}>
-              {new Date(item.created_at).toLocaleDateString("en-US", {
-                month: "short",
-                day: "numeric",
-                year: "numeric",
-              })}
-            </Text>
-          </View>
-          <View style={styles.detailRow}>
-            <Ionicons name="cube-outline" size={14} color={colors.textMuted} />
-            <Text style={styles.detailText}>
-              {item.items?.length ?? 0} {(item.items?.length ?? 0) === 1 ? "item" : "items"}
-            </Text>
-          </View>
-        </View>
-      </View>
+  useEffect(() => {
+    if (visible) setDraft(filters);
+  }, [visible, filters]);
 
-      <View style={styles.orderFooter}>
-        <Text style={styles.totalAmount}>
-          UGX {parseFloat(item.total_amount).toLocaleString()}
-        </Text>
-        <View style={styles.viewButton}>
-          <Text style={styles.viewButtonText}>View</Text>
-          <Ionicons name="chevron-forward" size={16} color="#E60549" />
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
-
-  const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Ionicons name="receipt-outline" size={64} color={colors.border} />
-      <Text style={styles.emptyTitle}>No Orders Yet</Text>
-      <Text style={styles.emptyText}>
-        Your orders will appear here once you make a purchase
-      </Text>
-      <TouchableOpacity
-        style={styles.shopButton}
-        onPress={() => router.replace("/(tabs)/(home)")}
-        activeOpacity={0.7}
-      >
-        <Text style={styles.shopButtonText}>Start Shopping</Text>
-      </TouchableOpacity>
+  const field = (label: string, key: keyof Filters, placeholder: string, keyboard: any = "default") => (
+    <View style={fs.field}>
+      <Text style={[fs.label, { color: colors.textSecondary }]}>{label}</Text>
+      <TextInput
+        style={[fs.input, { backgroundColor: colors.backgroundSecondary, color: colors.textPrimary, borderColor: colors.border }]}
+        value={draft[key]}
+        onChangeText={(v) => setDraft((p) => ({ ...p, [key]: v }))}
+        placeholder={placeholder}
+        placeholderTextColor={colors.textMuted}
+        keyboardType={keyboard}
+        autoCorrect={false}
+      />
     </View>
   );
 
-  const filteredOrders = filterOrders(orders);
+  return (
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : undefined} style={{ flex: 1 }}>
+        <TouchableOpacity style={fs.backdrop} activeOpacity={1} onPress={onClose} />
+        <View style={[fs.sheet, { backgroundColor: colors.surface }]}>
+          <View style={[fs.handle, { backgroundColor: colors.border }]} />
+          <Text style={[fs.title, { color: colors.textPrimary }]}>Filters</Text>
+
+          <ScrollView showsVerticalScrollIndicator={false}>
+            <Text style={[fs.section, { color: colors.textMuted }]}>DATE RANGE</Text>
+            <View style={fs.row}>
+              {field("From", "date_from", "YYYY-MM-DD")}
+              {field("To", "date_to", "YYYY-MM-DD")}
+            </View>
+
+            <Text style={[fs.section, { color: colors.textMuted }]}>AMOUNT RANGE (UGX)</Text>
+            <View style={fs.row}>
+              {field("Min", "min_amount", "e.g. 10000", "numeric")}
+              {field("Max", "max_amount", "e.g. 500000", "numeric")}
+            </View>
+          </ScrollView>
+
+          <View style={fs.actions}>
+            <TouchableOpacity
+              style={[fs.btn, { borderColor: colors.border, borderWidth: 1 }]}
+              onPress={() => { setDraft(EMPTY_FILTERS); onApply(EMPTY_FILTERS); onClose(); }}
+            >
+              <Text style={[fs.btnText, { color: colors.textSecondary }]}>Reset</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[fs.btn, { backgroundColor: "#E60549" }]}
+              onPress={() => { onApply(draft); onClose(); }}
+            >
+              <Text style={[fs.btnText, { color: "#fff" }]}>Apply</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </KeyboardAvoidingView>
+    </Modal>
+  );
+}
+
+const fs = StyleSheet.create({
+  backdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.35)" },
+  sheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 36,
+    maxHeight: "70%",
+  },
+  handle: { width: 36, height: 4, borderRadius: 2, alignSelf: "center", marginBottom: 16 },
+  title: { fontSize: 17, fontWeight: "700", marginBottom: 16 },
+  section: { fontSize: 11, fontWeight: "700", letterSpacing: 0.5, marginBottom: 8, marginTop: 4 },
+  row: { flexDirection: "row", gap: 12, marginBottom: 16 },
+  field: { flex: 1 },
+  label: { fontSize: 13, marginBottom: 6 },
+  input: {
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
+  },
+  actions: { flexDirection: "row", gap: 12, marginTop: 8 },
+  btn: { flex: 1, borderRadius: 10, paddingVertical: 13, alignItems: "center" },
+  btnText: { fontSize: 15, fontWeight: "600" },
+});
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
+
+export default function OrdersListScreen() {
+  const router = useRouter();
+  const { colors } = useTheme();
+
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [activeTab, setActiveTab] = useState("all");
+  const [searchText, setSearchText] = useState("");
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Determine whether to use the search API
+  const inSearchMode = searchText.trim().length > 0 || filtersActive(filters);
+
+  const fetchOrders = useCallback(async (q: string, tab: string, f: Filters) => {
+    const isSearch = q.trim().length > 0 || filtersActive(f);
+    const status = tab === "all" ? undefined : tab;
+
+    if (isSearch) {
+      setIsSearching(true);
+      const results = await cartService.buyerOrderSearch({
+        q: q.trim() || undefined,
+        status,
+        date_from: f.date_from || undefined,
+        date_to: f.date_to || undefined,
+        min_amount: f.min_amount || undefined,
+        max_amount: f.max_amount || undefined,
+      });
+      setOrders(results);
+      setIsSearching(false);
+    } else {
+      const data = await cartService.getOrders();
+      // Apply status client-side when using the regular list endpoint
+      const filtered = status ? data.filter((o: Order) => o.status === status) : data;
+      setOrders(filtered);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      setLoading(true);
+      fetchOrders(searchText, activeTab, filters).finally(() => setLoading(false));
+    }, [])
+  );
+
+  // Debounced search as user types
+  const onSearchChange = (text: string) => {
+    setSearchText(text);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      fetchOrders(text, activeTab, filters);
+    }, 400);
+  };
+
+  const onTabChange = (tab: string) => {
+    setActiveTab(tab);
+    fetchOrders(searchText, tab, filters);
+  };
+
+  const onApplyFilters = (f: Filters) => {
+    setFilters(f);
+    fetchOrders(searchText, activeTab, f);
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchOrders(searchText, activeTab, filters);
+    setRefreshing(false);
+  };
+
+  const clearSearch = () => {
+    setSearchText("");
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    fetchOrders("", activeTab, filters);
+  };
+
+  const clearAll = () => {
+    setSearchText("");
+    setFilters(EMPTY_FILTERS);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    fetchOrders("", activeTab, EMPTY_FILTERS);
+  };
+
+  const activeFilterCount = filterCount(filters);
+
+  // ─── Row ───────────────────────────────────────────────────────────────────
+
+  const renderItem = ({ item }: { item: Order }) => {
+    const statusColor = STATUS_COLORS[item.status] ?? "#666";
+    const itemCount = item.items?.length ?? 0;
+    return (
+      <TouchableOpacity
+        style={[styles.card, { backgroundColor: colors.surface }]}
+        onPress={() => router.push(`/orderDetails/${item.id}` as any)}
+        activeOpacity={0.7}
+      >
+        <View style={styles.cardTop}>
+          <View style={styles.cardLeft}>
+            <Text style={[styles.orderNumber, { color: colors.textPrimary }]}>{item.order_number}</Text>
+            <View style={styles.merchantRow}>
+              <Ionicons name="storefront-outline" size={13} color={colors.textMuted} />
+              <Text style={[styles.merchantName, { color: colors.textSecondary }]}>{item.merchant_name}</Text>
+            </View>
+            <View style={styles.metaRow}>
+              <Ionicons name="calendar-outline" size={13} color={colors.textMuted} />
+              <Text style={[styles.metaText, { color: colors.textMuted }]}>
+                {new Date(item.created_at).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+              </Text>
+              <Ionicons name="cube-outline" size={13} color={colors.textMuted} />
+              <Text style={[styles.metaText, { color: colors.textMuted }]}>
+                {itemCount} {itemCount === 1 ? "item" : "items"}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.cardRight}>
+            <Text style={[styles.amount, { color: "#E60549" }]}>
+              UGX {parseFloat(item.total_amount).toLocaleString()}
+            </Text>
+            <View style={[styles.statusBadge, { backgroundColor: `${statusColor}18` }]}>
+              <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+              <Text style={[styles.statusText, { color: statusColor }]}>
+                {item.status === "NEW" ? "New"
+                  : item.status === "CONTACTED" ? "Contacted"
+                  : item.status === "CONFIRMED" ? "Confirmed"
+                  : item.status === "COMPLETED" ? "Delivered"
+                  : "Cancelled"}
+              </Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={[styles.cardFooter, { borderTopColor: colors.border }]}>
+          <Text style={[styles.viewText, { color: colors.primary }]}>View details</Text>
+          <Ionicons name="chevron-forward" size={14} color={colors.primary} />
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  // ─── Empty ─────────────────────────────────────────────────────────────────
+
+  const EmptyState = () => (
+    <View style={styles.empty}>
+      <Ionicons name={inSearchMode ? "search-outline" : "receipt-outline"} size={52} color={colors.textMuted} />
+      <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
+        {inSearchMode ? "No results found" : "No Orders Yet"}
+      </Text>
+      <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+        {inSearchMode
+          ? "Try adjusting your search or filters"
+          : "Your orders will appear here once you make a purchase"}
+      </Text>
+      {inSearchMode && (
+        <TouchableOpacity style={[styles.clearBtn, { backgroundColor: "#E60549" }]} onPress={clearAll}>
+          <Text style={styles.clearBtnText}>Clear search</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
 
   if (loading) {
     return (
-      <View style={styles.centerContainer}>
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color="#E60549" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.tabsContainer}>
-        {["all", "active", "completed", "cancelled"].map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.tab, activeTab === tab && styles.activeTab]}
-            onPress={() => setActiveTab(tab)}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.tabText, activeTab === tab && styles.activeTabText]}>
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </Text>
-          </TouchableOpacity>
-        ))}
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <FilterSheet
+        visible={filterSheetOpen}
+        filters={filters}
+        onApply={onApplyFilters}
+        onClose={() => setFilterSheetOpen(false)}
+        colors={colors}
+      />
+
+      {/* Search bar */}
+      <View style={[styles.searchRow, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <View style={[styles.searchBox, { backgroundColor: colors.backgroundSecondary }]}>
+          {isSearching
+            ? <ActivityIndicator size="small" color="#E60549" style={{ marginRight: 6 }} />
+            : <Ionicons name="search-outline" size={18} color={colors.textMuted} style={{ marginRight: 6 }} />
+          }
+          <TextInput
+            style={[styles.searchInput, { color: colors.textPrimary }]}
+            placeholder="Search by order no. or merchant…"
+            placeholderTextColor={colors.textMuted}
+            value={searchText}
+            onChangeText={onSearchChange}
+            returnKeyType="search"
+            autoCorrect={false}
+          />
+          {searchText.length > 0 && (
+            <TouchableOpacity onPress={clearSearch} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        <TouchableOpacity
+          style={[styles.filterBtn, { backgroundColor: activeFilterCount > 0 ? "#E60549" : colors.backgroundSecondary }]}
+          onPress={() => setFilterSheetOpen(true)}
+        >
+          <Ionicons name="options-outline" size={20} color={activeFilterCount > 0 ? "#fff" : colors.textPrimary} />
+          {activeFilterCount > 0 && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </View>
+
+      {/* Status tabs */}
+      <View style={[styles.tabBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        {TABS.map((tab) => {
+          const active = activeTab === tab.key;
+          return (
+            <TouchableOpacity key={tab.key} style={styles.tab} onPress={() => onTabChange(tab.key)}>
+              <Text style={[styles.tabText, { color: active ? "#E60549" : colors.textMuted }, active && styles.tabTextActive]}>
+                {tab.label}
+              </Text>
+              {active && <View style={[styles.tabIndicator, { backgroundColor: "#E60549" }]} />}
+            </TouchableOpacity>
+          );
+        })}
       </View>
 
       <FlatList
-        data={filteredOrders}
-        renderItem={renderOrderItem}
+        data={orders}
+        renderItem={renderItem}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+        contentContainerStyle={[styles.list, orders.length === 0 && styles.listEmpty]}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#E60549" />
         }
-        ListEmptyComponent={renderEmptyState}
+        ListEmptyComponent={<EmptyState />}
       />
     </View>
   );
 }
 
-const getStyles = (colors: any) => StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: colors.background,
-  },
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  centered: { flex: 1, justifyContent: "center", alignItems: "center" },
 
-  tabsContainer: {
-    flexDirection: "row",
-    backgroundColor: colors.surface,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: "center",
-  },
-  activeTab: {
-    borderBottomWidth: 2,
-    borderBottomColor: "#E60549",
-  },
-  tabText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: colors.textMuted,
-  },
-  activeTabText: {
-    color: "#E60549",
-  },
-
-  listContent: {
-    padding: 20,
-    paddingBottom: 40,
-  },
-
-  orderCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  orderHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
-  },
-  orderNumberRow: {
+  searchRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
-  },
-  orderNumber: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: colors.textPrimary,
-  },
-  groupBadge: {
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: colors.backgroundSecondary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  statusBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  statusText: {
-    fontSize: 12,
-    fontWeight: "700",
-  },
-
-  orderBody: {
-    marginBottom: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     gap: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  merchantRow: {
+  searchBox: {
+    flex: 1,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
   },
-  merchantName: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: colors.textSecondary,
-  },
-  orderDetails: {
-    flexDirection: "row",
-    gap: 16,
-  },
-  detailRow: {
-    flexDirection: "row",
+  searchInput: { flex: 1, fontSize: 14, padding: 0 },
+  filterBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 10,
     alignItems: "center",
-    gap: 6,
+    justifyContent: "center",
   },
-  detailText: {
-    fontSize: 13,
-    color: colors.textMuted,
+  filterBadge: {
+    position: "absolute",
+    top: -4,
+    right: -4,
+    backgroundColor: "#fff",
+    borderRadius: 8,
+    width: 16,
+    height: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#E60549",
   },
+  filterBadgeText: { fontSize: 10, fontWeight: "700", color: "#E60549" },
 
-  orderFooter: {
+  tabBar: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  totalAmount: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#E60549",
-  },
-  viewButton: {
+  tab: { flex: 1, alignItems: "center", paddingVertical: 10 },
+  tabText: { fontSize: 13 },
+  tabTextActive: { fontWeight: "700" },
+  tabIndicator: { height: 2, width: "60%", borderRadius: 1, marginTop: 4 },
+
+  list: { padding: 16, gap: 10 },
+  listEmpty: { flex: 1 },
+
+  card: { borderRadius: 14, overflow: "hidden" },
+  cardTop: { padding: 14, flexDirection: "row", gap: 12 },
+  cardLeft: { flex: 1, gap: 5 },
+  cardRight: { alignItems: "flex-end", gap: 6 },
+  orderNumber: { fontSize: 15, fontWeight: "700" },
+  merchantRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  merchantName: { fontSize: 13, fontWeight: "500" },
+  metaRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  metaText: { fontSize: 12 },
+  amount: { fontSize: 15, fontWeight: "700" },
+  statusBadge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 20,
   },
-  viewButtonText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#E60549",
+  statusDot: { width: 6, height: 6, borderRadius: 3 },
+  statusText: { fontSize: 12, fontWeight: "600" },
+  cardFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
+  viewText: { fontSize: 13, fontWeight: "600" },
 
-  emptyContainer: {
+  empty: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 60,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: colors.textPrimary,
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: colors.textSecondary,
-    textAlign: "center",
-    marginBottom: 24,
-    paddingHorizontal: 40,
-  },
-  shopButton: {
-    backgroundColor: "#E60549",
-    paddingVertical: 12,
     paddingHorizontal: 32,
-    borderRadius: 10,
+    gap: 10,
   },
-  shopButtonText: {
-    fontSize: 15,
-    fontWeight: "600",
-    color: "white",
-  },
+  emptyTitle: { fontSize: 18, fontWeight: "700", textAlign: "center" },
+  emptyText: { fontSize: 14, textAlign: "center", lineHeight: 20, color: "#888" },
+  clearBtn: { marginTop: 8, paddingVertical: 10, paddingHorizontal: 24, borderRadius: 10 },
+  clearBtnText: { color: "#fff", fontSize: 14, fontWeight: "600" },
 });

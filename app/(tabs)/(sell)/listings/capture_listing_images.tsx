@@ -196,101 +196,104 @@ export default function CaptureListingImages() {
     );
   };
 
-  // Process all images
+  const VARIANT_CONFIGS = [
+    { name: "thumb",  label: "Scale 1", size: 1000 },
+    { name: "medium", label: "Scale 2", size: 1500 },
+    { name: "large",  label: "Scale 3", size: 2000 },
+  ] as const;
+
+  // Process all newly selected images — never re-processes already-uploaded ones
   const handleProcessImages = async () => {
-    // Check if at least 3 images are selected
-    const selectedImages = images.filter((img) => img.uri !== null);
-    if (selectedImages.length < 3) {
+    // Collect ONLY selected indices before any state mutation
+    const indicesToProcess = images.reduce<number[]>((acc, img, i) => {
+      if (img.status === "selected") acc.push(i);
+      return acc;
+    }, []);
+
+    if (indicesToProcess.length === 0) {
+      Alert.alert("Nothing to Process", "No new images to process.");
+      return;
+    }
+
+    const alreadyUploaded = images.filter((img) => img.status === "uploaded").length;
+    const totalAfter = alreadyUploaded + indicesToProcess.length;
+    if (totalAfter < 3) {
+      const needed = 3 - alreadyUploaded - indicesToProcess.length;
       Alert.alert(
         "Insufficient Images",
-        "Please select at least 3 images (required)"
+        `Please add ${needed} more image${needed === 1 ? "" : "s"} to meet the 3-photo minimum.`
       );
       return;
     }
 
     setIsProcessing(true);
 
-    // Set all selected images to pending
+    // Mark only the selected ones as pending — uploaded images are untouched
     setImages((prev) =>
       prev.map((img) =>
         img.status === "selected" ? { ...img, status: "pending" } : img
       )
     );
 
-    // Process images one by one
-    for (let i = 0; i < images.length; i++) {
-      if (images[i].uri) {
-        await processImage(i);
+    for (const i of indicesToProcess) {
+      // Read slot data at process time (URI and group ID are stable by this point)
+      const slot = images[i];
+      if (slot.uri) {
+        await processImage(i, slot.uri, slot.image_group_id);
       }
     }
 
     setIsProcessing(false);
   };
 
-  // Process single image (creates 3 variants: thumb, medium, large)
-  const processImage = async (index: number) => {
-    const imageSlot = images[index];
-    if (!imageSlot.uri) return;
-
-    // Variant configurations
-    const variantConfigs = [
-      { name: "thumb", size: 240 },
-      { name: "medium", size: 500 },
-      { name: "large", size: 720 },
-    ];
-
+  // Process a single image — accepts uri/group_id explicitly to avoid stale-closure bugs
+  const processImage = async (index: number, uri: string, image_group_id: string) => {
     try {
-      // Update status to processing
       setImages((prev) => {
         const updated = [...prev];
-        updated[index] = { ...updated[index], status: "processing" };
+        updated[index] = { ...updated[index], status: "processing", error: undefined, currentVariant: undefined };
         return updated;
       });
 
       const variants: any = {};
 
-      // Process each variant
-      for (const config of variantConfigs) {
-        // Update current variant being processed
+      for (const config of VARIANT_CONFIGS) {
         setImages((prev) => {
           const updated = [...prev];
-          updated[index] = {
-            ...updated[index],
-            currentVariant: config.name,
-          };
+          updated[index] = { ...updated[index], currentVariant: config.label };
           return updated;
         });
 
-        // Step 1: Compress and convert to WebP with square aspect ratio
-        const manipResult = await manipulateAsync(
-          imageSlot.uri,
-          [
-            { resize: { width: config.size, height: config.size } },
-          ],
-          { compress: 0.8, format: SaveFormat.WEBP }
-        );
+        // Step 1: Resize and convert to WebP
+        let manipResult;
+        try {
+          manipResult = await manipulateAsync(
+            uri,
+            [{ resize: { width: config.size, height: config.size } }],
+            { compress: 0.8, format: SaveFormat.WEBP }
+          );
+        } catch (e: any) {
+          throw new Error(`Image resize failed for ${config.label}: ${e.message}`);
+        }
 
-        // Get image dimensions and size
         const { width, height } = manipResult;
-        const response = await fetch(manipResult.uri);
-        const blob = await response.blob();
+        const fetchRes = await fetch(manipResult.uri);
+        const blob = await fetchRes.blob();
         const size_bytes = blob.size;
 
-        // Step 2: Request presigned URL with image_group_id
+        // Step 2: Get presigned upload URL
         const presignResponse = await apiService.post<{
           upload_url: string;
           s3_key: string;
           expires_in: number;
         }>("/api/v1/image/presign/", {
           image_type: "listing",
-          image_group_id: imageSlot.image_group_id, // Use image_group_id instead of object_id
+          image_group_id,
           variant: config.name,
         });
 
         if (!presignResponse.success || !presignResponse.data) {
-          throw new Error(
-            `Failed to get presigned URL for ${config.name} variant`
-          );
+          throw new Error(`Could not get upload URL for ${config.label}. Check your connection and try again.`);
         }
 
         const { upload_url, s3_key } = presignResponse.data;
@@ -298,75 +301,56 @@ export default function CaptureListingImages() {
         // Step 3: Upload to S3
         const uploadResponse = await fetch(upload_url, {
           method: "PUT",
-          headers: {
-            "Content-Type": "image/webp",
-          },
+          headers: { "Content-Type": "image/webp" },
           body: blob,
         });
 
         if (!uploadResponse.ok) {
-          throw new Error(
-            `Failed to upload ${config.name} variant to S3`
-          );
+          throw new Error(`Upload failed for ${config.label} (HTTP ${uploadResponse.status}). Please try again.`);
         }
 
-        // Step 4: Confirm upload with image_group_id
-        const confirmResponse = await apiService.post(
-          "/api/v1/image/confirm/",
-          {
-            s3_key,
-            image_type: "listing",
-            image_group_id: imageSlot.image_group_id, // Include image_group_id
-            variant: config.name,
-            width,
-            height,
-            size_bytes,
-          }
-        );
-
-        if (!confirmResponse.success) {
-          throw new Error(`Failed to confirm ${config.name} variant upload`);
-        }
-
-        // Store variant data
-        variants[config.name] = {
+        // Step 4: Confirm upload
+        const confirmResponse = await apiService.post("/api/v1/image/confirm/", {
           s3_key,
+          image_type: "listing",
+          image_group_id,
+          variant: config.name,
           width,
           height,
           size_bytes,
-        };
+        });
+
+        if (!confirmResponse.success) {
+          throw new Error(`Upload confirmation failed for ${config.label}. Please retry.`);
+        }
+
+        variants[config.name] = { s3_key, width, height, size_bytes };
       }
 
-      // Update status to uploaded with all variants
       setImages((prev) => {
         const updated = [...prev];
-        updated[index] = {
-          ...updated[index],
-          status: "uploaded",
-          variants,
-          currentVariant: undefined,
-        };
+        updated[index] = { ...updated[index], status: "uploaded", variants, currentVariant: undefined, error: undefined };
         checkAllImagesUploaded(updated);
         return updated;
       });
     } catch (error: any) {
-      if (__DEV__) console.error("Image processing error:", error);
+      if (__DEV__) console.error(`Image [${index + 1}] error:`, error);
+      const errorMsg: string = error?.message || "Upload failed. Please try again.";
       setImages((prev) => {
         const updated = [...prev];
-        updated[index] = {
-          ...updated[index],
-          status: "error",
-          error: error.message || "Upload failed",
-          currentVariant: undefined,
-        };
+        updated[index] = { ...updated[index], status: "error", error: errorMsg, currentVariant: undefined };
         return updated;
       });
     }
   };
 
-  // Retry failed image
+  // Retry a single failed image
   const retryImage = async (index: number) => {
-    await processImage(index);
+    const slot = images[index];
+    if (!slot.uri) return;
+    setIsProcessing(true);
+    await processImage(index, slot.uri, slot.image_group_id);
+    setIsProcessing(false);
   };
 
   // Remove single image
@@ -478,10 +462,8 @@ export default function CaptureListingImages() {
             />
             <View style={[styles.statusOverlay, { backgroundColor: colors.overlay }]}>
               <ActivityIndicator color={colors.primary} size="small" />
-              <Typo size={12} color={colors.primary} style={{ marginTop: 4 }}>
-                {imageSlot.currentVariant
-                  ? `Processing ${imageSlot.currentVariant}...`
-                  : "Processing..."}
+              <Typo size={11} color={colors.primary} style={{ marginTop: 4 }}>
+                {imageSlot.currentVariant ? `${imageSlot.currentVariant}...` : "Processing..."}
               </Typo>
             </View>
           </>
@@ -505,12 +487,22 @@ export default function CaptureListingImages() {
               style={[styles.imagePreview, styles.imageProcessing]}
             />
             <View style={[styles.statusOverlay, { backgroundColor: colors.overlay }]}>
-              <TouchableOpacity
-                style={styles.retryButton}
-                onPress={() => retryImage(index)}
+              <MaterialIcons name="error-outline" size={22} color={colors.error} />
+              <Typo
+                size={10}
+                color={colors.error}
+                style={{ marginTop: 2, textAlign: "center", paddingHorizontal: 6 }}
+                numberOfLines={3}
               >
-                <MaterialIcons name="refresh" size={24} color={colors.error} />
-                <Typo size={12} color={colors.error} style={{ marginTop: 4 }}>
+                {imageSlot.error || "Upload failed"}
+              </Typo>
+              <TouchableOpacity
+                style={[styles.retryButton, { marginTop: 6 }]}
+                onPress={() => retryImage(index)}
+                disabled={isProcessing}
+              >
+                <MaterialIcons name="refresh" size={18} color="#fff" />
+                <Typo size={11} color="#fff" style={{ marginTop: 2 }}>
                   Retry
                 </Typo>
               </TouchableOpacity>
@@ -518,6 +510,7 @@ export default function CaptureListingImages() {
             <TouchableOpacity
               style={styles.removeButton}
               onPress={() => removeImage(index)}
+              disabled={isProcessing}
             >
               <Ionicons name="close-circle" size={24} color={colors.error} />
             </TouchableOpacity>
@@ -704,6 +697,10 @@ const styles = StyleSheet.create({
   },
   retryButton: {
     alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.55)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
   },
   instructionsContainer: {
     padding: spacingX._16,
