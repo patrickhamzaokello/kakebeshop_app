@@ -1,15 +1,5 @@
-import { radius, spacingX, spacingY } from "@/constants/theme";
-import { Ionicons } from "@expo/vector-icons";
-import React from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { radius, spacingX, spacingY } from "@/constants/theme"; import { Ionicons } from "@expo/vector-icons"; import React from "react"; import { ActivityIndicator, FlatList, Image, StyleSheet, TouchableOpacity, View } from "react-native";
 
 import { useTheme } from "@/contexts/ThemeContext";
 

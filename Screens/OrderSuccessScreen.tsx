@@ -3,15 +3,8 @@ import { cartService } from "@/utils/services/cartService";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Animated,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { ActivityIndicator, Animated, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 interface OrderGroup {
   id: string;

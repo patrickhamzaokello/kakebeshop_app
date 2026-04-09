@@ -1,19 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback } from "react";
-import {
-  StyleSheet,
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  FlatList,
-  Keyboard,
-  ActivityIndicator,
-  Animated,
-  Image,
-  ScrollView,
-  Modal,
-  Pressable,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { TextInput } from "@/components/TextInput";
+import { StyleSheet, View, TouchableOpacity, FlatList, Keyboard, ActivityIndicator, Animated, Image, ScrollView, Modal, Pressable } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { MaterialIcons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";

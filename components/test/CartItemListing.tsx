@@ -1,11 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  Animated,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Text } from "@/components/Text";
+import { Animated, StyleSheet, TouchableOpacity, View } from "react-native";
 import { Swipeable } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { ListingImage } from '@/components/test/common/ListingImage';

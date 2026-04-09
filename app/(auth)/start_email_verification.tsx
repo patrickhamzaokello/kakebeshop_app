@@ -8,15 +8,8 @@ import { verticalScale } from "@/utils/styling";
 import { Feather } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
-import {
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View
-} from "react-native";
+import { TextInput } from "@/components/TextInput";
+import { Alert, Image, KeyboardAvoidingView, ScrollView, StyleSheet, View } from "react-native";
 
 const StartEmailVerification = () => {
   const [isLoading, setIsLoading] = useState(false);

@@ -1,14 +1,6 @@
 import React, { useState, useEffect } from "react";
-import {
-  StyleSheet,
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  ActivityIndicator,
-  Dimensions,
-  Alert,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { StyleSheet, View, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, Alert } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Image } from "expo-image";

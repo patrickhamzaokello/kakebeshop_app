@@ -1,13 +1,6 @@
 import React, { useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-  Dimensions,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { View, ScrollView, TouchableOpacity, StyleSheet, Animated, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Listing } from "@/utils/types/models";
 import { SectionHeader } from "@/components/test/common/SectionHeader";

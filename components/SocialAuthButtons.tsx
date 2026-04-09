@@ -1,13 +1,6 @@
 import React from "react";
-import {
-  Alert,
-  Image,
-  Pressable,
-  StyleSheet,
-  View,
-  Text,
-  Platform,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { Alert, Image, Pressable, StyleSheet, View, Platform } from "react-native";
 import { useRouter } from "expo-router";
 import { AntDesign } from "@expo/vector-icons";
 import Typo from "@/components/Typo";

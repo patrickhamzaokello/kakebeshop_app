@@ -1,24 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
-  Dimensions,
-  ActivityIndicator,
-  RefreshControl,
-  Share,
-  Alert,
-  Animated,
-  Modal,
-  Pressable,
-  StatusBar,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
-  Linking,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { View, ScrollView, Image, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, RefreshControl, Share, Alert, Animated, Modal, Pressable, StatusBar, NativeSyntheticEvent, NativeScrollEvent, Linking } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";

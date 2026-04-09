@@ -2,15 +2,8 @@ import { SectionHeader } from "@/components/test/common/SectionHeader";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Category } from "@/utils/types/models";
 import React, { useEffect, useRef } from "react";
-import {
-  Animated,
-  Dimensions,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { Animated, Dimensions, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 const { width } = Dimensions.get("window");
 const CARD_WIDTH = width * 0.42;

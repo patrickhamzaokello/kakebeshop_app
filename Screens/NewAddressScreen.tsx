@@ -1,18 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  Switch,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  Keyboard,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { TextInput } from "@/components/TextInput";
+import { View, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Switch, KeyboardAvoidingView, Platform, ScrollView, Keyboard } from "react-native";
 import { useRouter } from "expo-router";
 import MapView, { Marker } from "react-native-maps";
 import * as Location from "expo-location";

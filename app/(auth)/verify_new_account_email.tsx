@@ -7,18 +7,9 @@ import { useAuthStore } from "@/utils/authStore";
 import { verticalScale } from "@/utils/styling";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Alert,
-  Image,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { TextInput } from "@/components/TextInput";
+import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from "react-native";
 
 const VerifyNewAccountEmail = () => {
   const [code, setCode] = useState(["", "", "", "", "", ""]);

@@ -9,7 +9,8 @@ import {
 } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
-import { View, Text } from "react-native";
+import { Text } from "@/components/Text";
+import { View } from "react-native";
 
 const CartTabIcon = ({ color, size }: { color: string; size: number }) => {
   const cartCount = useCartStore((state) => state.cartCount);

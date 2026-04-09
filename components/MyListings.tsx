@@ -1,15 +1,6 @@
 import React from "react";
-import {
-  View,
-  FlatList,
-  StyleSheet,
-  ActivityIndicator,
-  TouchableOpacity,
-  Image,
-  Dimensions,
-  RefreshControl,
-  Text,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { View, FlatList, StyleSheet, ActivityIndicator, TouchableOpacity, Image, Dimensions, RefreshControl } from "react-native";
 import { Listing } from "@/utils/types/models";
 import { useTheme } from "@/contexts/ThemeContext";
 

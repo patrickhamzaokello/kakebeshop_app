@@ -1,14 +1,7 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TextInput,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  Switch,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { TextInput } from "@/components/TextInput";
+import { View, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Switch } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { cartService } from "@/utils/services/cartService";
 import { useTheme } from "@/contexts/ThemeContext";

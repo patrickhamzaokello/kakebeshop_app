@@ -1,15 +1,6 @@
-import {
-  Alert,
-  Pressable,
-  StyleSheet,
-  Text,
-  Image,
-  View,
-  ScrollView,
-  KeyboardAvoidingView,
-  Platform,
-  TextInput,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { TextInput } from "@/components/TextInput";
+import { Alert, Pressable, StyleSheet, Image, View, ScrollView, KeyboardAvoidingView, Platform } from "react-native";
 import React, { useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import ScreenWrapper from "@/components/ScreenWrapper";

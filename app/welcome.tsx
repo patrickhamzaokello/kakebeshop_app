@@ -1,166 +1,175 @@
 import CustomButton from "@/components/CustomButton";
-import Typo from "@/components/Typo";
-import { colors, spacingX, spacingY } from "@/constants/theme";
-import { ImageBackground } from "expo-image";
-import { router } from "expo-router";
-import { StyleSheet, View, Dimensions, ScrollView } from "react-native";
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  withRepeat,
-  Easing,
-} from "react-native-reanimated";
-import { useEffect, useState } from "react";
 import SocialAuthButtons from "@/components/SocialAuthButtons";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { Text } from "@/components/Text";
+import { MaterialCommunityIcons } from "@expo/vector-icons"; import { ImageBackground } from "expo-image"; import { router } from "expo-router"; import { useEffect, useState } from "react"; import { Dimensions, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import Animated, {
+  Easing,
+  FadeInUp,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 
+// ─── Dimensions ───────────────────────────────────────────────────────────────
 const { width, height } = Dimensions.get("window");
 
-const carouselDataRow1 = [
-  {
-    id: 1,
-    image: require("@/assets/images/grocery_collection.jpg"),
-  },
-  {
-    id: 2,
-    image: require("@/assets/images/shoes_collection.jpg"),
-  },
-  {
-    id: 3,
-    image: require("@/assets/images/shopping_collection.jpg"),
-  },
-  {
-    id: 4,
-    image: require("@/assets/images/fashion_collection.jpg"),
-  },
-  {
-    id: 5,
-    image: require("@/assets/images/grocery_collection.jpg"),
-  },
-  {
-    id: 6,
-    image: require("@/assets/images/shoes_collection.jpg"),
-  },
+// ─── Design Tokens ───────────────────────────────────────────────────────────
+const theme = {
+  bg:          "#0D0D0D",
+  surface:     "#1E1E1E",
+  border:      "#2A2A2A",
+  accent:      "#C9A84C",
+  accentLight: "#E8C97A",
+  accentMuted: "rgba(201,168,76,0.12)",
+  accentGlow:  "rgba(201,168,76,0.28)",
+  text:        "#F5F0E8",
+  textMuted:   "#8A8478",
+  textSubtle:  "#5A5650",
+};
+
+// ─── Carousel Data ────────────────────────────────────────────────────────────
+const ROW_1 = [
+  { id: 1, image: require("@/assets/images/grocery_collection.jpg") },
+  { id: 2, image: require("@/assets/images/shoes_collection.jpg") },
+  { id: 3, image: require("@/assets/images/shopping_collection.jpg") },
+  { id: 4, image: require("@/assets/images/fashion_collection.jpg") },
+  { id: 5, image: require("@/assets/images/grocery_collection.jpg") },
+  { id: 6, image: require("@/assets/images/shoes_collection.jpg") },
 ];
 
-// Shuffled version for second row
-const carouselDataRow2 = [
-  {
-    id: 3,
-    image: require("@/assets/images/shopping_collection.jpg"),
-  },
-  {
-    id: 1,
-    image: require("@/assets/images/grocery_collection.jpg"),
-  },
-  {
-    id: 4,
-    image: require("@/assets/images/fashion_collection.jpg"),
-  },
-  {
-    id: 6,
-    image: require("@/assets/images/shoes_collection.jpg"),
-  },
-  {
-    id: 2,
-    image: require("@/assets/images/shoes_collection.jpg"),
-  },
-  {
-    id: 5,
-    image: require("@/assets/images/grocery_collection.jpg"),
-  },
+const ROW_2 = [
+  { id: 3, image: require("@/assets/images/shopping_collection.jpg") },
+  { id: 1, image: require("@/assets/images/grocery_collection.jpg") },
+  { id: 4, image: require("@/assets/images/fashion_collection.jpg") },
+  { id: 6, image: require("@/assets/images/shoes_collection.jpg") },
+  { id: 2, image: require("@/assets/images/shoes_collection.jpg") },
+  { id: 5, image: require("@/assets/images/grocery_collection.jpg") },
 ];
 
+// ─── Card dimensions ──────────────────────────────────────────────────────────
+const CAROUSEL_H = height * 0.42;
+const CARD_W     = width * 0.42;
+const CARD_H     = (CAROUSEL_H - 56) / 2;
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
+function PillBadge() {
+  return (
+    <View style={styles.pill}>
+      <View style={styles.pillDot} />
+      <Text style={styles.pillText}>Uganda's #1 Marketplace</Text>
+    </View>
+  );
+}
+
+function OrDivider() {
+  return (
+    <View style={styles.divider}>
+      <View style={styles.divLine} />
+      <Text style={styles.divText}>or continue with</Text>
+      <View style={styles.divLine} />
+    </View>
+  );
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 export default function WelcomeScreen() {
   const translateX = useSharedValue(0);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  const [isAppleLoading, setIsAppleLoading] = useState(false);
+  const [isAppleLoading, setIsAppleLoading]   = useState(false);
 
   useEffect(() => {
-    // Continuous horizontal scroll animation
     translateX.value = withRepeat(
       withTiming(-width * 0.5, {
-        duration: 15000,
+        duration: 18000,
         easing: Easing.linear,
       }),
-      -1, // infinite repeat
+      -1,
       false
     );
   }, []);
 
-  const animatedCarouselStyle = useAnimatedStyle(() => ({
+  const row1Style = useAnimatedStyle(() => ({
     transform: [{ translateX: translateX.value }],
   }));
 
+  const row2Style = useAnimatedStyle(() => ({
+    transform: [{ translateX: -translateX.value }],
+  }));
+
   return (
-    <ScrollView 
-      style={styles.container}
+    <ScrollView
+      style={styles.root}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
     >
-      {/* Grid-based Carousel Section */}
-      <View style={styles.carouselContainer}>
-        <Animated.View style={styles.carouselWrapper}>
-          {/* First Row */}
-          <Animated.View 
-            style={[styles.carouselRow, animatedCarouselStyle]}
-          >
-            {[...carouselDataRow1, ...carouselDataRow1].map((item, index) => (
-              <View key={`row1-${index}`} style={styles.imageCard}>
-                <ImageBackground
-                  source={item.image}
-                  style={styles.cardImage}
-                  contentFit="cover"
-                >
-                  <View style={styles.imageOverlay} />
-                </ImageBackground>
-              </View>
-            ))}
-          </Animated.View>
+      <SafeAreaView style={{ flex: 1 }}>
 
-          {/* Second Row - Reversed direction */}
-          <Animated.View 
-            style={[
-              styles.carouselRow, 
-              useAnimatedStyle(() => ({
-                transform: [{ translateX: -translateX.value }],
-              }))
-            ]}
-          >
-            {[...carouselDataRow2, ...carouselDataRow2].map((item, index) => (
-              <View key={`row2-${index}`} style={styles.imageCard}>
-                <ImageBackground
-                  source={item.image}
-                  style={styles.cardImage}
-                  contentFit="cover"
-                >
-                  <View style={styles.imageOverlay} />
-                </ImageBackground>
-              </View>
-            ))}
-          </Animated.View>
-        </Animated.View>
+        {/* ── Carousel ─────────────────────────────────────────────────────── */}
+        <View style={styles.carouselSection}>
+          <View style={styles.carouselWrap}>
 
-        {/* Gradient Overlay at Bottom */}
-        <View style={styles.gradientOverlay} />
-      </View>
+            {/* Row 1 — scrolls left */}
+            <Animated.View style={[styles.row, row1Style]}>
+              {[...ROW_1, ...ROW_1].map((item, i) => (
+                <View key={`r1-${i}`} style={styles.card}>
+                  <ImageBackground
+                    source={item.image}
+                    style={StyleSheet.absoluteFill}
+                    contentFit="cover"
+                  >
+                    <View style={styles.cardOverlay} />
+                  </ImageBackground>
+                </View>
+              ))}
+            </Animated.View>
 
-      {/* Content Section */}
-      <View style={styles.contentSection}>
-        {/* Welcome Text */}
-        <View style={styles.welcomeContainer}>
-          <Typo size={32} fontWeight="700" style={styles.welcomeTitle}>
-            Welcome to Kakebeshop
-          </Typo>
-          <Typo size={15} color={colors.neutral600} style={styles.welcomeSubtitle}>
-            The leading online marketplace for all products and services.
-          </Typo>
+            {/* Row 2 — scrolls right */}
+            <Animated.View style={[styles.row, row2Style]}>
+              {[...ROW_2, ...ROW_2].map((item, i) => (
+                <View key={`r2-${i}`} style={styles.card}>
+                  <ImageBackground
+                    source={item.image}
+                    style={StyleSheet.absoluteFill}
+                    contentFit="cover"
+                  >
+                    <View style={styles.cardOverlay} />
+                  </ImageBackground>
+                </View>
+              ))}
+            </Animated.View>
+          </View>
+
+          {/* Fade edges — dissolve carousel into bg on all sides */}
+          <View style={styles.fadeTop} />
+          <View style={styles.fadeBottom} />
+          <View style={styles.fadeLeft} />
+          <View style={styles.fadeRight} />
         </View>
 
-        {/* Social Auth Buttons */}
-        <View style={styles.authContainer}>
-          <SocialAuthButtons 
+        {/* ── Content ──────────────────────────────────────────────────────── */}
+        <Animated.View
+          entering={FadeInUp.delay(150).duration(600)}
+          style={styles.content}
+        >
+          {/* Badge */}
+          <PillBadge />
+
+          {/* Headline */}
+          <View style={styles.headlineBlock}>
+            <Text style={styles.headline}>
+              Shop Everything,{"\n"}
+              <Text style={styles.headlineAccent}>Everywhere.</Text>
+            </Text>
+            <Text style={styles.subtitle}>
+              Millions of products. Trusted sellers.{"\n"}
+              Delivered fast across Uganda.
+            </Text>
+          </View>
+
+          {/* Social auth (Google / Apple) */}
+          <SocialAuthButtons
             isGoogleLoading={isGoogleLoading}
             isAppleLoading={isAppleLoading}
             setIsGoogleLoading={setIsGoogleLoading}
@@ -168,153 +177,241 @@ export default function WelcomeScreen() {
             showSocialAuth={true}
           />
 
-          {/* Divider */}
-          <View style={styles.divider}>
-            <View style={styles.dividerLine} />
-            <Typo size={14} color={colors.neutral500} style={styles.dividerText}>
-              Or sign up with
-            </Typo>
-            <View style={styles.dividerLine} />
-          </View>
+          <OrDivider />
 
-          {/* Email Signup Button */}
-          <CustomButton
-            onPress={() => router.push("/(auth)/login")}
-            style={styles.emailButton}
+          {/* Primary CTA */}
+          <TouchableOpacity
+            style={styles.emailBtn}
+            onPress={() => router.push("/(auth)/register")}
+            activeOpacity={0.82}
           >
-          <MaterialCommunityIcons name="email" color={"#000"} size={20} />
-            <Typo size={16} color={colors.black} fontWeight="600">
-              Sign Up with email
-            </Typo>
-          </CustomButton>
+            <MaterialCommunityIcons
+              name="email-outline"
+              color={theme.bg}
+              size={18}
+            />
+            <Text style={styles.emailBtnText}>Sign up with Email</Text>
+          </TouchableOpacity>
 
-          {/* Login Link */}
-          <View style={styles.loginContainer}>
-            <Typo size={14} color={colors.neutral600}>
-              Already have an account?{" "}
-            </Typo>
-            <CustomButton
+          {/* Login row */}
+          <View style={styles.loginRow}>
+            <Text style={styles.loginHint}>Already have an account? </Text>
+            <TouchableOpacity
               onPress={() => router.push("/(auth)/login")}
-              style={styles.loginButton}
+              activeOpacity={0.7}
             >
-              <Typo size={14} color={colors.primary} fontWeight="600">
-                Log In
-              </Typo>
-            </CustomButton>
+              <Text style={styles.loginLink}>Log In</Text>
+            </TouchableOpacity>
           </View>
-        </View>
-      </View>
+
+          {/* Terms */}
+          <Text style={styles.terms}>
+            By continuing you agree to our{" "}
+            <Text style={styles.termsLink}>Terms of Service</Text>
+            {" "}&amp;{" "}
+            <Text style={styles.termsLink}>Privacy Policy</Text>
+          </Text>
+        </Animated.View>
+
+      </SafeAreaView>
     </ScrollView>
   );
 }
 
+// ─── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
+  root: {
     flex: 1,
-    backgroundColor: colors.white,
+    backgroundColor: theme.bg,
   },
   scrollContent: {
     flexGrow: 1,
   },
-  carouselContainer: {
-    height: height * 0.45,
+
+  // ── Carousel ──────────────────────────────────────────────────────────────
+  carouselSection: {
+    height: CAROUSEL_H,
+    overflow: "hidden",
     position: "relative",
-    overflow: "hidden",
   },
-  carouselWrapper: {
+  carouselWrap: {
     flex: 1,
-    gap: 12,
-    paddingTop: spacingY._20,
+    gap: 10,
+    paddingTop: 34,
   },
-  carouselRow: {
+  row: {
     flexDirection: "row",
-    gap: 12,
-    paddingHorizontal: spacingX._16,
+    gap: 10,
+    paddingHorizontal: 14,
   },
-  imageCard: {
-    width: width * 0.42,
-    height: (height * 0.45 - 40) / 2,
-    borderRadius: 16,
+  card: {
+    width: CARD_W,
+    height: CARD_H,
+    borderRadius: 14,
     overflow: "hidden",
+    backgroundColor: theme.surface,
   },
-  cardImage: {
-    width: "100%",
-    height: "100%",
-  },
-  imageOverlay: {
+  cardOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0, 0, 0, 0.15)",
+    backgroundColor: "rgba(0,0,0,0.28)",
   },
-  gradientOverlay: {
+
+  // Fade edges — all use solid bg color so they work on both platforms
+  fadeTop: {
     position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-    backgroundColor: "transparent",
-    borderTopWidth: 0,
-    shadowColor: "#fff",
-    shadowOffset: { width: 0, height: -20 },
-    shadowOpacity: 1,
-    shadowRadius: 30,
+    top: 0, left: 0, right: 0,
+    height: 60,
+    backgroundColor: theme.bg,
+    opacity: 0.95,
   },
-  contentSection: {
+  fadeBottom: {
+    position: "absolute",
+    bottom: 0, left: 0, right: 0,
+    height: 110,
+    backgroundColor: theme.bg,
+    opacity: 0.97,
+  },
+  fadeLeft: {
+    position: "absolute",
+    top: 0, bottom: 0, left: 0,
+    width: 28,
+    backgroundColor: theme.bg,
+    opacity: 0.75,
+  },
+  fadeRight: {
+    position: "absolute",
+    top: 0, bottom: 0, right: 0,
+    width: 28,
+    backgroundColor: theme.bg,
+    opacity: 0.75,
+  },
+
+  // ── Content ───────────────────────────────────────────────────────────────
+  content: {
     flex: 1,
-    backgroundColor: colors.white,
-    paddingHorizontal: spacingX._20,
-    paddingTop: spacingY._30,
-    paddingBottom: spacingY._40,
-    justifyContent: "space-between",
+    paddingHorizontal: 24,
+    paddingTop: 4,
+    paddingBottom: 32,
+    gap: 18,
   },
-  welcomeContainer: {
+
+  // Badge
+  pill: {
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: spacingY._30,
+    gap: 7,
+    alignSelf: "center",
+    backgroundColor: theme.accentMuted,
+    borderColor: theme.accentGlow,
+    borderWidth: 1,
+    borderRadius: 100,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
   },
-  welcomeTitle: {
-    textAlign: "center",
-    color: colors.black,
-    marginBottom: spacingY._10,
+  pillDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: theme.accent,
+  },
+  pillText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: theme.accentLight,
+    letterSpacing: 0.3,
+  },
+
+  // Headline
+  headlineBlock: {
+    gap: 8,
+  },
+  headline: {
+    fontSize: 32,
+    fontWeight: "800",
+    color: theme.text,
     lineHeight: 38,
+    letterSpacing: -0.5,
   },
-  welcomeSubtitle: {
-    textAlign: "center",
-    lineHeight: 22,
-    paddingHorizontal: spacingX._16,
+  headlineAccent: {
+    color: theme.accent,
   },
-  authContainer: {
-    width: "100%",
+  subtitle: {
+    fontSize: 14,
+    color: theme.textMuted,
+    lineHeight: 21,
+    fontWeight: "400",
   },
+
+  // Divider
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    marginVertical: spacingY._25,
+    gap: 10,
+    marginVertical: -4,
   },
-  dividerLine: {
+  divLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.neutral300,
+    backgroundColor: theme.border,
   },
-  dividerText: {
-    paddingHorizontal: spacingX._12,
+  divText: {
+    fontSize: 12,
+    color: theme.textSubtle,
+    fontWeight: "500",
+    letterSpacing: 0.2,
   },
-  emailButton: {
-    borderColor: "#E5E7EB",
-    backgroundColor: "#ffffff",
-    borderWidth: 1.5,
-    borderRadius: 12,
-    paddingVertical: spacingY._16,
+
+  // Email CTA
+  emailBtn: {
+    height: 52,
+    borderRadius: 14,
+    backgroundColor: theme.accent,
     flexDirection: "row",
-    justifyContent: "center",
     alignItems: "center",
-    gap: 8,
+    justifyContent: "center",
+    gap: 9,
+    // iOS glow
+    shadowColor: theme.accent,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.35,
+    shadowRadius: 18,
+    // Android elevation
+    elevation: 10,
   },
-  loginContainer: {
+  emailBtnText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: theme.bg,
+    letterSpacing: 0.1,
+  },
+
+  // Login
+  loginRow: {
     flexDirection: "row",
-    justifyContent: "center",
     alignItems: "center",
+    justifyContent: "center",
+    marginTop: -4,
   },
-  loginButton: {
-    backgroundColor: "transparent",
-    paddingHorizontal: 2,
+  loginHint: {
+    fontSize: 13,
+    color: theme.textMuted,
+  },
+  loginLink: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: theme.accent,
+  },
+
+  // Terms
+  terms: {
+    fontSize: 11,
+    color: theme.textSubtle,
+    textAlign: "center",
+    lineHeight: 17,
+    marginTop: "auto",
+  },
+  termsLink: {
+    color: theme.textMuted,
+    textDecorationLine: "underline",
   },
 });

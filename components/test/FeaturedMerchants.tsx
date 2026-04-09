@@ -1,13 +1,6 @@
 import React, { useEffect } from 'react';
-import {
-    View,
-    Text,
-    ScrollView,
-    Image,
-    TouchableOpacity,
-    StyleSheet,
-    Animated,
-} from 'react-native';
+import { Text } from "@/components/Text";
+import { View, ScrollView, Image, TouchableOpacity, StyleSheet, Animated } from "react-native";
 import { Merchant } from '@/utils/types/models';
 import { SectionHeader } from '@/components/test/common/SectionHeader';
 import { useTheme } from '@/contexts/ThemeContext';

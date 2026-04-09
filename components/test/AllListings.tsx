@@ -1,14 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import {
-    View,
-    Text,
-    ScrollView,
-    TouchableOpacity,
-    StyleSheet,
-    ActivityIndicator,
-    Animated,
-    Dimensions,
-} from 'react-native';
+import { Text } from "@/components/Text";
+import { View, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Animated, Dimensions } from "react-native";
 import { Listing } from '@/utils/types/models';
 import { ListingImage } from '@/components/test/common/ListingImage';
 import { MaterialIcons, Ionicons } from '@expo/vector-icons';

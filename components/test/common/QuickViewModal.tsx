@@ -1,20 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  Image,
-  TouchableOpacity,
-  StyleSheet,
-  Modal,
-  ScrollView,
-  Pressable,
-  ActivityIndicator,
-  Dimensions,
-  Animated,
-  Alert,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { View, Image, TouchableOpacity, StyleSheet, Modal, ScrollView, Pressable, ActivityIndicator, Dimensions, Animated, Alert, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Listing, ListingDetail } from "@/utils/types/models";
 import { listingDetailsService } from "@/utils/services/listingDetailsService";

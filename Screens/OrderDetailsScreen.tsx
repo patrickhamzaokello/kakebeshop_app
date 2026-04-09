@@ -1,19 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Image,
-  ActivityIndicator,
-  Alert,
-  Modal,
-  Animated,
-  Dimensions,
-  NativeSyntheticEvent,
-  NativeScrollEvent,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { View, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, Modal, Animated, Dimensions, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";

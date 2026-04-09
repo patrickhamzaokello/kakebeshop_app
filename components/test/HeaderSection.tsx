@@ -1,12 +1,6 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-  Image,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { View, TouchableOpacity, StyleSheet, Animated, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
 import { HeaderData } from "@/utils/types/models";

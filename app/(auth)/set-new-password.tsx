@@ -7,18 +7,9 @@ import { verticalScale } from "@/utils/styling";
 import { AntDesign, Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import {
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  View,
-  Image,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { TextInput } from "@/components/TextInput";
+import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View, Image } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useAuthStore } from "@/utils/authStore";
 

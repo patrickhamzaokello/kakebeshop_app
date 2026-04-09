@@ -1,19 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
-import {
-  StyleSheet,
-  View,
-  Text,
-  FlatList,
-  TouchableOpacity,
-  Image,
-  ActivityIndicator,
-  RefreshControl,
-  Linking,
-  Alert,
-  Dimensions,
-  Animated,
-  StatusBar,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { StyleSheet, View, FlatList, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Linking, Alert, Dimensions, Animated, StatusBar } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,

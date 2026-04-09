@@ -1,14 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
-import {
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  RefreshControl,
-  FlatList,
-  Animated,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { StyleSheet, View, TouchableOpacity, ScrollView, RefreshControl, FlatList, Animated } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";

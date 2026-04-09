@@ -1,14 +1,6 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
-  Image,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Image } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useCartStore } from "@/utils/stores/useCartStore";

@@ -1,12 +1,6 @@
 import React, { useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Animated,
-  Dimensions,
-} from "react-native";
+import { Text } from "@/components/Text";
+import { View, TouchableOpacity, StyleSheet, Animated, Dimensions } from "react-native";
 import { Category } from "@/utils/types/models";
 import { useTheme } from "@/contexts/ThemeContext";
 

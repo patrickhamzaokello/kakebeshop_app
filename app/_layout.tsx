@@ -1,16 +1,27 @@
-import { useAuthStore } from "@/utils/authStore";
-import PushNotificationManager from "@/utils/PushNotificationManager";
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
-import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
-import React, { useEffect } from "react";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import { StyleSheet } from "react-native";
-import { useCartStore } from "@/utils/stores/useCartStore";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { postUserIntent } from "@/utils/apiEndpoints";
+import { useAuthStore } from "@/utils/authStore";
+import PushNotificationManager from "@/utils/PushNotificationManager";
+import { useCartStore } from "@/utils/stores/useCartStore";
+import {
+  SpaceGrotesk_400Regular,
+  SpaceGrotesk_500Medium,
+  SpaceGrotesk_600SemiBold,
+  SpaceGrotesk_700Bold,
+  useFonts,
+} from "@expo-google-fonts/space-grotesk";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
+import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import React, { useEffect } from "react";
+import { StyleSheet } from "react-native";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
 
-// Inner layout component that uses theme
+// ─── Keep splash visible until font + auth are both ready ────────────────────
+SplashScreen.preventAutoHideAsync();
+
+// ─── Inner layout (uses theme + auth) ────────────────────────────────────────
 const RootLayoutContent = () => {
   const {
     isLoggedIn,
@@ -36,9 +47,6 @@ const RootLayoutContent = () => {
     if (!authLoading && isLoggedIn) {
       fetchCartCount();
 
-      // Onboarding removed — default all users to "both" (buy & sell).
-      // This silently completes onboarding for any user who hasn't done it yet
-      // (new sign-ups or users who had the old onboarding flow).
       if (!hasCompletedOnboarding) {
         postUserIntent("both").catch(() => {});
         completeOnboarding();
@@ -48,7 +56,9 @@ const RootLayoutContent = () => {
 
   if (authLoading) {
     return (
-      <GestureHandlerRootView style={[styles.container, { backgroundColor: colors.background }]}>
+      <GestureHandlerRootView
+        style={[styles.container, { backgroundColor: colors.background }]}
+      >
         <StatusBar style={isDark ? "light" : "dark"} />
         <Stack>
           <Stack.Screen name="loading" options={{ headerShown: false }} />
@@ -58,7 +68,9 @@ const RootLayoutContent = () => {
   }
 
   return (
-    <GestureHandlerRootView style={[styles.container, { backgroundColor: colors.background }]}>
+    <GestureHandlerRootView
+      style={[styles.container, { backgroundColor: colors.background }]}
+    >
       <PushNotificationManager>
         <StatusBar style={isDark ? "light" : "dark"} />
         <Stack
@@ -80,8 +92,24 @@ const RootLayoutContent = () => {
   );
 };
 
-// Root layout with ThemeProvider wrapper
+// ─── Root layout — loads font before rendering anything ──────────────────────
 const RootLayout = () => {
+  const [fontsLoaded, fontError] = useFonts({
+    SpaceGrotesk_400Regular,
+    SpaceGrotesk_500Medium,
+    SpaceGrotesk_600SemiBold,
+    SpaceGrotesk_700Bold,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, fontError]);
+
+  // Render nothing until font is ready — splash screen stays visible
+  if (!fontsLoaded && !fontError) return null;
+
   return (
     <ThemeProvider>
       <RootLayoutContent />

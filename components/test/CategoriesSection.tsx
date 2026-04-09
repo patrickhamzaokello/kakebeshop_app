@@ -2,15 +2,8 @@ import { SectionHeader } from '@/components/test/common/SectionHeader';
 import { borderRadius } from '@/constants/theme';
 import { Category } from '@/utils/types/models';
 import React, { useEffect, useRef } from 'react';
-import {
-    Animated,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
-} from 'react-native';
+import { Text } from "@/components/Text";
+import { Animated, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface CategoriesSectionProps {
