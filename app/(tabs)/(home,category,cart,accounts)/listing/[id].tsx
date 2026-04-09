@@ -20,6 +20,7 @@ import {
 } from "@/constants/theme";
 import { listingDetailsService } from "@/utils/services/listingDetailsService";
 import apiService from "@/utils/apiBase";
+import { incrementListingViews } from "@/utils/apiEndpoints";
 import { useCartStore } from "@/utils/stores/useCartStore";
 import { useListingDetailStore } from "@/utils/stores/useListingDetailStore";
 import { useAuthStore } from "@/utils/authStore";
@@ -371,6 +372,7 @@ export default function ListingDetailsScreen() {
 
   useEffect(() => {
     fetchAllData(false);
+    if (id) incrementListingViews(id);
   }, [fetchAllData]);
 
   const onRefresh = useCallback(() => {

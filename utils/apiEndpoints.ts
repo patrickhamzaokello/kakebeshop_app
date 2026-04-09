@@ -327,6 +327,16 @@ export const deleteComment = async (commentID: number): Promise<any> => {
   }
 };
 
+export const incrementListingViews = async (
+  listingId: string | number
+): Promise<void> => {
+  try {
+    await apiService.post<any>(`/api/v1/listings/${listingId}/increment_views/`);
+  } catch (error) {
+    // Fire-and-forget — don't surface view tracking errors to the user
+  }
+};
+
 export const postNotificationToken = async (
   token: string,
   deviceId: string,
