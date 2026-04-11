@@ -1,11 +1,17 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { Text } from "@/components/Text";
-import { View, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Image } from "react-native";
+import {
+  View,
+  StyleSheet,
+  SectionList,
+  TouchableOpacity,
+  ActivityIndicator,
+  RefreshControl,
+} from "react-native";
 import { useRouter, useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import apiService from "@/utils/apiBase";
 import { useTheme } from "@/contexts/ThemeContext";
-import { colors } from "@/constants/theme";
 
 interface Notification {
   id: string;
@@ -21,14 +27,92 @@ interface Notification {
   created_at: string;
 }
 
+interface Section {
+  title: string;
+  data: Notification[];
+}
+
+// ─── helpers ──────────────────────────────────────────────────────────────────
+
+const getIcon = (type: string): keyof typeof Ionicons.glyphMap => {
+  const map: Record<string, keyof typeof Ionicons.glyphMap> = {
+    ORDER_CREATED: "receipt-outline",
+    ORDER_CONTACTED: "call-outline",
+    ORDER_CONFIRMED: "checkmark-circle-outline",
+    ORDER_COMPLETED: "checkmark-done-circle-outline",
+    ORDER_CANCELLED: "close-circle-outline",
+    MERCHANT_NEW_ORDER: "cart-outline",
+    MERCHANT_APPROVED: "checkmark-circle-outline",
+    MERCHANT_DEACTIVATED: "alert-circle-outline",
+    MERCHANT_SUSPENDED: "warning-outline",
+    LISTING_APPROVED: "checkmark-outline",
+    LISTING_REJECTED: "close-outline",
+  };
+  return map[type] || "notifications-outline";
+};
+
+const getColor = (type: string): string => {
+  const map: Record<string, string> = {
+    ORDER_CREATED: "#4CAF50",
+    ORDER_CONTACTED: "#2196F3",
+    ORDER_CONFIRMED: "#4CAF50",
+    ORDER_COMPLETED: "#8BC34A",
+    ORDER_CANCELLED: "#F44336",
+    MERCHANT_NEW_ORDER: "#E60549",
+    MERCHANT_APPROVED: "#4CAF50",
+    MERCHANT_DEACTIVATED: "#F44336",
+    MERCHANT_SUSPENDED: "#FF9800",
+    LISTING_APPROVED: "#4CAF50",
+    LISTING_REJECTED: "#F44336",
+  };
+  return map[type] || "#888";
+};
+
+const formatTimeAgo = (dateString: string): string => {
+  const seconds = Math.floor((Date.now() - new Date(dateString).getTime()) / 1000);
+  if (seconds < 60) return "Just now";
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+  return new Date(dateString).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+};
+
+const groupByDate = (items: Notification[]): Section[] => {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const yesterday = today - 86400000;
+  const weekAgo = today - 6 * 86400000;
+
+  const buckets: Record<string, Notification[]> = {
+    Today: [],
+    Yesterday: [],
+    "This Week": [],
+    Earlier: [],
+  };
+
+  for (const n of items) {
+    const t = new Date(n.created_at).getTime();
+    if (t >= today) buckets["Today"].push(n);
+    else if (t >= yesterday) buckets["Yesterday"].push(n);
+    else if (t >= weekAgo) buckets["This Week"].push(n);
+    else buckets["Earlier"].push(n);
+  }
+
+  return Object.entries(buckets)
+    .filter(([, data]) => data.length > 0)
+    .map(([title, data]) => ({ title, data }));
+};
+
+// ─── main component ───────────────────────────────────────────────────────────
+
 export default function NotificationsScreen() {
   const router = useRouter();
-  const {colors} = useTheme();
-  
+  const { colors } = useTheme();
+
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'unread'>('all');
+  const [filter, setFilter] = useState<"all" | "unread">("all");
 
   useFocusEffect(
     useCallback(() => {
@@ -38,18 +122,16 @@ export default function NotificationsScreen() {
 
   const fetchNotifications = async () => {
     try {
-      const endpoint = filter === 'unread' 
-        ? '/api/v1/notifications/unread/'
-        : '/api/v1/notifications/';
-      
+      const endpoint = filter === "unread"
+        ? "/api/v1/notifications/unread/"
+        : "/api/v1/notifications/";
       const response = await apiService.get(endpoint);
-      
       if (response.success) {
         const data = response.data.results || response.data;
         setNotifications(Array.isArray(data) ? data : []);
       }
     } catch (error) {
-      if (__DEV__) console.error('Error fetching notifications:', error);
+      if (__DEV__) console.error("Error fetching notifications:", error);
       setNotifications([]);
     } finally {
       setLoading(false);
@@ -57,230 +139,158 @@ export default function NotificationsScreen() {
     }
   };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await fetchNotifications();
-  };
-
-  const handleNotificationPress = async (notification: Notification) => {
-    // Mark as read if unread
-    if (!notification.is_read) {
+  const handlePress = async (item: Notification) => {
+    if (!item.is_read) {
       try {
-        await apiService.post(
-          `/api/v1/notifications/${notification.id}/mark_as_read/`
-        );
-        
-        // Update local state
+        await apiService.post(`/api/v1/notifications/${item.id}/mark_as_read/`);
         setNotifications(prev =>
-          prev.map(n =>
-            n.id === notification.id ? { ...n, is_read: true } : n
-          )
+          prev.map(n => (n.id === item.id ? { ...n, is_read: true } : n))
         );
-      } catch (error) {
-        if (__DEV__) console.error('Error marking as read:', error);
+      } catch (e) {
+        if (__DEV__) console.error(e);
       }
     }
-
-    // Navigate based on notification type
-    if (notification.order_id) {
-      router.push(`/(tabs)/(accounts)/orderDetails/${notification.order_id}` as any);
-    } else if (notification.merchant_id) {
+    if (item.order_id) {
+      router.push(`/(tabs)/(accounts)/orderDetails/${item.order_id}` as any);
+    } else if (item.merchant_id) {
       router.push(`/merchant/dashboard` as any);
-    } else if (notification.listing_id) {
-      router.push(`/listing/${notification.listing_id}` as any);
+    } else if (item.listing_id) {
+      router.push(`/listing/${item.listing_id}` as any);
     }
   };
 
-  const handleMarkAllAsRead = async () => {
+  const handleMarkAllRead = async () => {
     try {
-      await apiService.post('/api/v1/notifications/mark_all_as_read/');
-      
-      // Update local state
-      setNotifications(prev =>
-        prev.map(n => ({ ...n, is_read: true }))
-      );
-    } catch (error) {
-      if (__DEV__) console.error('Error marking all as read:', error);
+      await apiService.post("/api/v1/notifications/mark_all_as_read/");
+      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
+    } catch (e) {
+      if (__DEV__) console.error(e);
     }
   };
 
-  const getNotificationIcon = (type: string): keyof typeof Ionicons.glyphMap => {
-    const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
-      ORDER_CREATED: 'receipt-outline',
-      ORDER_CONTACTED: 'call-outline',
-      ORDER_CONFIRMED: 'checkmark-circle-outline',
-      ORDER_COMPLETED: 'checkmark-done-circle-outline',
-      ORDER_CANCELLED: 'close-circle-outline',
-      MERCHANT_NEW_ORDER: 'cart-outline',
-      MERCHANT_APPROVED: 'checkmark-circle-outline',
-      MERCHANT_DEACTIVATED: 'alert-circle-outline',
-      MERCHANT_SUSPENDED: 'warning-outline',
-      LISTING_APPROVED: 'checkmark-outline',
-      LISTING_REJECTED: 'close-outline',
-    };
-    
-    return iconMap[type] || 'notifications-outline';
-  };
+  const unreadCount = notifications.filter(n => !n.is_read).length;
+  const sections = groupByDate(
+    filter === "unread" ? notifications.filter(n => !n.is_read) : notifications
+  );
 
-  const getNotificationColor = (type: string): string => {
-    const colorMap: Record<string, string> = {
-      ORDER_CREATED: '#4CAF50',
-      ORDER_CONTACTED: '#2196F3',
-      ORDER_CONFIRMED: '#4CAF50',
-      ORDER_COMPLETED: '#8BC34A',
-      ORDER_CANCELLED: '#F44336',
-      MERCHANT_NEW_ORDER: '#E60549',
-      MERCHANT_APPROVED: '#4CAF50',
-      MERCHANT_DEACTIVATED: '#F44336',
-      MERCHANT_SUSPENDED: '#FF9800',
-      LISTING_APPROVED: '#4CAF50',
-      LISTING_REJECTED: '#F44336',
-    };
-    
-    return colorMap[type] || '#666';
-  };
+  // ─── sub-renders ────────────────────────────────────────────────────────────
 
-  const formatTimeAgo = (dateString: string): string => {
-    const date = new Date(dateString);
-    const now = new Date();
-    const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  const renderFilterBar = () => (
+    <View style={[styles.filterBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+      <View style={styles.filterTabs}>
+        {(["all", "unread"] as const).map(tab => {
+          const active = filter === tab;
+          return (
+            <TouchableOpacity
+              key={tab}
+              style={[
+                styles.filterTab,
+                active
+                  ? { backgroundColor: colors.primary }
+                  : { backgroundColor: colors.backgroundSecondary },
+              ]}
+              onPress={() => setFilter(tab)}
+              activeOpacity={0.7}
+            >
+              <Text style={[styles.filterTabText, { color: active ? "#fff" : colors.textSecondary }]}>
+                {tab === "all" ? "All" : "Unread"}
+              </Text>
+              {tab === "unread" && unreadCount > 0 && (
+                <View style={[styles.countBadge, { backgroundColor: active ? "rgba(255,255,255,0.3)" : colors.primary }]}>
+                  <Text style={styles.countBadgeText}>{unreadCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
 
-    const intervals = {
-      year: 31536000,
-      month: 2592000,
-      week: 604800,
-      day: 86400,
-      hour: 3600,
-      minute: 60,
-    };
+      {unreadCount > 0 && filter === "all" && (
+        <TouchableOpacity style={styles.markAllBtn} onPress={handleMarkAllRead} activeOpacity={0.7}>
+          <Ionicons name="checkmark-done-outline" size={15} color={colors.primary} />
+          <Text style={[styles.markAllText, { color: colors.primary }]}>Mark all read</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
 
-    for (const [unit, secondsInUnit] of Object.entries(intervals)) {
-      const interval = Math.floor(seconds / secondsInUnit);
-      if (interval >= 1) {
-        return `${interval}${unit[0]} ago`;
-      }
-    }
+  const renderSectionHeader = ({ section }: { section: Section }) => (
+    <View style={[styles.sectionHeader, { backgroundColor: colors.background }]}>
+      <Text style={[styles.sectionHeaderText, { color: colors.textMuted }]}>{section.title}</Text>
+    </View>
+  );
 
-    return 'Just now';
-  };
-
-  const renderNotificationItem = ({ item }: { item: Notification }) => {
-    const iconName = getNotificationIcon(item.notification_type);
-    const iconColor = getNotificationColor(item.notification_type);
+  const renderItem = ({ item }: { item: Notification }) => {
+    const iconName = getIcon(item.notification_type);
+    const iconColor = getColor(item.notification_type);
 
     return (
       <TouchableOpacity
         style={[
-          styles.notificationCard, { backgroundColor: colors.card, borderBottomColor: colors.cardBorder },
-          !item.is_read && styles.unreadCard,
+          styles.card,
+          { backgroundColor: colors.surface, borderBottomColor: colors.border },
+          !item.is_read && { borderLeftColor: iconColor, borderLeftWidth: 3 },
         ]}
-        onPress={() => handleNotificationPress(item)}
+        onPress={() => handlePress(item)}
         activeOpacity={0.7}
       >
-        <View style={[styles.notificationContent]}>
-          <View style={[styles.iconContainer, { backgroundColor: `${iconColor}15` }]}>
-            <Ionicons name={iconName} size={24} color={iconColor} />
-          </View>
-
-          <View style={styles.textContainer}>
-            <View style={styles.headerRow}>
-              <Text style={[styles.notificationTitle, {color: colors.textPrimary}]} numberOfLines={1}>
-                {item.title}
-              </Text>
-              {!item.is_read && <View style={styles.unreadDot} />}
-            </View>
-
-            <Text style={[styles.notificationMessage,{color: colors.textSecondary}]} numberOfLines={2}>
-              {item.message}
-            </Text>
-
-            <View style={styles.metaRow}>
-              <Text style={[styles.timeAgo, {color: colors.textPrimary}]}>
-                {formatTimeAgo(item.created_at)}
-              </Text>
-              
-              {item.metadata?.order_number && (
-                <View style={styles.metaBadge}>
-                  <Ionicons name="receipt-outline" size={12} color="#666" />
-                  <Text style={styles.metaText}>
-                    {item.metadata.order_number}
-                  </Text>
-                </View>
-              )}
-            </View>
-          </View>
+        <View style={[styles.iconWrap, { backgroundColor: `${iconColor}15` }]}>
+          <Ionicons name={iconName} size={20} color={iconColor} />
         </View>
 
-        <Ionicons name="chevron-forward" size={20} color="#CCC" />
+        <View style={styles.cardBody}>
+          <View style={styles.cardTitleRow}>
+            <Text style={[styles.cardTitle, { color: colors.textPrimary }]} numberOfLines={1}>
+              {item.title}
+            </Text>
+            <Text style={[styles.cardTime, { color: colors.textMuted }]}>
+              {formatTimeAgo(item.created_at)}
+            </Text>
+          </View>
+
+          <Text style={[styles.cardMessage, { color: colors.textSecondary }]} numberOfLines={2}>
+            {item.message}
+          </Text>
+
+          {item.metadata?.order_number && (
+            <View style={[styles.orderChip, { backgroundColor: colors.backgroundSecondary }]}>
+              <Ionicons name="receipt-outline" size={11} color={colors.textMuted} />
+              <Text style={[styles.orderChipText, { color: colors.textSecondary }]}>
+                {item.metadata.order_number}
+              </Text>
+            </View>
+          )}
+        </View>
+
+        {!item.is_read && <View style={[styles.unreadDot, { backgroundColor: iconColor }]} />}
       </TouchableOpacity>
-    );
-  };
-
-  const renderHeader = () => {
-    const unreadCount = notifications.filter(n => !n.is_read).length;
-
-    return (
-      <View style={[styles.header, { borderBottomColor: colors.cardBorder }]}>
-        <View style={styles.filterRow}>
-          <TouchableOpacity
-            style={[styles.filterButton, filter === 'all' && styles.filterButtonActive]}
-            onPress={() => setFilter('all')}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.filterText, filter === 'all' && styles.filterTextActive]}>
-              All
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.filterButton, filter === 'unread' && styles.filterButtonActive]}
-            onPress={() => setFilter('unread')}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.filterText, filter === 'unread' && styles.filterTextActive]}>
-              Unread
-              {unreadCount > 0 && ` (${unreadCount})`}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {unreadCount > 0 && filter === 'all' && (
-          <TouchableOpacity
-            style={styles.markAllButton}
-            onPress={handleMarkAllAsRead}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="checkmark-done-outline" size={16} color="#E60549" />
-            <Text style={styles.markAllText}>Mark all as read</Text>
-          </TouchableOpacity>
-        )}
-      </View>
     );
   };
 
   const renderEmpty = () => {
     if (loading) {
       return (
-        <View style={styles.centerContainer}>
+        <View style={styles.emptyContainer}>
           <ActivityIndicator size="large" color="#E60549" />
         </View>
       );
     }
-
     return (
-      <View style={styles.centerContainer}>
-        <Ionicons
-          name={filter === 'unread' ? 'checkmark-circle-outline' : 'notifications-outline'}
-          size={64}
-          color="#CCC"
-        />
-        <Text style={styles.emptyTitle}>
-          {filter === 'unread' ? 'All caught up!' : 'No notifications yet'}
+      <View style={styles.emptyContainer}>
+        <View style={[styles.emptyIconWrap, { backgroundColor: colors.backgroundSecondary }]}>
+          <Ionicons
+            name={filter === "unread" ? "checkmark-done-circle-outline" : "notifications-off-outline"}
+            size={36}
+            color={colors.textMuted}
+          />
+        </View>
+        <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
+          {filter === "unread" ? "All caught up!" : "No notifications yet"}
         </Text>
-        <Text style={styles.emptyText}>
-          {filter === 'unread'
-            ? 'You have no unread notifications'
-            : 'Notifications will appear here when you receive them'}
+        <Text style={[styles.emptyMessage, { color: colors.textSecondary }]}>
+          {filter === "unread"
+            ? "You have no unread notifications"
+            : "Notifications will appear here when you receive them"}
         </Text>
       </View>
     );
@@ -288,165 +298,133 @@ export default function NotificationsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <FlatList
-        data={notifications}
-        renderItem={renderNotificationItem}
-        keyExtractor={(item) => item.id}
-        ListHeaderComponent={renderHeader}
+      {renderFilterBar()}
+      <SectionList
+        sections={sections}
+        keyExtractor={item => item.id}
+        renderItem={renderItem}
+        renderSectionHeader={renderSectionHeader}
         ListEmptyComponent={renderEmpty}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        stickySectionHeadersEnabled={false}
         refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor="#E60549"
-          />
+          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); fetchNotifications(); }} tintColor="#E60549" />
         }
       />
     </View>
   );
 }
 
+// ─── styles ───────────────────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  listContent: {
-    paddingBottom: 20,
-  },
+  container: { flex: 1 },
+  listContent: { paddingBottom: 32, flexGrow: 1 },
 
-  // Header
-  header: {
-    paddingTop: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
-  },
-  filterRow: {
+  // Filter bar
+  filterBar: {
     flexDirection: "row",
-    paddingHorizontal: 20,
-    gap: 12,
-    marginBottom: 12,
-  },
-  filterButton: {
-    paddingVertical: 8,
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
-    borderRadius: 20,
-    backgroundColor: "#F5F5F5",
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
-  filterButtonActive: {
-    backgroundColor: "#E60549",
-  },
-  filterText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#666",
-  },
-  filterTextActive: {
-    color: "white",
-  },
-  markAllButton: {
+  filterTabs: { flexDirection: "row", gap: 8 },
+  filterTab: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "flex-end",
-    paddingHorizontal: 20,
     gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
   },
-  markAllText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#E60549",
-  },
-
-  // Notification Card
-  notificationCard: {
-    flexDirection: "row",
+  filterTabText: { fontSize: 13, fontWeight: "600" },
+  countBadge: {
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
     alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-  },
-  unreadCard: {
-  },
-  notificationContent: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
     justifyContent: "center",
-    alignItems: "center",
+    paddingHorizontal: 4,
   },
-  textContainer: {
-    flex: 1,
+  countBadgeText: { fontSize: 10, fontWeight: "700", color: "#fff" },
+  markAllBtn: { flexDirection: "row", alignItems: "center", gap: 5 },
+  markAllText: { fontSize: 12, fontWeight: "600" },
+
+  // Section header
+  sectionHeader: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 6,
   },
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 4,
-  },
-  notificationTitle: {
-    fontSize: 15,
-    fontWeight: "600",
-    flex: 1,
-  },
-  unreadDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: "#E60549",
-  },
-  notificationMessage: {
-    fontSize: 14,
-    color: "#666",
-    lineHeight: 20,
-    marginBottom: 6,
-  },
-  metaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  timeAgo: {
-    fontSize: 12,
-  },
-  metaBadge: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F5F5F5",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-    gap: 4,
-  },
-  metaText: {
+  sectionHeaderText: {
     fontSize: 11,
-    fontWeight: "600",
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
   },
 
-  // Empty State
-  centerContainer: {
+  // Card
+  card: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 12,
+  },
+  iconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    flexShrink: 0,
+    marginTop: 1,
+  },
+  cardBody: { flex: 1, gap: 4 },
+  cardTitleRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  cardTitle: { flex: 1, fontSize: 14, fontWeight: "600" },
+  cardTime: { fontSize: 11, flexShrink: 0 },
+  cardMessage: { fontSize: 13, lineHeight: 18 },
+  orderChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginTop: 2,
+  },
+  orderChipText: { fontSize: 11, fontWeight: "600" },
+  unreadDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 4,
+    marginTop: 6,
+    flexShrink: 0,
+  },
+
+  // Empty state
+  emptyContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 80,
     paddingHorizontal: 40,
+    gap: 12,
   },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginTop: 16,
-    marginBottom: 8,
+  emptyIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 4,
   },
-  emptyText: {
-    fontSize: 14,
-    textAlign: "center",
-    lineHeight: 20,
-  },
+  emptyTitle: { fontSize: 16, fontWeight: "700", textAlign: "center" },
+  emptyMessage: { fontSize: 13, textAlign: "center", lineHeight: 20 },
 });

@@ -149,109 +149,66 @@ interface ItemCardProps {
 
 const OrderItemCard: React.FC<ItemCardProps> = ({ item, isLast, colors, onImagePress }) => {
   const images = item.listing.primary_image ? [item.listing.primary_image.image] : [];
-  const [activeThumb, setActiveThumb] = useState(0);
 
   return (
     <View style={[itemCardStyles.container, !isLast && { borderBottomWidth: 1, borderBottomColor: colors.border }]}>
-      {/* Main image – tap to expand */}
+      {/* Square thumbnail – tap to expand */}
       {images.length > 0 ? (
         <TouchableOpacity
           activeOpacity={0.88}
-          onPress={() => onImagePress(images, activeThumb)}
-          style={itemCardStyles.mainImageWrap}
+          onPress={() => onImagePress(images, 0)}
+          style={itemCardStyles.thumbWrap}
         >
-          <Image source={{ uri: images[activeThumb] }} style={itemCardStyles.mainImage} resizeMode="cover" />
-          {images.length > 1 && (
-            <View style={itemCardStyles.expandBadge}>
-              <Ionicons name="expand-outline" size={12} color="#fff" />
-            </View>
-          )}
+          <Image source={{ uri: images[0] }} style={itemCardStyles.thumb} resizeMode="cover" />
+          <View style={itemCardStyles.expandBadge}>
+            <Ionicons name="expand-outline" size={10} color="#fff" />
+          </View>
         </TouchableOpacity>
       ) : (
-        <View style={[itemCardStyles.mainImageWrap, itemCardStyles.imagePlaceholder]}>
-          <Ionicons name="image-outline" size={28} color={colors.textMuted} />
+        <View style={[itemCardStyles.thumbWrap, itemCardStyles.imagePlaceholder, { backgroundColor: colors.backgroundSecondary }]}>
+          <Ionicons name="image-outline" size={22} color={colors.textMuted} />
         </View>
       )}
 
       {/* Info */}
       <View style={itemCardStyles.info}>
-        <Text style={[itemCardStyles.title, { color: colors.textPrimary }]} numberOfLines={3}>
+        <Text style={[itemCardStyles.title, { color: colors.textPrimary }]} numberOfLines={2}>
           {item.listing.title}
         </Text>
-        <View style={itemCardStyles.metaRow}>
-          <View style={[itemCardStyles.qtyBadge, { backgroundColor: colors.backgroundSecondary }]}>
-            <Text style={[itemCardStyles.qtyText, { color: colors.textSecondary }]}>Qty {item.quantity}</Text>
-          </View>
-        </View>
         <Text style={[itemCardStyles.unitPrice, { color: colors.textMuted }]}>
-          UGX {parseFloat(item.unit_price).toLocaleString()} each
+          UGX {parseFloat(item.unit_price).toLocaleString()} × {item.quantity}
         </Text>
         <Text style={[itemCardStyles.totalPrice, { color: "#E60549" }]}>
           UGX {parseFloat(item.total_price).toLocaleString()}
         </Text>
       </View>
-
-      {/* Thumbnail strip for multiple images */}
-      {images.length > 1 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={itemCardStyles.thumbStrip}
-          contentContainerStyle={itemCardStyles.thumbContent}
-        >
-          {images.map((uri, i) => (
-            <TouchableOpacity
-              key={i}
-              activeOpacity={0.8}
-              onPress={() => {
-                setActiveThumb(i);
-                onImagePress(images, i);
-              }}
-              style={[
-                itemCardStyles.thumbWrap,
-                { borderColor: i === activeThumb ? "#E60549" : "transparent", borderWidth: 2 },
-              ]}
-            >
-              <Image source={{ uri }} style={itemCardStyles.thumb} resizeMode="cover" />
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      )}
     </View>
   );
 };
 
 const itemCardStyles = StyleSheet.create({
-  container: { paddingVertical: 16 },
-  mainImageWrap: {
-    width: "100%",
-    height: 200,
+  container: { paddingVertical: 12, flexDirection: "row", alignItems: "center", gap: 12 },
+  thumbWrap: {
+    width: 72,
+    height: 72,
     borderRadius: 10,
     overflow: "hidden",
-    backgroundColor: "#f0f0f0",
-    marginBottom: 12,
+    flexShrink: 0,
   },
-  mainImage: { width: "100%", height: "100%" },
+  thumb: { width: "100%", height: "100%" },
   imagePlaceholder: { alignItems: "center", justifyContent: "center" },
   expandBadge: {
     position: "absolute",
-    bottom: 8,
-    right: 8,
+    bottom: 4,
+    right: 4,
     backgroundColor: "rgba(0,0,0,0.45)",
-    borderRadius: 6,
-    padding: 5,
+    borderRadius: 4,
+    padding: 3,
   },
-  info: { gap: 6 },
-  title: { fontSize: 15, fontWeight: "600", lineHeight: 21 },
-  metaRow: { flexDirection: "row", alignItems: "center", gap: 8 },
-  qtyBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  qtyText: { fontSize: 12, fontWeight: "600" },
-  unitPrice: { fontSize: 13 },
-  totalPrice: { fontSize: 16, fontWeight: "700" },
-  thumbStrip: { marginTop: 10 },
-  thumbContent: { gap: 8, paddingVertical: 2 },
-  thumbWrap: { borderRadius: 8, overflow: "hidden" },
-  thumb: { width: 56, height: 56, borderRadius: 6 },
+  info: { flex: 1, gap: 4 },
+  title: { fontSize: 14, fontWeight: "600", lineHeight: 20 },
+  unitPrice: { fontSize: 12, marginTop: 2 },
+  totalPrice: { fontSize: 14, fontWeight: "700" },
 });
 
 // ─── Main Screen ──────────────────────────────────────────────────────────────
@@ -426,30 +383,95 @@ export default function OrderDetailScreen() {
       />
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Status Header */}
-        <View style={styles.statusHeader}>
-          <View style={[styles.statusIcon, { backgroundColor: `${getStatusColor(order.status)}20` }]}>
-            <Ionicons
-              name={
-                order.status === "COMPLETED"
-                  ? "checkmark-circle"
-                  : order.status === "CANCELLED"
-                  ? "close-circle"
-                  : "time"
-              }
-              size={32}
-              color={getStatusColor(order.status)}
-            />
-          </View>
-          <Text style={styles.statusTitle}>{getStatusText(order.status)}</Text>
-          <Text style={styles.orderNumber}>{order.order_number}</Text>
-          {order.order_group_number && (
-            <View style={styles.groupBadge}>
-              <Ionicons name="layers-outline" size={14} color={colors.textSecondary} />
-              <Text style={styles.groupText}>{order.order_group_number}</Text>
+        {/* Status Card */}
+        {(() => {
+          const statusColor = getStatusColor(order.status);
+          const isCancelled = order.status === "CANCELLED";
+          const steps = ["NEW", "CONTACTED", "CONFIRMED", "COMPLETED"];
+          const currentStep = isCancelled ? -1 : steps.indexOf(order.status);
+          const stepLabels = ["Placed", "Contacted", "Confirmed", "Delivered"];
+          const stepIcons: Record<string, any> = {
+            NEW: "bag-outline",
+            CONTACTED: "call-outline",
+            CONFIRMED: "checkmark-circle-outline",
+            COMPLETED: "cube-outline",
+          };
+
+          return (
+            <View style={[styles.statusCard, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+              {/* Badge row */}
+              <View style={styles.statusBadgeRow}>
+                <Text style={[styles.statusCardLabel, { color: colors.textMuted }]}>ORDER STATUS</Text>
+                <View style={[styles.statusBadge, { backgroundColor: `${statusColor}18`, borderColor: `${statusColor}40` }]}>
+                  <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+                  <Text style={[styles.statusBadgeText, { color: statusColor }]}>{getStatusText(order.status)}</Text>
+                </View>
+              </View>
+
+              {/* Progress stepper */}
+              {!isCancelled && (
+                <View style={styles.stepper}>
+                  {steps.map((step, i) => {
+                    const done = i <= currentStep;
+                    const active = i === currentStep;
+                    const stepColor = done ? statusColor : colors.border;
+                    return (
+                      <View key={step} style={styles.stepItem}>
+                        <View style={[
+                          styles.stepCircle,
+                          { borderColor: stepColor, backgroundColor: done ? stepColor : colors.background }
+                        ]}>
+                          {done ? (
+                            <Ionicons name={active ? stepIcons[step] : "checkmark"} size={12} color="#fff" />
+                          ) : (
+                            <View style={[styles.stepDotInner, { backgroundColor: colors.border }]} />
+                          )}
+                        </View>
+                        <Text style={[styles.stepLabel, { color: done ? statusColor : colors.textMuted }]}>
+                          {stepLabels[i]}
+                        </Text>
+                        {i < steps.length - 1 && (
+                          <View style={[styles.stepLine, { backgroundColor: i < currentStep ? statusColor : colors.border }]} />
+                        )}
+                      </View>
+                    );
+                  })}
+                </View>
+              )}
+
+              {isCancelled && (
+                <View style={[styles.cancelledBanner, { backgroundColor: "#FFF0F0" }]}>
+                  <Ionicons name="close-circle" size={16} color="#F44336" />
+                  <Text style={styles.cancelledText}>This order has been cancelled</Text>
+                </View>
+              )}
+
+              {/* Labeled info grid */}
+              <View style={[styles.statusInfoGrid, { borderTopColor: colors.border }]}>
+                <View style={[styles.statusInfoCell, { borderColor: colors.border }]}>
+                  <Text style={[styles.statusInfoLabel, { color: colors.textMuted }]}>Order No.</Text>
+                  <Text style={[styles.statusInfoValue, { color: colors.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>
+                    {order.order_number}
+                  </Text>
+                </View>
+                <View style={[styles.statusInfoCell, { borderColor: colors.border }]}>
+                  <Text style={[styles.statusInfoLabel, { color: colors.textMuted }]}>Placed</Text>
+                  <Text style={[styles.statusInfoValue, { color: colors.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>
+                    {new Date(order.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                  </Text>
+                </View>
+                {order.order_group_number && (
+                  <View style={[styles.statusInfoCell, styles.statusInfoCellFull, { borderColor: colors.border }]}>
+                    <Text style={[styles.statusInfoLabel, { color: colors.textMuted }]}>Group No.</Text>
+                    <Text style={[styles.statusInfoValue, { color: colors.textPrimary }]} numberOfLines={1} adjustsFontSizeToFit>
+                      {order.order_group_number}
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
-          )}
-        </View>
+          );
+        })()}
 
         {/* Order Items */}
         <View style={styles.section}>
@@ -557,35 +579,18 @@ export default function OrderDetailScreen() {
           </View>
         </View>
 
-        {/* Order Info */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Order Information</Text>
-          <View style={styles.card}>
-            <View style={styles.infoRow}>
-              <Ionicons name="calendar-outline" size={18} color={colors.textSecondary} />
-              <View style={styles.infoContent}>
-                <Text style={styles.infoLabel}>Order Date</Text>
-                <Text style={styles.infoValue}>
-                  {new Date(order.created_at).toLocaleDateString("en-US", {
-                    weekday: "long",
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </Text>
+        {/* Notes */}
+        {order.notes && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Notes</Text>
+            <View style={styles.card}>
+              <View style={styles.infoRow}>
+                <Ionicons name="document-text-outline" size={18} color={colors.textSecondary} />
+                <Text style={[styles.infoValue, { flex: 1 }]}>{order.notes}</Text>
               </View>
             </View>
-            {order.notes && (
-              <View style={[styles.infoRow, { marginTop: 12 }]}>
-                <Ionicons name="document-text-outline" size={18} color={colors.textSecondary} />
-                <View style={styles.infoContent}>
-                  <Text style={styles.infoLabel}>Notes</Text>
-                  <Text style={styles.infoValue}>{order.notes}</Text>
-                </View>
-              </View>
-            )}
           </View>
-        </View>
+        )}
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -650,28 +655,89 @@ const getStyles = (colors: any) =>
     errorText: { fontSize: 15, color: colors.textSecondary },
     scrollView: { flex: 1 },
 
-    statusHeader: { paddingVertical: 32, alignItems: "center" },
-    statusIcon: {
-      width: 64,
-      height: 64,
-      borderRadius: 32,
-      justifyContent: "center",
-      alignItems: "center",
-      marginBottom: 12,
+    statusCard: {
+      marginHorizontal: 20,
+      marginTop: 16,
+      borderRadius: 14,
+      borderWidth: 1,
+      overflow: "hidden",
     },
-    statusTitle: { fontSize: 18, fontWeight: "700", color: colors.textPrimary, marginBottom: 4 },
-    orderNumber: { fontSize: 14, color: colors.textSecondary },
-    groupBadge: {
+    statusBadgeRow: {
       flexDirection: "row",
       alignItems: "center",
-      backgroundColor: colors.backgroundSecondary,
-      paddingHorizontal: 12,
-      paddingVertical: 6,
-      borderRadius: 16,
-      marginTop: 8,
-      gap: 6,
+      justifyContent: "space-between",
+      paddingHorizontal: 16,
+      paddingTop: 14,
+      paddingBottom: 12,
     },
-    groupText: { fontSize: 12, fontWeight: "600", color: colors.textSecondary },
+    statusCardLabel: { fontSize: 11, fontWeight: "700", letterSpacing: 0.6, textTransform: "uppercase" },
+    statusBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 6,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 20,
+      borderWidth: 1,
+    },
+    statusDot: { width: 7, height: 7, borderRadius: 4 },
+    statusBadgeText: { fontSize: 12, fontWeight: "700" },
+
+    stepper: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      paddingHorizontal: 16,
+      paddingBottom: 16,
+    },
+    stepItem: { flex: 1, alignItems: "center", position: "relative" },
+    stepCircle: {
+      width: 26,
+      height: 26,
+      borderRadius: 13,
+      borderWidth: 2,
+      alignItems: "center",
+      justifyContent: "center",
+      zIndex: 1,
+    },
+    stepDotInner: { width: 6, height: 6, borderRadius: 3 },
+    stepLabel: { fontSize: 10, fontWeight: "600", marginTop: 5, textAlign: "center" },
+    stepLine: {
+      position: "absolute",
+      top: 12,
+      left: "50%",
+      right: "-50%",
+      height: 2,
+      zIndex: 0,
+    },
+
+    cancelledBanner: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 8,
+      marginHorizontal: 16,
+      marginBottom: 14,
+      paddingHorizontal: 12,
+      paddingVertical: 10,
+      borderRadius: 8,
+    },
+    cancelledText: { fontSize: 13, fontWeight: "600", color: "#F44336" },
+
+    statusInfoGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      borderTopWidth: StyleSheet.hairlineWidth,
+    },
+    statusInfoCell: {
+      width: "50%",
+      paddingVertical: 11,
+      paddingHorizontal: 14,
+      gap: 3,
+      borderRightWidth: StyleSheet.hairlineWidth,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+    },
+    statusInfoCellFull: { width: "100%", borderRightWidth: 0 },
+    statusInfoLabel: { fontSize: 10, fontWeight: "600", textTransform: "uppercase", letterSpacing: 0.5 },
+    statusInfoValue: { fontSize: 13, fontWeight: "600" },
 
     section: { marginTop: 16, paddingHorizontal: 20 },
     sectionTitle: {

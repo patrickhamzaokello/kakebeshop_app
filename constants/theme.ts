@@ -39,7 +39,7 @@ export const lightColors = {
   primary: "#d00000",
   primaryLight: "#ff5400",
   primaryDark: "#B8003A",
-  primarySoft: "#344e41",
+  primarySoft: "#FFF5EE",
 
   // Secondary Accent
   secondary: "#FF6B6B",
@@ -54,10 +54,10 @@ export const lightColors = {
   textPlaceholder: "#9A9A9A",
   textInverse: "#FFFFFF",
 
-  // Background Colors - Clean White base
-  background: "#FFFFFF",
-  backgroundSecondary: "#F8F8F8",
-  backgroundTertiary: "#F0F0F0",
+  // Background Colors - Gray canvas so white cards stand out
+  background: "#FFF5EE",
+  backgroundSecondary: "#E8EAED",
+  backgroundTertiary: "#DFE1E6",
   surface: "#FFFFFF",
   surfaceElevated: "#FFFFFF",
 
@@ -78,9 +78,9 @@ export const lightColors = {
   gray900: "#212121",
 
   // Neutral Scale (legacy support)
-  neutral50: "#FAFAFA",
-  neutral100: "#F5F5F5",
-  neutral200: "#EEEEEE",
+  neutral50: "#FFFFFF",
+  neutral100: "#FFFFFF",
+  neutral200: "#F2F3F5",
   neutral300: "#E0E0E0",
   neutral350: "#D0D0D0",
   neutral400: "#BDBDBD",
@@ -108,11 +108,11 @@ export const lightColors = {
   infoDark: "#1976D2",
 
   // UI Elements
-  border: "#E8E8E8",
-  borderLight: "#F0F0F0",
-  borderDark: "#D0D0D0",
-  divider: "#EEEEEE",
-  separator: "#E8E8E8",
+  border: "#D0D0D0",
+  borderLight: "#E0E0E0",
+  borderDark: "#AAAAAA",
+  divider: "#DEDEDE",
+  separator: "#D0D0D0",
 
   // Interactive States
   ripple: "rgba(230, 5, 73, 0.12)",
@@ -131,19 +131,19 @@ export const lightColors = {
   rose: "#FF3D3D",
   green: "#00C853",
   matteBlack: "#1A1A1A",
-  lineseparator: "#EEEEEE",
+  lineseparator: "#DEDEDE",
 
   // Card & Input specific
   card: "#FFFFFF",
-  cardBorder: "#E8E8E8",
+  cardBorder: "#D4D4D4",
   inputBackground: "#FFFFFF",
-  inputBorder: "#E8E8E8",
+  inputBorder: "#C4C4C4",
   iconColor: "#000000",
   iconColorMuted: "#6B6B6B",
 
   // Tab Bar
   tabBarBackground: "#FFFFFF",
-  tabBarBorder: "#E8E8E8",
+  tabBarBorder: "#D0D0D0",
   tabBarActive: "#d00000",
   tabBarInactive: "#000000",
 

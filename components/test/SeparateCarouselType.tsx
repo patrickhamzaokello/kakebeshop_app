@@ -1,22 +1,23 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
     View,
-    ScrollView,
     Image,
+    ScrollView,
     Dimensions,
     StyleSheet,
     NativeScrollEvent,
     NativeSyntheticEvent,
-    TouchableOpacity,
     Animated,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import { Text } from '@/components/Text';
 import { CarouselImage } from '@/utils/types/models';
+import { useTheme } from '@/contexts/ThemeContext';
 
-const { width } = Dimensions.get('window');
-const CARD_WIDTH = width * 0.85; // 85% of screen width
-const CARD_SPACING = 16; // Space between cards
-const LEFT_PADDING = 20; // Left padding as requested
-const PEEK_WIDTH = 10; // How much of the next card shows
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const CARD_HEIGHT = 165;
+const H_MARGIN = 16;
+const AUTO_SLIDE_INTERVAL = 4500;
 
 interface SeparateCarouselTypeProps {
     data: CarouselImage[] | null;
@@ -24,156 +25,211 @@ interface SeparateCarouselTypeProps {
 }
 
 const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
-    const animatedValue = new Animated.Value(0);
+    const animatedValue = useRef(new Animated.Value(0)).current;
 
-    React.useEffect(() => {
+    useEffect(() => {
         Animated.loop(
             Animated.sequence([
-                Animated.timing(animatedValue, {
-                    toValue: 1,
-                    duration: 1000,
-                    useNativeDriver: true,
-                }),
-                Animated.timing(animatedValue, {
-                    toValue: 0,
-                    duration: 1000,
-                    useNativeDriver: true,
-                }),
+                Animated.timing(animatedValue, { toValue: 1, duration: 1000, useNativeDriver: true }),
+                Animated.timing(animatedValue, { toValue: 0, duration: 1000, useNativeDriver: true }),
             ])
         ).start();
     }, []);
 
-    const opacity = animatedValue.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0.3, 0.7],
-    });
+    const opacity = animatedValue.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
 
-    return (
-        <Animated.View
-            style={[
-                {
-                    backgroundColor: '#E0E0E0',
-                    opacity,
-                },
-                style,
-            ]}
-        />
-    );
+    return <Animated.View style={[{ backgroundColor: '#E0E0E0', opacity }, style]} />;
 };
 
 export const SeparateCarouselType: React.FC<SeparateCarouselTypeProps> = ({ data, loading }) => {
-    const [activeIndex, setActiveIndex] = useState<number>(0);
+    const { colors } = useTheme();
+    const [activeIndex, setActiveIndex] = useState(0);
     const scrollRef = useRef<ScrollView>(null);
+    const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    const scrollToIndex = (index: number) => {
+        scrollRef.current?.scrollTo({ x: index * SCREEN_WIDTH, animated: true });
+    };
+
+    const startAutoSlide = (items: CarouselImage[]) => {
+        if (intervalRef.current) clearInterval(intervalRef.current);
+        if (items.length <= 1) return;
+        intervalRef.current = setInterval(() => {
+            setActiveIndex((prev) => {
+                const next = (prev + 1) % items.length;
+                scrollRef.current?.scrollTo({ x: next * SCREEN_WIDTH, animated: true });
+                return next;
+            });
+        }, AUTO_SLIDE_INTERVAL);
+    };
+
+    useEffect(() => {
+        if (!data) return;
+        startAutoSlide(data);
+        return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+    }, [data]);
+
+    const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+        const index = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH);
+        setActiveIndex(index);
+    };
 
     if (loading) {
         return (
             <View style={styles.container}>
-                <View style={styles.carouselWrapper}>
-                    <View style={styles.loadingContainer}>
+                <ShimmerPlaceholder style={styles.shimmerCard} />
+                <View style={styles.segmentContainer}>
+                    {[0, 1, 2].map((i) => (
                         <ShimmerPlaceholder
-                            style={{
-                                width: CARD_WIDTH,
-                                height: 150,
-                                borderRadius: 16,
-                                marginLeft: LEFT_PADDING,
-                            }}
+                            key={i}
+                            style={[styles.segment, { flex: 1 }]}
                         />
-                    </View>
+                    ))}
                 </View>
             </View>
         );
     }
 
-    const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-        const scrollPosition = event.nativeEvent.contentOffset.x;
-        const index = Math.round(scrollPosition / (CARD_WIDTH + CARD_SPACING));
-        setActiveIndex(index);
-    };
-
-    const goToSlide = (index: number) => {
-        scrollRef.current?.scrollTo({
-            x: index * (CARD_WIDTH + CARD_SPACING),
-            animated: true,
-        });
-        setActiveIndex(index);
-    };
+    if (!data || data.length === 0) return null;
 
     return (
         <View style={styles.container}>
-            <View style={styles.carouselWrapper}>
-                <ScrollView
-                    ref={scrollRef}
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    onScroll={handleScroll}
-                    scrollEventThrottle={16}
-                    snapToInterval={CARD_WIDTH + CARD_SPACING}
-                    decelerationRate="fast"
-                    contentContainerStyle={{
-                        paddingLeft: LEFT_PADDING,
-                        paddingRight: PEEK_WIDTH,
-                    }}
-                >
-                    {data?.map((item, index) => (
-                        <TouchableOpacity
-                            key={item.id}
-                            activeOpacity={0.9}
-                            onPress={() => goToSlide(index)}
-                            style={[
-                                styles.cardWrapper,
-                                { marginRight: index === data.length - 1 ? 0 : CARD_SPACING }
-                            ]}
-                        >
-                            <View style={styles.card}>
-                                <Image 
-                                    source={{ uri: item.image }} 
-                                    style={styles.carouselImage}
-                                    resizeMode="cover"
-                                />
+            <ScrollView
+                ref={scrollRef}
+                horizontal
+                pagingEnabled
+                showsHorizontalScrollIndicator={false}
+                onScroll={handleScroll}
+                onScrollBeginDrag={() => data && startAutoSlide(data)}
+                scrollEventThrottle={16}
+            >
+                {data.map((item, index) => (
+                    <View key={item.id} style={styles.page}>
+                        <View style={styles.card}>
+                            <Image
+                                source={{ uri: item.image }}
+                                style={styles.cardImage}
+                                resizeMode="cover"
+                            />
+                            <LinearGradient
+                                colors={['transparent', 'rgba(0,0,0,0.58)']}
+                                style={styles.gradient}
+                            />
+
+                            {/* Slide counter pill — top right */}
+                            <View style={styles.counter}>
+                                <Text style={styles.counterText}>
+                                    {index + 1} / {data.length}
+                                </Text>
                             </View>
-                        </TouchableOpacity>
+
+                            {item.title ? (
+                                <View style={styles.titleContainer}>
+                                    <Text style={styles.cardTitle} numberOfLines={2}>
+                                        {item.title}
+                                    </Text>
+                                </View>
+                            ) : null}
+                        </View>
+                    </View>
+                ))}
+            </ScrollView>
+
+            {/* Story-style segment bars */}
+            {data.length > 1 && (
+                <View style={styles.segmentContainer}>
+                    {data.map((_, i) => (
+                        <View
+                            key={i}
+                            style={[
+                                styles.segment,
+                                {
+                                    flex: 1,
+                                    backgroundColor:
+                                        i === activeIndex
+                                            ? colors.primary
+                                            : (colors.gray300 ?? '#D0D0D0'),
+                                },
+                            ]}
+                        />
                     ))}
-                </ScrollView>
-            </View>
+                </View>
+            )}
         </View>
     );
 };
 
 const styles = StyleSheet.create({
     container: {
-        paddingTop: 20,
-        paddingBottom: 16,
+        paddingTop: 12,
+        paddingBottom: 4,
     },
-    carouselWrapper: {
-        position: 'relative',
+    // Loading
+    shimmerCard: {
+        height: CARD_HEIGHT,
+        marginHorizontal: H_MARGIN,
+        borderRadius: 10,
     },
-    loadingContainer: {
-        height: 150,
-        justifyContent: 'center',
-    },
-    scrollContent: {
-        alignItems: 'center',
-    },
-    cardWrapper: {
-        width: CARD_WIDTH,
+    // Each page is exactly SCREEN_WIDTH so pagingEnabled snaps cleanly
+    page: {
+        width: SCREEN_WIDTH,
+        paddingHorizontal: H_MARGIN,
     },
     card: {
-        width: '100%',
-        height: 150,
-        borderRadius: 8,
+        height: CARD_HEIGHT,
+        borderRadius: 10,
         overflow: 'hidden',
-        backgroundColor: '#f5f5f5',
-        shadowColor: '#000',
-        shadowOffset: {
-            width: 0,
-            height: 4,
-        },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-        elevation: 6,
+        backgroundColor: '#f0f0f0',
     },
-    carouselImage: {
+    cardImage: {
         width: '100%',
         height: '100%',
+    },
+    gradient: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height: 70,
+    },
+    // "2 / 4" pill in top-right
+    counter: {
+        position: 'absolute',
+        top: 10,
+        right: 10,
+        backgroundColor: 'rgba(0,0,0,0.42)',
+        paddingHorizontal: 9,
+        paddingVertical: 3,
+        borderRadius: 20,
+    },
+    counterText: {
+        color: '#fff',
+        fontSize: 11,
+        fontWeight: '600',
+        letterSpacing: 0.4,
+    },
+    titleContainer: {
+        position: 'absolute',
+        bottom: 12,
+        left: 12,
+        right: 12,
+    },
+    cardTitle: {
+        color: '#fff',
+        fontSize: 14,
+        fontWeight: '700',
+        lineHeight: 20,
+    },
+    // Thin story-style bars
+    segmentContainer: {
+        flexDirection: 'row',
+        marginHorizontal: H_MARGIN,
+        marginTop: 8,
+        gap: 4,
+        height: 3,
+    },
+    segment: {
+        height: 3,
+        borderRadius: 2,
     },
 });

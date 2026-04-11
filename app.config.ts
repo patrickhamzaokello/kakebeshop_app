@@ -86,7 +86,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       "expo-font",
       {
         fonts: [
-          "node_modules/@expo-google-fonts/inter/500Medium/SpaceGrotesk_500Medium.ttf",
+          "node_modules/@expo-google-fonts/space-grotesk/500Medium/SpaceGrotesk_500Medium.ttf",
         ],
       },
     ],

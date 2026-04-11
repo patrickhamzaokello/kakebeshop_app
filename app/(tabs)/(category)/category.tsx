@@ -93,7 +93,7 @@ export default function ExplorePage() {
 
         {/* Search Input */}
         <TouchableOpacity
-          style={[styles.searchContainer, { borderColor: colors.neutral100, backgroundColor: colors.neutral100 }]}
+          style={[styles.searchContainer, { borderColor: colors.border, backgroundColor: colors.card }]}
           onPress={handleSearchPress}
           activeOpacity={0.7}
         >

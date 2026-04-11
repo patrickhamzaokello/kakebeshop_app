@@ -27,7 +27,7 @@ const SEARCH_TERMS = [
 ];
 
 const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
-  const animatedValue = new Animated.Value(0);
+  const animatedValue = React.useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.loop(
@@ -55,7 +55,7 @@ const ShimmerPlaceholder: React.FC<{ style?: any }> = ({ style }) => {
     <Animated.View
       style={[
         {
-          backgroundColor: "#E0E0E0",
+          backgroundColor: "rgba(255,255,255,0.25)",
           opacity,
         },
         style,
@@ -137,7 +137,7 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
           <ShimmerPlaceholder
             style={{
               height: 50,
-              borderRadius: 4,
+              borderRadius: 8,
               width: "100%",
             }}
           />
@@ -205,12 +205,17 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
           style={{
             flexDirection: "row",
             alignItems: "center",
-            backgroundColor: colors.inputBackground,
-            borderRadius: 4,
-            borderColor: colors.inputBorder,
+            backgroundColor: colors.card,
+            borderRadius: 8,
+            borderColor: colors.border,
             borderWidth: 1,
             paddingHorizontal: 16,
             paddingVertical: 14,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.08,
+            shadowRadius: 4,
+            elevation: 2,
           }}
           onPress={onSearch}
           activeOpacity={0.7}

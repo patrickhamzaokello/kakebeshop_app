@@ -116,7 +116,7 @@ const CategoryChip: React.FC<{
                 activeOpacity={1}
             >
                 <View
-                    style={[styles.chip, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}
+                    style={[styles.chip, { backgroundColor: colors.card, borderColor: colors.border }]}
                 >
                     <Text style={[styles.chipText, { color: colors.textPrimary }]}>
                         {category.name}
