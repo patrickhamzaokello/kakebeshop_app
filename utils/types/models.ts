@@ -141,6 +141,7 @@ export interface ListingImageType {
 
 export interface ListingDetailImageType {
     id: string;
+    image_group_id: string;
     image: string;
     thumbnail: string;
     is_primary: boolean;

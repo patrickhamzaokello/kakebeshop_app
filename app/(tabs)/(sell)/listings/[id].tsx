@@ -69,12 +69,20 @@ const STATUS_MAP: Record<string, { label: string; color: string }> = {
 };
 
 export default function ListingDetailPage() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, fromCreation } = useLocalSearchParams<{ id: string; fromCreation?: string }>();
   const [listing, setListing] = useState<Listing | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState(false);
   const [imageIndex, setImageIndex] = useState(0);
   const { colors, isDark } = useTheme();
+
+  const handleBack = () => {
+    if (fromCreation === "1") {
+      router.replace("/(tabs)/(sell)");
+    } else {
+      router.back();
+    }
+  };
 
   useEffect(() => {
     fetchListing();
@@ -88,7 +96,7 @@ export default function ListingDetailPage() {
       }
     } catch (e) {
       Alert.alert("Error", "Could not load listing", [
-        { text: "OK", onPress: () => router.back() },
+        { text: "OK", onPress: handleBack },
       ]);
     } finally {
       setLoading(false);
@@ -157,7 +165,7 @@ export default function ListingDetailPage() {
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
         <StatusBar style={isDark ? "light" : "dark"} />
         <Text style={[styles.errorText, { color: colors.textMuted }]}>Listing not found</Text>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={handleBack}>
           <Text style={[styles.linkText, { color: colors.textPrimary }]}>Go back</Text>
         </TouchableOpacity>
       </View>
@@ -175,7 +183,7 @@ export default function ListingDetailPage() {
       <SafeAreaView edges={["top"]} style={[styles.headerSafe, { backgroundColor: colors.background }]}>
         <View style={[styles.header, { borderBottomColor: colors.border }]}>
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={handleBack}
             style={styles.headerBtn}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >

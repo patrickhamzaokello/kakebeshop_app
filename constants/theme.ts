@@ -39,7 +39,7 @@ export const lightColors = {
   primary: "#d00000",
   primaryLight: "#ff5400",
   primaryDark: "#B8003A",
-  primarySoft: "#FFF5EE",
+  primarySoft: "#FFFFFF",
 
   // Secondary Accent
   secondary: "#FF6B6B",
@@ -55,7 +55,7 @@ export const lightColors = {
   textInverse: "#FFFFFF",
 
   // Background Colors - Gray canvas so white cards stand out
-  background: "#FFF5EE",
+  background: "#FFFFFF",
   backgroundSecondary: "#E8EAED",
   backgroundTertiary: "#DFE1E6",
   surface: "#FFFFFF",

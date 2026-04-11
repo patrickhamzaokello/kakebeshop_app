@@ -281,11 +281,19 @@ export default function CaptureListingDetails() {
           {
             text: "View Listing",
             onPress: () =>
-              router.replace({ pathname: "/(tabs)/(sell)/listings/[id]", params: { id: listingId } }),
+              router.replace({ pathname: "/(tabs)/(sell)/listings/[id]", params: { id: listingId, fromCreation: "1" } }),
           },
           {
             text: "Create Another",
-            onPress: () => router.replace("/listings/capture_listing_images"),
+            onPress: () => {
+              // Replace to sell root first — this clears the entire listings stack
+              // (both the stale capture_listing_images and this details screen).
+              // Then push a completely fresh capture_listing_images on top.
+              router.replace("/(tabs)/(sell)");
+              setTimeout(() => {
+                router.push("/(tabs)/(sell)/listings/capture_listing_images");
+              }, 0);
+            },
           },
         ]
       );

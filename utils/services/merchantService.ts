@@ -154,6 +154,81 @@ export const merchantBase = {
     }
   },
 
+  /**
+   * Search & filter the authenticated merchant's own listings.
+   *
+   * ── Backend endpoint spec ──────────────────────────────────────────────────
+   *
+   * GET /api/v1/listings/my_listings/
+   *
+   * Query parameters:
+   *   page        integer   Page number (default: 1)
+   *   page_size   integer   Items per page (default: 20, max: 100)
+   *   search      string    Full-text search across title and description
+   *   status      string    Filter by status: ACTIVE | PENDING | REJECTED |
+   *                         INACTIVE | DRAFT | EXPIRED
+   *   ordering    string    Sort field: created_at | -created_at (default) |
+   *                         price | -price | views_count | -views_count
+   *
+   * Authentication: Bearer token required (merchant-only endpoint)
+   *
+   * Success response 200:
+   * {
+   *   count:        number,          // total items matching query
+   *   total_pages:  number,
+   *   current_page: number,
+   *   next:         string | null,   // URL of next page
+   *   previous:     string | null,
+   *   results: [
+   *     {
+   *       id:              string,
+   *       title:           string,
+   *       description:     string,
+   *       listing_type:    "PRODUCT" | "SERVICE",
+   *       category_name:   string,
+   *       price_type:      "FIXED" | "RANGE" | "ON_REQUEST",
+   *       price:           string | null,
+   *       price_min:       string | null,
+   *       price_max:       string | null,
+   *       currency:        string,
+   *       status:          "ACTIVE" | "PENDING" | "REJECTED" | "INACTIVE" | "DRAFT" | "EXPIRED",
+   *       is_featured:     boolean,
+   *       is_verified:     boolean,
+   *       views_count:     number,
+   *       contact_count:   number,
+   *       primary_image:   { image: string, thumbnail: string } | null,
+   *       created_at:      string,   // ISO 8601
+   *       updated_at:      string,
+   *     }
+   *   ]
+   * }
+   *
+   * Error responses:
+   *   401  Unauthorized — token missing or expired
+   *   403  Forbidden — user is not a merchant
+   * ──────────────────────────────────────────────────────────────────────────
+   */
+  async searchMyListings(params: {
+    search?: string;
+    status?: string;
+    page?: number;
+    ordering?: string;
+  }): Promise<any> {
+    try {
+      const query = new URLSearchParams();
+      if (params.page)     query.append("page",     String(params.page));
+      if (params.search)   query.append("search",   params.search);
+      if (params.status)   query.append("status",   params.status);
+      if (params.ordering) query.append("ordering",  params.ordering);
+      const response = await apiService.get(`/api/v1/listings/my_listings/?${query.toString()}`);
+      if (response.success && response.data) return response.data;
+      return null;
+    } catch (error) {
+      if (__DEV__) console.error("Error searching listings:", error);
+      return null;
+    }
+  },
+
   async deleteListing(listingId: string): Promise<boolean> {
     try {
       const response = await apiService.delete(`/api/v1/listings/${listingId}/`);

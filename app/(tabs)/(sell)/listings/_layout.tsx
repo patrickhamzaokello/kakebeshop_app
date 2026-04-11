@@ -25,6 +25,13 @@ export default function ListingsLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="edit-listing"
+        options={{
+          title: "Edit Listing",
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }
