@@ -248,4 +248,15 @@ export const merchantBase = {
       return false;
     }
   },
+
+  // DELETE /api/v1/merchants/me/ — withdraw/cancel a pending merchant application
+  async cancelApplication(): Promise<boolean> {
+    try {
+      const response = await apiService.delete("/api/v1/merchants/me/");
+      return !!response.success;
+    } catch (error) {
+      if (__DEV__) console.error("Error cancelling merchant application:", error);
+      return false;
+    }
+  },
 };

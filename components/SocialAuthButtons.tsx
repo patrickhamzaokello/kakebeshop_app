@@ -72,9 +72,10 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({
             );
             break;
           default:
+            if (__DEV__) console.error("[Google Sign-In] Error:", error.code, error.message);
             Alert.alert(
               "Google Sign-In Error",
-              "An unexpected error occurred. Please try again."
+              "Something went wrong. Please try again."
             );
             break;
         }

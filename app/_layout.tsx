@@ -37,6 +37,8 @@ const RootLayoutContent = () => {
   useEffect(() => {
     checkAuthState();
     GoogleSignin.configure({
+      webClientId:
+        "587787462511-bqs4eiss15no6u37u6u6b4oqihrlcm7k.apps.googleusercontent.com",
       iosClientId:
         "587787462511-lqie16rbc77p418sfpodcdffse0o8o3b.apps.googleusercontent.com",
       profileImageSize: 120,

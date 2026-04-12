@@ -6,6 +6,7 @@ import React, { PropsWithChildren, useEffect } from "react";
 import { Platform } from "react-native";
 import { postNotificationToken } from "./apiEndpoints";
 import { router } from "expo-router";
+import { useAuthStore } from "./authStore";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -72,6 +73,8 @@ function handleNotificationTap(data: NotificationData) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const PushNotificationManager: React.FC<PropsWithChildren> = ({ children }) => {
+  const { isLoggedIn } = useAuthStore();
+
   const registerForPushNotificationsAsync = async (): Promise<string | undefined> => {
     if (Platform.OS === "android") {
       await Notifications.setNotificationChannelAsync("default", {
@@ -118,9 +121,15 @@ const PushNotificationManager: React.FC<PropsWithChildren> = ({ children }) => {
     }
   };
 
+  // Re-register push token whenever the user logs in so the token is
+  // associated with their authenticated session on the backend.
   useEffect(() => {
-    registerForPushNotificationsAsync();
+    if (isLoggedIn) {
+      registerForPushNotificationsAsync();
+    }
+  }, [isLoggedIn]);
 
+  useEffect(() => {
     // Handle notifications received while the app is foregrounded
     const receivedSub = Notifications.addNotificationReceivedListener((notification) => {
       if (__DEV__) console.log("[Push] Received in foreground:", notification.request.content.title);

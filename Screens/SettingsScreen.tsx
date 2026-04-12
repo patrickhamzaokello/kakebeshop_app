@@ -11,6 +11,32 @@ import { ActivityIndicator, Alert, Image, RefreshControl, ScrollView, StyleSheet
 
 
 
+type MerchantStatusDisplay = { label: string; color: string; bg: string };
+
+const getMerchantStatusDisplay = (
+  merchant: NonNullable<UserProfile["merchant"]>
+): MerchantStatusDisplay => {
+  const status = merchant.status?.toUpperCase();
+  if (status === "ACTIVE") {
+    return merchant.verified
+      ? { label: "Verified", color: "#4CAF50", bg: "#4CAF5018" }
+      : { label: "Unverified", color: "#F59E0B", bg: "#FEF3C7" };
+  }
+  if (status === "PENDING" || status === "UNDER_REVIEW") {
+    return { label: "Pending", color: "#F59E0B", bg: "#FEF3C7" };
+  }
+  if (status === "SUSPENDED") {
+    return { label: "Suspended", color: "#F97316", bg: "#FFEDD5" };
+  }
+  if (status === "BANNED") {
+    return { label: "Banned", color: "#DC2626", bg: "#FEE2E2" };
+  }
+  if (status === "REJECTED") {
+    return { label: "Rejected", color: "#EF4444", bg: "#FEE2E2" };
+  }
+  return { label: status ?? "Unknown", color: "#9CA3AF", bg: "#F3F4F6" };
+};
+
 export default function AccountScreen() {
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
@@ -342,83 +368,97 @@ export default function AccountScreen() {
             </View>
 
             {/* Status pill — top right */}
-            <View style={[
-              styles.statusPill,
-              { backgroundColor: profile.merchant.status === "ACTIVE" ? "#4CAF5018" : "#FF3B3015" },
-            ]}>
-              <View style={[
-                styles.statusDot,
-                { backgroundColor: profile.merchant.status === "ACTIVE" ? "#4CAF50" : "#FF3B30" },
-              ]} />
-              <Text style={[
-                styles.statusPillText,
-                { color: profile.merchant.status === "ACTIVE" ? "#4CAF50" : "#FF3B30" },
-              ]}>
-                {profile.merchant.status}
-              </Text>
-            </View>
+            {(() => {
+              const s = getMerchantStatusDisplay(profile.merchant);
+              return (
+                <View style={[styles.statusPill, { backgroundColor: s.bg }]}>
+                  <View style={[styles.statusDot, { backgroundColor: s.color }]} />
+                  <Text style={[styles.statusPillText, { color: s.color }]}>
+                    {s.label}
+                  </Text>
+                </View>
+              );
+            })()}
           </View>
 
           {/* Divider */}
           <View style={[styles.merchantDivider, { backgroundColor: colors.border }]} />
 
-          {/* Action rows */}
-          <TouchableOpacity
-            style={styles.merchantActionRow}
-            onPress={() => router.push("/merchant/mylistings" as any)}
-            activeOpacity={0.6}
-          >
-            <View style={styles.merchantActionLeft}>
-              <Ionicons name="pricetags-outline" size={19} color="#4CAF50" />
-              <Text style={[styles.merchantActionLabel, { color: colors.textPrimary }]}>My Listings</Text>
+          {/* Unverified notice */}
+          {!profile.merchant.verified && (
+            <View style={[styles.unverifiedNotice, { backgroundColor: "#FEF3C7" }]}>
+              <Ionicons name="lock-closed-outline" size={15} color="#F59E0B" />
+              <Text style={styles.unverifiedNoticeText}>
+                Available once your account is verified
+              </Text>
             </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-          </TouchableOpacity>
+          )}
 
-          <TouchableOpacity
-            style={styles.merchantActionRow}
-            onPress={() => router.push("/merchant/orders" as any)}
-            activeOpacity={0.6}
-          >
-            <View style={styles.merchantActionLeft}>
-              <Ionicons name="cube-outline" size={19} color="#4CAF50" />
-              <Text style={[styles.merchantActionLabel, { color: colors.textPrimary }]}>Orders</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-          </TouchableOpacity>
+          {/* Action rows — locked when unverified */}
+          {[
+            { icon: "pricetags-outline", label: "My Listings",         color: "#4CAF50", onPress: () => router.push("/merchant/mylistings" as any) },
+            { icon: "cube-outline",      label: "Orders",              color: "#4CAF50", onPress: () => router.push("/merchant/orders" as any) },
+          ].map((item) => {
+            const locked = !profile.merchant!.verified;
+            return (
+              <TouchableOpacity
+                key={item.label}
+                style={[styles.merchantActionRow, locked && styles.merchantActionRowLocked]}
+                onPress={locked
+                  ? () => Alert.alert("Verification Required", "This feature is only available after your account has been verified.")
+                  : item.onPress}
+                activeOpacity={locked ? 1 : 0.6}
+              >
+                <View style={styles.merchantActionLeft}>
+                  <Ionicons name={item.icon as any} size={19} color={locked ? colors.textMuted : item.color} />
+                  <Text style={[styles.merchantActionLabel, { color: locked ? colors.textMuted : colors.textPrimary }]}>
+                    {item.label}
+                  </Text>
+                </View>
+                <Ionicons
+                  name={locked ? "lock-closed-outline" : "chevron-forward"}
+                  size={16}
+                  color={locked ? colors.textMuted : colors.textMuted}
+                />
+              </TouchableOpacity>
+            );
+          })}
 
-          {/* Divider before primary CTAs */}
+          {/* Divider before secondary CTAs */}
           <View style={[styles.merchantDivider, { backgroundColor: colors.border }]} />
 
-          <TouchableOpacity
-            style={styles.merchantActionRow}
-            onPress={() => router.push("/merchant/edit-merchant-profile" as any)}
-            activeOpacity={0.6}
-          >
-            <View style={styles.merchantActionLeft}>
-              <Ionicons name="camera-outline" size={19} color={colors.textSecondary} />
-              <Text style={[styles.merchantActionLabel, { color: colors.textPrimary }]}>Edit Business Images</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.merchantActionRow}
-            onPress={() => {
-              if (profile?.merchant?.id) {
-                router.push(`/merchant/${profile.merchant.id}`);
-              } else {
-                Alert.alert("Error", "Merchant ID not found.");
+          {[
+            { icon: "camera-outline", label: "Edit Business Images", color: colors.textSecondary, onPress: () => router.push("/merchant/edit-merchant-profile" as any) },
+            { icon: "grid-outline",   label: "Manage Business",      color: colors.textSecondary, onPress: () => {
+                if (profile?.merchant?.id) router.push(`/merchant/${profile.merchant.id}`);
+                else Alert.alert("Error", "Merchant ID not found.");
               }
-            }}
-            activeOpacity={0.6}
-          >
-            <View style={styles.merchantActionLeft}>
-              <Ionicons name="grid-outline" size={19} color={colors.textSecondary} />
-              <Text style={[styles.merchantActionLabel, { color: colors.textPrimary }]}>Manage Business</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-          </TouchableOpacity>
+            },
+          ].map((item) => {
+            const locked = !profile.merchant!.verified;
+            return (
+              <TouchableOpacity
+                key={item.label}
+                style={[styles.merchantActionRow, locked && styles.merchantActionRowLocked]}
+                onPress={locked
+                  ? () => Alert.alert("Verification Required", "This feature is only available after your account has been verified.")
+                  : item.onPress}
+                activeOpacity={locked ? 1 : 0.6}
+              >
+                <View style={styles.merchantActionLeft}>
+                  <Ionicons name={item.icon as any} size={19} color={locked ? colors.textMuted : item.color} />
+                  <Text style={[styles.merchantActionLabel, { color: locked ? colors.textMuted : colors.textPrimary }]}>
+                    {item.label}
+                  </Text>
+                </View>
+                <Ionicons
+                  name={locked ? "lock-closed-outline" : "chevron-forward"}
+                  size={16}
+                  color={colors.textMuted}
+                />
+              </TouchableOpacity>
+            );
+          })}
 
         </View>
       ) : (profile?.intent?.intent === "sell" || profile?.intent?.intent === "both") ? (
@@ -720,6 +760,21 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 18,
     paddingVertical: 15,
+  },
+  merchantActionRowLocked: {
+    opacity: 0.45,
+  },
+  unverifiedNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+  },
+  unverifiedNoticeText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#92400E",
   },
   merchantActionLeft: {
     flexDirection: "row",

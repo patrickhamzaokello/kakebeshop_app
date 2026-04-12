@@ -145,26 +145,11 @@ export default function BecomeMerchantScreen() {
       });
 
       if (response.success) {
-        Alert.alert(
-          "Success!",
-          "Your merchant profile has been created. It will be reviewed by our team within 24-48 hours.",
-          [
-            {
-              text: "OK",
-              onPress: () => router.replace("/"),
-            },
-          ]
-        );
+        router.back();
       } else {
         Alert.alert(
-          "Failure!",
-          "Your merchant profile has failed to be saved. Try again",
-          [
-            {
-              text: "OK",
-              onPress: () => router.replace("/"),
-            },
-          ]
+          "Submission Failed",
+          "Your merchant profile could not be saved. Please try again."
         );
       }
     } catch (error) {

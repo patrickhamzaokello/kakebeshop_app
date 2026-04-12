@@ -10,7 +10,8 @@ import {
 import { Tabs } from "expo-router";
 import React from "react";
 import { Text } from "@/components/Text";
-import { View } from "react-native";
+import { Platform, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const CartTabIcon = ({ color, size }: { color: string; size: number }) => {
   const cartCount = useCartStore((state) => state.cartCount);
@@ -56,6 +57,7 @@ const makeTabResetListener = (tabName: string, rootScreen: string) =>
 
 export default function TabsLayout() {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
@@ -66,7 +68,9 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: colors.tabBarBackground,
           borderTopColor: colors.tabBarBorder,
-          paddingTop: 8,
+          paddingBottom: 10 + insets.bottom,
+          paddingTop: 10,
+          ...(Platform.OS === "android" && { height: 70 + insets.bottom }),
         },
       }}
       initialRouteName="(home)"
