@@ -67,6 +67,20 @@ type AuthState = {
   completeOnboarding: () => Promise<void>;
 };
 
+/**
+ * Parses the backend error body `{ errors: { field: [msg, ...], ... } }`
+ * into a single newline-joined string. Falls back to `fallback` when
+ * the structure is absent or empty.
+ */
+function parseApiErrors(data: any, fallback: string): string {
+  const errors = data?.errors;
+  if (errors && typeof errors === "object") {
+    const messages = (Object.values(errors) as string[][]).flat();
+    if (messages.length > 0) return messages.join("\n");
+  }
+  return fallback;
+}
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
@@ -165,15 +179,12 @@ export const useAuthStore = create<AuthState>()(
 
             return { success: true };
           } else {
-            let msg = data?.details?.error[0]|| "Login failed";
-           
+            const msg = parseApiErrors(data, "Login failed");
             return { success: false, msg };
           }
         } catch (error: any) {
-          let msg = error?.data?.error[0] || "Error occurred, please try again";
-          
+          const msg = parseApiErrors(error?.data, "Error occurred, please try again");
           return { success: false, msg };
-         
         }
       },
 
@@ -263,20 +274,12 @@ export const useAuthStore = create<AuthState>()(
             const msg = data?.data?.message;
             return { success: true, msg };
           } else {
-            let msg = data?.message || "Registration failed";
-            if (
-              msg.includes("email-already-in-use") ||
-              msg.includes("already exists")
-            ) {
-              msg = "This email is already in use";
-            }
+            const msg = parseApiErrors(data, "Registration failed");
             return { success: false, msg };
           }
         } catch (error: any) {
-          return {
-            success: false,
-            msg: error?.message || "Network error. Please try again.",
-          };
+          const msg = parseApiErrors(error?.data, "Network error. Please try again.");
+          return { success: false, msg };
         }
       },
 
@@ -297,22 +300,12 @@ export const useAuthStore = create<AuthState>()(
           if (response.success) {
             return { success: true, verificationResponse: data };
           } else {
-            let msg = data?.error || "Verification failed";
-            if (
-              msg.includes("Invalid verification code") ||
-              msg.includes("verification code")
-            ) {
-              msg =
-                "Invalid verification code. Please try again. attempts remaining" +
-                (data?.attempts_remaining || "");
-            }
+            const msg = parseApiErrors(data, "Verification failed");
             return { success: false, msg };
           }
         } catch (error: any) {
-          return {
-            success: false,
-            msg: error?.message || "Network error. Please try again.",
-          };
+          const msg = parseApiErrors(error?.data, "Network error. Please try again.");
+          return { success: false, msg };
         }
       },
 
@@ -334,22 +327,12 @@ export const useAuthStore = create<AuthState>()(
           if (response.success) {
             return { success: true };
           } else {
-            let msg = data?.error || "Verification failed";
-            if (
-              msg.includes("Invalid verification code") ||
-              msg.includes("verification code")
-            ) {
-              msg =
-                "Invalid verification code. Please try again. attempts remaining" +
-                (data?.attempts_remaining || "");
-            }
+            const msg = parseApiErrors(data, "Verification failed");
             return { success: false, msg };
           }
         } catch (error: any) {
-          return {
-            success: false,
-            msg: error?.message || "Network error. Please try again.",
-          };
+          const msg = parseApiErrors(error?.data, "Network error. Please try again.");
+          return { success: false, msg };
         }
       },
 
@@ -373,20 +356,12 @@ export const useAuthStore = create<AuthState>()(
             const msg = data?.message;
             return { success: true, msg };
           } else {
-            let msg = data?.error || "Unable to resend Token";
-            if (
-              msg.includes("email-already-in-use") ||
-              msg.includes("already exists")
-            ) {
-              msg = "Verification failed, Try again later or contact support";
-            }
+            const msg = parseApiErrors(data, "Unable to resend Token");
             return { success: false, msg };
           }
         } catch (error: any) {
-          return {
-            success: false,
-            msg: error?.message || "Network error. Please try again.",
-          };
+          const msg = parseApiErrors(error?.data, "Network error. Please try again.");
+          return { success: false, msg };
         }
       },
 
@@ -401,17 +376,12 @@ export const useAuthStore = create<AuthState>()(
           if (response.success) {
             return { success: true };
           } else {
-            let msg = data?.message || "Failed to send reset email";
-            if (msg.includes("user-not-found") || msg.includes("not found")) {
-              msg = "This email is not registered";
-            }
+            const msg = parseApiErrors(data, "Failed to send reset email");
             return { success: false, msg };
           }
         } catch (error: any) {
-          return {
-            success: false,
-            msg: error?.message || "Network error. Please try again.",
-          };
+          const msg = parseApiErrors(error?.data, "Network error. Please try again.");
+          return { success: false, msg };
         }
       },
 
@@ -435,17 +405,12 @@ export const useAuthStore = create<AuthState>()(
           if (response.success) {
             return { success: true };
           } else {
-            let msg = data?.message || "Password reset failed";
-            if (msg.includes("invalid-code")) {
-              msg = "Invalid verification code";
-            }
+            const msg = parseApiErrors(data, "Password reset failed");
             return { success: false, msg };
           }
         } catch (error: any) {
-          return {
-            success: false,
-            msg: error?.message || "Network error. Please try again.",
-          };
+          const msg = parseApiErrors(error?.data, "Network error. Please try again.");
+          return { success: false, msg };
         }
       },
 

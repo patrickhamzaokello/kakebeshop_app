@@ -71,8 +71,8 @@ const Login = () => {
       const res = await loginUser(trimmedEmail, trimmedPassword);
       if (!res.success) {
         if (res.msg?.includes("Your email is not verified.")) {
-          router.replace({
-            pathname: "/(auth)/start_email_verification",
+          router.push({
+            pathname: "/start_email_verification",
             params: { email },
           });
         } else {

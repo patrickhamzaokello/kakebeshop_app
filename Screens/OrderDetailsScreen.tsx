@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Text } from "@/components/Text";
-import { View, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, Modal, Animated, Dimensions, NativeSyntheticEvent, NativeScrollEvent } from "react-native";
-import { useLocalSearchParams } from "expo-router";
+import { View, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Alert, Modal, Animated, Dimensions, NativeSyntheticEvent, NativeScrollEvent, TextInput, KeyboardAvoidingView, Platform } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { cartService } from "@/utils/services/cartService";
@@ -240,6 +240,7 @@ interface OrderDetail {
 
 export default function OrderDetailScreen() {
   const { colors } = useTheme();
+  const router = useRouter();
   const { id, isMerchant: isMerchantParam } = useLocalSearchParams();
   const isMerchant = isMerchantParam === "true";
   const [order, setOrder] = useState<OrderDetail | null>(null);
@@ -250,6 +251,10 @@ export default function OrderDetailScreen() {
   const [lightboxVisible, setLightboxVisible] = useState(false);
   const [lightboxImages, setLightboxImages] = useState<string[]>([]);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  // Merchant cancel modal state
+  const [cancelModalVisible, setCancelModalVisible] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
 
   useEffect(() => {
     fetchOrderDetail();
@@ -353,7 +358,30 @@ export default function OrderDetailScreen() {
     ]);
   };
 
+  const handleMerchantCancelOrder = () => {
+    setCancelReason("");
+    setCancelModalVisible(true);
+  };
+
+  const submitMerchantCancelOrder = async () => {
+    const reason = cancelReason.trim();
+    if (!reason) {
+      Alert.alert("Reason Required", "Please provide a reason for cancelling this order.");
+      return;
+    }
+    setCancelModalVisible(false);
+    setActionLoading(true);
+    const ok = await merchantBase.cancelOrder(id as string, reason);
+    setActionLoading(false);
+    if (ok) {
+      router.back();
+    } else {
+      Alert.alert("Error", "Failed to cancel order. Please try again.");
+    }
+  };
+
   const canCancelOrder = () => !isMerchant && order && ["NEW", "CONTACTED"].includes(order.status);
+  const merchantCanCancel = () => isMerchant && order && ["NEW", "CONTACTED", "CONFIRMED"].includes(order.status);
 
   const styles = getStyles(colors);
 
@@ -381,6 +409,89 @@ export default function OrderDetailScreen() {
         initialIndex={lightboxIndex}
         onClose={() => setLightboxVisible(false)}
       />
+
+      {/* Merchant Cancel Reason Modal */}
+      <Modal
+        visible={cancelModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCancelModalVisible(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+          style={styles.sheetOverlay}
+        >
+          {/* Backdrop */}
+          <TouchableOpacity
+            style={StyleSheet.absoluteFill}
+            activeOpacity={1}
+            onPress={() => setCancelModalVisible(false)}
+          />
+
+          {/* Sheet */}
+          <View style={[styles.cancelSheet, { backgroundColor: colors.surface }]}>
+            {/* Handle */}
+            <View style={[styles.sheetHandle, { backgroundColor: colors.border }]} />
+
+            {/* Header */}
+            <View style={styles.sheetHeader}>
+              <View style={[styles.sheetIconWrap, { backgroundColor: colors.errorLight }]}>
+                <Ionicons name="close-circle-outline" size={22} color={colors.error} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>
+                  Cancel Order
+                </Text>
+                <Text style={[styles.sheetSubtitle, { color: colors.textMuted }]}>
+                  This will be shared with the customer
+                </Text>
+              </View>
+            </View>
+
+            {/* Reason input */}
+            <TextInput
+              style={[
+                styles.cancelReasonInput,
+                {
+                  backgroundColor: colors.backgroundSecondary,
+                  color: colors.textPrimary,
+                  borderColor: cancelReason.trim() ? colors.primary : colors.border,
+                },
+              ]}
+              placeholder="e.g. Item out of stock, unable to fulfil order…"
+              placeholderTextColor={colors.textMuted}
+              value={cancelReason}
+              onChangeText={setCancelReason}
+              multiline
+              numberOfLines={4}
+              textAlignVertical="top"
+              autoFocus
+            />
+
+            {/* Actions */}
+            <View style={styles.sheetActions}>
+              <TouchableOpacity
+                style={[styles.sheetBtn, { backgroundColor: colors.backgroundSecondary }]}
+                onPress={() => setCancelModalVisible(false)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.sheetBtnText, { color: colors.textSecondary }]}>
+                  Go Back
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.sheetBtn, { backgroundColor: colors.primary }]}
+                onPress={submitMerchantCancelOrder}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.sheetBtnText, { color: colors.textInverse }]}>
+                  Cancel Order
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
         {/* Status Card */}
@@ -598,18 +709,49 @@ export default function OrderDetailScreen() {
       {/* Footer Actions */}
       {isMerchant && order.status === "NEW" && (
         <View style={styles.footer}>
+          <View style={styles.footerRow}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.cancelOutlineButton, { flex: 1 }]}
+              onPress={handleMerchantCancelOrder}
+              disabled={actionLoading}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close-circle-outline" size={18} color={colors.error} />
+              <Text style={[styles.cancelButtonText, { color: colors.error }]}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.confirmButton, { flex: 2 }]}
+              onPress={handleConfirmOrder}
+              disabled={actionLoading}
+              activeOpacity={0.7}
+            >
+              {actionLoading ? (
+                <ActivityIndicator size="small" color={colors.textInverse} />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle-outline" size={20} color={colors.textInverse} />
+                  <Text style={styles.confirmButtonText}>Confirm Order</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {isMerchant && order.status === "CONTACTED" && (
+        <View style={styles.footer}>
           <TouchableOpacity
-            style={[styles.actionButton, styles.confirmButton]}
-            onPress={handleConfirmOrder}
+            style={[styles.actionButton, styles.cancelOutlineButton]}
+            onPress={handleMerchantCancelOrder}
             disabled={actionLoading}
             activeOpacity={0.7}
           >
             {actionLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color={colors.error} />
             ) : (
               <>
-                <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
-                <Text style={styles.confirmButtonText}>Confirm Order</Text>
+                <Ionicons name="close-circle-outline" size={20} color={colors.error} />
+                <Text style={[styles.cancelButtonText, { color: colors.error }]}>Cancel Order</Text>
               </>
             )}
           </TouchableOpacity>
@@ -618,29 +760,40 @@ export default function OrderDetailScreen() {
 
       {isMerchant && order.status === "CONFIRMED" && (
         <View style={styles.footer}>
-          <TouchableOpacity
-            style={[styles.actionButton, styles.completeButton]}
-            onPress={handleCompleteOrder}
-            disabled={actionLoading}
-            activeOpacity={0.7}
-          >
-            {actionLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <>
-                <Ionicons name="bag-check-outline" size={20} color="#fff" />
-                <Text style={styles.confirmButtonText}>Mark as Completed</Text>
-              </>
-            )}
-          </TouchableOpacity>
+          <View style={styles.footerRow}>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.cancelOutlineButton, { flex: 1 }]}
+              onPress={handleMerchantCancelOrder}
+              disabled={actionLoading}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="close-circle-outline" size={18} color={colors.error} />
+              <Text style={[styles.cancelButtonText, { color: colors.error }]}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, styles.completeButton, { flex: 2 }]}
+              onPress={handleCompleteOrder}
+              disabled={actionLoading}
+              activeOpacity={0.7}
+            >
+              {actionLoading ? (
+                <ActivityIndicator size="small" color={colors.textInverse} />
+              ) : (
+                <>
+                  <Ionicons name="bag-check-outline" size={20} color={colors.textInverse} />
+                  <Text style={styles.confirmButtonText}>Mark as Completed</Text>
+                </>
+              )}
+            </TouchableOpacity>
+          </View>
         </View>
       )}
 
       {canCancelOrder() && (
         <View style={styles.footer}>
           <TouchableOpacity style={styles.cancelButton} onPress={handleCancelOrder} activeOpacity={0.7}>
-            <Ionicons name="close-circle-outline" size={20} color="#F44336" />
-            <Text style={styles.cancelButtonText}>Cancel Order</Text>
+            <Ionicons name="close-circle-outline" size={20} color={colors.error} />
+            <Text style={[styles.cancelButtonText, { color: colors.error }]}>Cancel Order</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -776,6 +929,10 @@ const getStyles = (colors: any) =>
       borderTopWidth: 1,
       borderTopColor: colors.border,
     },
+    footerRow: {
+      flexDirection: "row",
+      gap: 10,
+    },
     actionButton: {
       flexDirection: "row",
       alignItems: "center",
@@ -785,16 +942,89 @@ const getStyles = (colors: any) =>
       gap: 8,
     },
     confirmButton: { backgroundColor: "#4CAF50" },
-    completeButton: { backgroundColor: "#E60549" },
-    confirmButtonText: { fontSize: 15, fontWeight: "600", color: "#fff" },
+    completeButton: { backgroundColor: colors.primary },
+    confirmButtonText: { fontSize: 15, fontWeight: "600", color: colors.textInverse },
     cancelButton: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       paddingVertical: 14,
-      backgroundColor: "#FFF5F5",
+      backgroundColor: colors.errorLight,
       borderRadius: 10,
       gap: 8,
     },
-    cancelButtonText: { fontSize: 15, fontWeight: "600", color: "#F44336" },
+    cancelOutlineButton: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: 14,
+      borderRadius: 10,
+      gap: 6,
+      borderWidth: 1.5,
+      borderColor: colors.error,
+      backgroundColor: colors.errorLight,
+    },
+    cancelButtonText: { fontSize: 15, fontWeight: "600" },
+
+    sheetOverlay: {
+      flex: 1,
+      justifyContent: "flex-end",
+      backgroundColor: "rgba(0,0,0,0.45)",
+    },
+    cancelSheet: {
+      borderTopLeftRadius: 20,
+      borderTopRightRadius: 20,
+      paddingHorizontal: 20,
+      paddingBottom: 36,
+      paddingTop: 12,
+      gap: 16,
+    },
+    sheetHandle: {
+      width: 36,
+      height: 4,
+      borderRadius: 2,
+      alignSelf: "center",
+      marginBottom: 4,
+    },
+    sheetHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+    },
+    sheetIconWrap: {
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    sheetTitle: {
+      fontSize: 17,
+      fontWeight: "700",
+    },
+    sheetSubtitle: {
+      fontSize: 13,
+      marginTop: 2,
+    },
+    cancelReasonInput: {
+      borderWidth: 1.5,
+      borderRadius: 12,
+      padding: 12,
+      fontSize: 14,
+      minHeight: 100,
+    },
+    sheetActions: {
+      flexDirection: "row",
+      gap: 10,
+    },
+    sheetBtn: {
+      flex: 1,
+      borderRadius: 12,
+      paddingVertical: 14,
+      alignItems: "center",
+    },
+    sheetBtnText: {
+      fontSize: 15,
+      fontWeight: "600",
+    },
   });

@@ -5,29 +5,22 @@ import { MaterialCommunityIcons } from "@expo/vector-icons"; import { ImageBackg
 import Animated, {
   Easing,
   FadeInUp,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withRepeat,
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { darkColors, borderRadius as themeRadius, fontSize as themeFontSize, spacingX, spacingY } from "@/constants/theme";
 
 // ─── Dimensions ───────────────────────────────────────────────────────────────
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
-// ─── Design Tokens ───────────────────────────────────────────────────────────
-const theme = {
-  bg:          "#0D0D0D",
-  surface:     "#1E1E1E",
-  border:      "#2A2A2A",
-  accent:      "#C9A84C",
-  accentLight: "#E8C97A",
-  accentMuted: "rgba(201,168,76,0.12)",
-  accentGlow:  "rgba(201,168,76,0.28)",
-  text:        "#F5F0E8",
-  textMuted:   "#8A8478",
-  textSubtle:  "#5A5650",
-};
+// ─── Theme Aliases ────────────────────────────────────────────────────────────
+const C            = darkColors;
+const primaryMuted = "rgba(255, 84, 0, 0.12)";
+const primaryGlow  = "rgba(255, 84, 0, 0.28)";
 
 // ─── Carousel Data ────────────────────────────────────────────────────────────
 const ROW_1 = [
@@ -39,19 +32,23 @@ const ROW_1 = [
   { id: 6, image: require("@/assets/images/shoes_collection.jpg") },
 ];
 
-const ROW_2 = [
-  { id: 3, image: require("@/assets/images/shopping_collection.jpg") },
-  { id: 1, image: require("@/assets/images/grocery_collection.jpg") },
-  { id: 4, image: require("@/assets/images/fashion_collection.jpg") },
-  { id: 6, image: require("@/assets/images/shoes_collection.jpg") },
-  { id: 2, image: require("@/assets/images/shoes_collection.jpg") },
-  { id: 5, image: require("@/assets/images/grocery_collection.jpg") },
-];
 
 // ─── Card dimensions ──────────────────────────────────────────────────────────
-const CAROUSEL_H = height * 0.42;
-const CARD_W     = width * 0.42;
-const CARD_H     = (CAROUSEL_H - 56) / 2;
+const CARD_W   = width * 0.62;
+const CARD_GAP = 12;
+const CARD_H   = Math.round(CARD_W * 0.68); // ~3:2 aspect ratio, height follows width
+
+// ─── Cycling headline data ────────────────────────────────────────────────────
+const CYCLE_ITEMS = [
+  { text: "KakebeShop",                          accent: true  },
+  { text: "Fresh groceries, delivered.",         accent: false },
+  { text: "KakebeShop",                          accent: true  },
+  { text: "Shop fashion & electronics.",         accent: false },
+  { text: "KakebeShop",                          accent: true  },
+  { text: "Trusted sellers. Best prices.",       accent: false },
+  { text: "KakebeShop",                          accent: true  },
+  { text: "Delivered fast across Uganda.",       accent: false },
+];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 function PillBadge() {
@@ -60,6 +57,33 @@ function PillBadge() {
       <View style={styles.pillDot} />
       <Text style={styles.pillText}>Uganda's #1 Marketplace</Text>
     </View>
+  );
+}
+
+function CyclingHeadline() {
+  const [idx, setIdx] = useState(0);
+  const opacity = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      opacity.value = withTiming(0, { duration: 380 }, (done) => {
+        if (done) {
+          runOnJS(setIdx)((i) => (i + 1) % CYCLE_ITEMS.length);
+          opacity.value = withTiming(1, { duration: 380 });
+        }
+      });
+    }, 2600);
+    return () => clearInterval(id);
+  }, []);
+
+  const { text, accent } = CYCLE_ITEMS[idx];
+  return (
+    <Animated.View style={[styles.cycleContainer, animStyle]}>
+      <Text style={[styles.cycleText, accent ? styles.cycleAccent : null]}>
+        {text}
+      </Text>
+    </Animated.View>
   );
 }
 
@@ -75,28 +99,18 @@ function OrDivider() {
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export default function WelcomeScreen() {
-  const translateX = useSharedValue(0);
+  const tx1 = useSharedValue(0);
+
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isAppleLoading, setIsAppleLoading]   = useState(false);
 
   useEffect(() => {
-    translateX.value = withRepeat(
-      withTiming(-width * 0.5, {
-        duration: 18000,
-        easing: Easing.linear,
-      }),
-      -1,
-      false
-    );
+    // Animate exactly one set-width so the duplicate seamlessly loops
+    const loopDist = -(CARD_W + CARD_GAP) * ROW_1.length;
+    tx1.value = withRepeat(withTiming(loopDist, { duration: 24000, easing: Easing.linear }), -1, false);
   }, []);
 
-  const row1Style = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
-
-  const row2Style = useAnimatedStyle(() => ({
-    transform: [{ translateX: -translateX.value }],
-  }));
+  const row1Style = useAnimatedStyle(() => ({ transform: [{ translateX: tx1.value }] }));
 
   return (
     <ScrollView
@@ -108,44 +122,16 @@ export default function WelcomeScreen() {
 
         {/* ── Carousel ─────────────────────────────────────────────────────── */}
         <View style={styles.carouselSection}>
-          <View style={styles.carouselWrap}>
+          <Animated.View style={[styles.row, row1Style]}>
+            {[...ROW_1, ...ROW_1].map((item, i) => (
+              <View key={`r1-${i}`} style={styles.card}>
+                <ImageBackground source={item.image} style={StyleSheet.absoluteFill} contentFit="cover">
+                  <View style={styles.cardOverlay} />
+                </ImageBackground>
+              </View>
+            ))}
+          </Animated.View>
 
-            {/* Row 1 — scrolls left */}
-            <Animated.View style={[styles.row, row1Style]}>
-              {[...ROW_1, ...ROW_1].map((item, i) => (
-                <View key={`r1-${i}`} style={styles.card}>
-                  <ImageBackground
-                    source={item.image}
-                    style={StyleSheet.absoluteFill}
-                    contentFit="cover"
-                  >
-                    <View style={styles.cardOverlay} />
-                  </ImageBackground>
-                </View>
-              ))}
-            </Animated.View>
-
-            {/* Row 2 — scrolls right */}
-            <Animated.View style={[styles.row, row2Style]}>
-              {[...ROW_2, ...ROW_2].map((item, i) => (
-                <View key={`r2-${i}`} style={styles.card}>
-                  <ImageBackground
-                    source={item.image}
-                    style={StyleSheet.absoluteFill}
-                    contentFit="cover"
-                  >
-                    <View style={styles.cardOverlay} />
-                  </ImageBackground>
-                </View>
-              ))}
-            </Animated.View>
-          </View>
-
-          {/* Fade edges — dissolve carousel into bg on all sides */}
-          <View style={styles.fadeTop} />
-          <View style={styles.fadeBottom} />
-          <View style={styles.fadeLeft} />
-          <View style={styles.fadeRight} />
         </View>
 
         {/* ── Content ──────────────────────────────────────────────────────── */}
@@ -158,13 +144,10 @@ export default function WelcomeScreen() {
 
           {/* Headline */}
           <View style={styles.headlineBlock}>
-            <Text style={styles.headline}>
-              Shop Everything,{"\n"}
-              <Text style={styles.headlineAccent}>Everywhere.</Text>
-            </Text>
+            <CyclingHeadline />
             <Text style={styles.subtitle}>
-              Millions of products. Trusted sellers.{"\n"}
-              Delivered fast across Uganda.
+            Buy, Sell & Discover Anything in Uganda.{"\n"}
+            From Products to Services — Fast, Easy, Trusted.
             </Text>
           </View>
 
@@ -187,7 +170,7 @@ export default function WelcomeScreen() {
           >
             <MaterialCommunityIcons
               name="email-outline"
-              color={theme.bg}
+              color={C.background}
               size={18}
             />
             <Text style={styles.emailBtnText}>Sign up with Email</Text>
@@ -222,7 +205,7 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: theme.bg,
+    backgroundColor: C.background,
   },
   scrollContent: {
     flexGrow: 1,
@@ -230,158 +213,141 @@ const styles = StyleSheet.create({
 
   // ── Carousel ──────────────────────────────────────────────────────────────
   carouselSection: {
-    height: CAROUSEL_H,
     overflow: "hidden",
-    position: "relative",
-  },
-  carouselWrap: {
-    flex: 1,
-    gap: 10,
-    paddingTop: 34,
+    paddingVertical: spacingY._20,
   },
   row: {
     flexDirection: "row",
-    gap: 10,
-    paddingHorizontal: 14,
+    gap: CARD_GAP,
   },
   card: {
     width: CARD_W,
     height: CARD_H,
-    borderRadius: 14,
     overflow: "hidden",
-    backgroundColor: theme.surface,
+    backgroundColor: C.surface,
+    borderRadius: 8
   },
   cardOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.28)",
-  },
-
-  // Fade edges — all use solid bg color so they work on both platforms
-  fadeTop: {
-    position: "absolute",
-    top: 0, left: 0, right: 0,
-    height: 60,
-    backgroundColor: theme.bg,
-    opacity: 0.95,
-  },
-  fadeBottom: {
-    position: "absolute",
-    bottom: 0, left: 0, right: 0,
-    height: 110,
-    backgroundColor: theme.bg,
-    opacity: 0.97,
+    backgroundColor: "rgba(0,0,0,0.22)",
   },
   fadeLeft: {
     position: "absolute",
     top: 0, bottom: 0, left: 0,
-    width: 28,
-    backgroundColor: theme.bg,
-    opacity: 0.75,
+    width: spacingX._32,
+    backgroundColor: C.background,
+    opacity: 0.85,
   },
   fadeRight: {
     position: "absolute",
     top: 0, bottom: 0, right: 0,
-    width: 28,
-    backgroundColor: theme.bg,
-    opacity: 0.75,
+    width: spacingX._32,
+    backgroundColor: C.background,
+    opacity: 0.85,
   },
 
   // ── Content ───────────────────────────────────────────────────────────────
   content: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 4,
-    paddingBottom: 32,
-    gap: 18,
+    paddingHorizontal: spacingX._24,
+    paddingTop: spacingY._4,
+    paddingBottom: spacingX._32,
+    gap: spacingY._17,
   },
 
   // Badge
   pill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 7,
+    gap: spacingX._7,
     alignSelf: "center",
-    backgroundColor: theme.accentMuted,
-    borderColor: theme.accentGlow,
+    backgroundColor: primaryMuted,
+    borderColor: primaryGlow,
     borderWidth: 1,
-    borderRadius: 100,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
+    borderRadius: themeRadius.full,
+    paddingHorizontal: spacingX._15,
+    paddingVertical: spacingY._6,
   },
   pillDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: theme.accent,
+    backgroundColor: C.primary,
   },
   pillText: {
-    fontSize: 11,
+    fontSize: themeFontSize.xs,
     fontWeight: "600",
-    color: theme.accentLight,
+    color: C.primaryLight,
     letterSpacing: 0.3,
   },
 
   // Headline
   headlineBlock: {
-    gap: 8,
+    gap: spacingY._8,
+    alignItems: "center",
   },
-  headline: {
+  cycleContainer: {
+    minHeight: 76, // reserves space for 2 lines (lineHeight 38 × 2) — prevents layout shift
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  cycleText: {
     fontSize: 32,
     fontWeight: "800",
-    color: theme.text,
+    color: C.text,
     lineHeight: 38,
     letterSpacing: -0.5,
+    textAlign: "center",
   },
-  headlineAccent: {
-    color: theme.accent,
+  cycleAccent: {
+    color: C.primary,
   },
   subtitle: {
-    fontSize: 14,
-    color: theme.textMuted,
+    fontSize: themeFontSize.md,
+    color: C.textMuted,
     lineHeight: 21,
     fontWeight: "400",
+    textAlign: "center",
   },
 
   // Divider
   divider: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
-    marginVertical: -4,
+    gap: spacingX._10,
+    marginVertical: -spacingY._4,
   },
   divLine: {
     flex: 1,
     height: 1,
-    backgroundColor: theme.border,
+    backgroundColor: C.border,
   },
   divText: {
-    fontSize: 12,
-    color: theme.textSubtle,
+    fontSize: themeFontSize.sm,
+    color: C.textPlaceholder,
     fontWeight: "500",
     letterSpacing: 0.2,
   },
 
   // Email CTA
   emailBtn: {
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: theme.accent,
+    height: spacingY._50,
+    borderRadius:10,
+    backgroundColor: C.primary,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    gap: 9,
-    // iOS glow
-    shadowColor: theme.accent,
+    gap: spacingX._8,
+    shadowColor: C.primary,
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.4,
     shadowRadius: 18,
-    // Android elevation
     elevation: 10,
   },
   emailBtnText: {
-    fontSize: 15,
+    fontSize: themeFontSize.lg,
     fontWeight: "700",
-    color: theme.bg,
+    color: C.background,
     letterSpacing: 0.1,
   },
 
@@ -390,28 +356,28 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: -4,
+    marginTop: -spacingY._4,
   },
   loginHint: {
-    fontSize: 13,
-    color: theme.textMuted,
+    fontSize: themeFontSize.sm,
+    color: C.textMuted,
   },
   loginLink: {
-    fontSize: 13,
+    fontSize: themeFontSize.sm,
     fontWeight: "700",
-    color: theme.accent,
+    color: C.primary,
   },
 
   // Terms
   terms: {
-    fontSize: 11,
-    color: theme.textSubtle,
+    fontSize: themeFontSize.xs,
+    color: C.textPlaceholder,
     textAlign: "center",
     lineHeight: 17,
     marginTop: "auto",
   },
   termsLink: {
-    color: theme.textMuted,
+    color: C.textMuted,
     textDecorationLine: "underline",
   },
 });

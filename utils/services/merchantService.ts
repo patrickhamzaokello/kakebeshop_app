@@ -123,6 +123,16 @@ export const merchantBase = {
     }
   },
 
+  async cancelOrder(orderId: string, reason: string): Promise<boolean> {
+    try {
+      const response = await apiService.post(`/api/v1/orders/${orderId}/merchant-cancel/`, { reason });
+      return !!response.success;
+    } catch (error) {
+      if (__DEV__) console.error("Error cancelling order:", error);
+      return false;
+    }
+  },
+
   // GET /api/v1/orders/orders/merchant-search/
   async merchantOrderSearch(params: {
     q?: string;

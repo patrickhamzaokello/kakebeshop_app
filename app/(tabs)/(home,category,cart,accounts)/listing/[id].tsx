@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Text } from "@/components/Text";
-import { View, ScrollView, Image, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, RefreshControl, Share, Alert, Animated, Modal, Pressable, StatusBar, NativeSyntheticEvent, NativeScrollEvent, Linking } from "react-native";
+import { View, ScrollView, Image, TouchableOpacity, StyleSheet, Dimensions, ActivityIndicator, RefreshControl, Share, Alert, Animated, Modal, Pressable, StatusBar, NativeSyntheticEvent, NativeScrollEvent, Linking, TextInput, KeyboardAvoidingView, Platform, FlatList } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -18,7 +18,7 @@ import {
   verticalScale,
   ThemeColors,
 } from "@/constants/theme";
-import { listingDetailsService } from "@/utils/services/listingDetailsService";
+import { listingDetailsService, ListingComment } from "@/utils/services/listingDetailsService";
 import apiService from "@/utils/apiBase";
 import { incrementListingViews } from "@/utils/apiEndpoints";
 import { useCartStore } from "@/utils/stores/useCartStore";
@@ -280,7 +280,7 @@ export default function ListingDetailsScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { isLoggedIn } = useAuthStore();
+  const { isLoggedIn, user } = useAuthStore();
   const { addToCart, fetchCart } = useCartStore();
   const { colors, isDark } = useTheme();
 
@@ -310,6 +310,14 @@ export default function ListingDetailsScreen() {
   const [headerShown, setHeaderShown] = useState(false);
   const [lightboxVisible, setLightboxVisible] = useState(false);
   const [lightboxIndex, setLightboxIndex] = useState(0);
+
+  // Comments
+  const [commentsVisible, setCommentsVisible] = useState(false);
+  const [comments, setComments] = useState<ListingComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [commentText, setCommentText] = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const commentInputRef = useRef<TextInput>(null);
 
   const isCartAllowed = listing?.price_type === "FIXED";
 
@@ -524,6 +532,45 @@ export default function ListingDetailsScreen() {
       // Fallback to wa.me link (opens in browser/app)
       Linking.openURL(`https://wa.me/${cleaned}?text=${encodeURIComponent("Hi, I'm interested in your listing on Kakebe Shop.")}`);
     }
+  };
+
+  // ── Comments ──
+
+  const loadComments = async () => {
+    if (!id || commentsLoading) return;
+    setCommentsLoading(true);
+    const result = await listingDetailsService.getComments(id);
+    setComments(result?.results ?? []);
+    setCommentsLoading(false);
+  };
+
+  const handleOpenComments = (focusInput = false) => {
+    if (!commentsVisible) loadComments();
+    setCommentsVisible(true);
+    if (focusInput) {
+      setTimeout(() => commentInputRef.current?.focus(), 400);
+    }
+  };
+
+  const handleSubmitComment = async () => {
+    if (!isLoggedIn) {
+      Alert.alert("Login Required", "Please login to comment", [
+        { text: "Cancel", style: "cancel" },
+        { text: "Login", onPress: () => { setCommentsVisible(false); router.push("/(auth)/login"); } },
+      ]);
+      return;
+    }
+    const text = commentText.trim();
+    if (!text || !id) return;
+    setSubmittingComment(true);
+    const newComment = await listingDetailsService.postComment(id, text);
+    if (newComment) {
+      setComments((prev) => [...prev, newComment]);
+      setCommentText("");
+    } else {
+      Alert.alert("Error", "Failed to post comment. Please try again.");
+    }
+    setSubmittingComment(false);
   };
 
   // ── Price formatting ──
@@ -893,6 +940,31 @@ export default function ListingDetailsScreen() {
             </View>
           )}
 
+          {/* ── Comments entry point ── */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={[styles.sectionLabel, { color: colors.textPrimary }]}>Comments</Text>
+              <TouchableOpacity onPress={() => handleOpenComments(false)} activeOpacity={0.7}>
+                <Text style={[styles.seeAll, { color: colors.primary }]}>View all</Text>
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              style={[styles.commentTrigger, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}
+              onPress={() => handleOpenComments(true)}
+              activeOpacity={0.75}
+            >
+              {user?.profile_image ? (
+                <Image source={{ uri: user.profile_image }} style={styles.commentTriggerAvatar} />
+              ) : (
+                <View style={[styles.commentTriggerAvatar, styles.commentAvatarFallback, { backgroundColor: colors.border }]}>
+                  <Ionicons name="person-outline" size={15} color={colors.textMuted} />
+                </View>
+              )}
+              <Text style={[styles.commentTriggerText, { color: colors.textMuted }]}>Add a comment…</Text>
+              <Ionicons name="send-outline" size={16} color={colors.textMuted} />
+            </TouchableOpacity>
+          </View>
+
           {/* ── More from merchant ── */}
           {similarMerchant && similarMerchant.results.length > 0 && (
             <View style={styles.similarSection}>
@@ -1041,6 +1113,120 @@ export default function ListingDetailsScreen() {
         initialIndex={lightboxIndex}
         onClose={() => setLightboxVisible(false)}
       />
+
+      {/* ── Comments modal ── */}
+      <Modal
+        animationType="slide"
+        transparent
+        visible={commentsVisible}
+        onRequestClose={() => setCommentsVisible(false)}
+      >
+        <KeyboardAvoidingView
+          style={[styles.commentsOverlay, { backgroundColor: "rgba(0,0,0,0.5)" }]}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <Pressable style={StyleSheet.absoluteFill} onPress={() => setCommentsVisible(false)} />
+
+          <View style={[styles.commentsSheet, { backgroundColor: colors.surface }]}>
+            {/* Handle */}
+            <View style={[styles.modalHandle, { backgroundColor: colors.border }]} />
+
+            {/* Header */}
+            <View style={[styles.commentsHeader, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Comments</Text>
+              <TouchableOpacity
+                onPress={() => setCommentsVisible(false)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons name="close" size={22} color={colors.textSecondary} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Comment list */}
+            {commentsLoading ? (
+              <View style={styles.commentsCenter}>
+                <ActivityIndicator size="large" color={colors.primary} />
+              </View>
+            ) : (
+              <FlatList
+                data={comments}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={[
+                  styles.commentsList,
+                  comments.length === 0 && styles.commentsListEmpty,
+                ]}
+                showsVerticalScrollIndicator={false}
+                ListEmptyComponent={
+                  <View style={styles.commentsCenter}>
+                    <Ionicons name="chatbubble-outline" size={44} color={colors.border} />
+                    <Text style={[styles.commentsEmptyText, { color: colors.textMuted }]}>
+                      No comments yet.{"\n"}Be the first to comment!
+                    </Text>
+                  </View>
+                }
+                renderItem={({ item }) => (
+                  <View style={styles.commentItem}>
+                    <View style={[styles.commentAvatar, styles.commentAvatarFallback, { backgroundColor: colors.backgroundSecondary }]}>
+                      <Text style={[styles.commentAvatarInitial, { color: colors.textMuted }]}>
+                        {(item.user_name || "?")[0].toUpperCase()}
+                      </Text>
+                    </View>
+                    <View style={[styles.commentBubble, { backgroundColor: colors.backgroundSecondary }]}>
+                      <Text style={[styles.commentUsername, { color: colors.textPrimary }]}>
+                        {item.user_name}
+                      </Text>
+                      <Text style={[styles.commentContent, { color: colors.textSecondary }]}>
+                        {item.body}
+                      </Text>
+                      <Text style={[styles.commentDate, { color: colors.textMuted }]}>
+                        {new Date(item.created_at).toLocaleDateString("en-GB", {
+                          day: "numeric", month: "short", year: "numeric",
+                        })}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              />
+            )}
+
+            {/* Input bar */}
+            <View style={[styles.commentInputBar, { borderTopColor: colors.border, backgroundColor: colors.surface }]}>
+              {user?.profile_image ? (
+                <Image source={{ uri: user.profile_image }} style={styles.commentInputAvatar} />
+              ) : (
+                <View style={[styles.commentInputAvatar, styles.commentAvatarFallback, { backgroundColor: colors.backgroundSecondary }]}>
+                  <Ionicons name="person-outline" size={16} color={colors.textMuted} />
+                </View>
+              )}
+              <TextInput
+                ref={commentInputRef}
+                style={[styles.commentInput, { backgroundColor: colors.backgroundSecondary, color: colors.textPrimary, borderColor: commentText ? colors.primary : colors.border }]}
+                placeholder="Write a comment…"
+                placeholderTextColor={colors.textMuted}
+                value={commentText}
+                onChangeText={setCommentText}
+                multiline
+                maxLength={2000}
+                returnKeyType="default"
+              />
+              <TouchableOpacity
+                style={[styles.commentSendBtn, { backgroundColor: commentText.trim() ? colors.primary : colors.backgroundSecondary }]}
+                onPress={handleSubmitComment}
+                disabled={submittingComment || !commentText.trim()}
+                activeOpacity={0.75}
+              >
+                {submittingComment ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Ionicons name="send" size={16} color={commentText.trim() ? "#fff" : colors.textMuted} />
+                )}
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ height: insets.bottom > 0 ? insets.bottom : 8 }} />
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
 
       {/* ── Contact modal ── */}
       <Modal
@@ -1620,6 +1806,132 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 15,
     fontWeight: "600",
+  },
+
+  // ── Comments entry point ─────────────────────────────────────────────────
+  commentTrigger: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderRadius: 12,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  commentTriggerAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  commentTriggerText: {
+    flex: 1,
+    fontSize: 13,
+  },
+
+  // ── Comments bottom sheet ─────────────────────────────────────────────────
+  commentsOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  commentsSheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: SCREEN_HEIGHT * 0.82,
+    overflow: "hidden",
+  },
+  commentsHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  commentsCenter: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 32,
+  },
+  commentsList: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 8,
+  },
+  commentsListEmpty: {
+    flexGrow: 1,
+  },
+  commentsEmptyText: {
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 8,
+  },
+  commentItem: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 10,
+    marginBottom: 14,
+  },
+  commentAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+  },
+  commentAvatarFallback: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  commentAvatarInitial: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  commentBubble: {
+    flex: 1,
+    borderRadius: 12,
+    padding: 10,
+    gap: 3,
+  },
+  commentUsername: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  commentContent: {
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  commentDate: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  commentInputBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  commentInputAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+  },
+  commentInput: {
+    flex: 1,
+    borderRadius: 20,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    fontSize: 14,
+    maxHeight: 100,
+  },
+  commentSendBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   // Error

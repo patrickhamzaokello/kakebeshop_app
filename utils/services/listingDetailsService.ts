@@ -14,6 +14,19 @@ export interface WishlistItem {
   created_at: string;
 }
 
+export interface ListingComment {
+  id: string;
+  listing: string;
+  parent: string | null;
+  user_id: string;
+  user_name: string;
+  body: string;
+  reply_count?: number; // only on top-level comments, not replies
+  is_owner: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export const listingDetailsService = {
   async getListingDetails(listingID: string): Promise<ListingDetail | null> {
     try {
@@ -118,6 +131,100 @@ export const listingDetailsService = {
     } catch (error) {
       if (__DEV__) console.error("Error removing listing from wishlist", error);
       return false;
+    }
+  },
+
+  async getComments(
+    listingID: string,
+    page: number = 1,
+    pageSize: number = 20
+  ): Promise<{ results: ListingComment[]; count: number; next: string | null } | null> {
+    try {
+      const response = await apiService.get(
+        `/api/v1/listings/${listingID}/comments/?page=${page}&page_size=${pageSize}`
+      );
+      if (response.success && response.data) return response.data;
+      return null;
+    } catch (error) {
+      if (__DEV__) console.error("Error fetching comments", error);
+      return null;
+    }
+  },
+
+  async getCommentCount(listingID: string): Promise<number | null> {
+    try {
+      const response = await apiService.get(
+        `/api/v1/listings/${listingID}/comments/total/`
+      );
+      if (response.success && response.data) return response.data.total_comments ?? null;
+      return null;
+    } catch (error) {
+      if (__DEV__) console.error("Error fetching comment count", error);
+      return null;
+    }
+  },
+
+  async postComment(
+    listingID: string,
+    body: string,
+    parentID?: string
+  ): Promise<ListingComment | null> {
+    try {
+      const payload: Record<string, string> = { body, listing: listingID };
+      if (parentID) payload.parent = parentID;
+      const response = await apiService.post(
+        `/api/v1/listings/${listingID}/comments/`,
+        payload
+      );
+      // POST response: { success: true, comment: {...} }
+      if (response.success && response.data?.comment) return response.data.comment;
+      return null;
+    } catch (error) {
+      if (__DEV__) console.error("Error posting comment", error);
+      return null;
+    }
+  },
+
+  async editComment(commentID: string, body: string): Promise<ListingComment | null> {
+    try {
+      const response = await apiService.patch(
+        `/api/v1/listing-comments/${commentID}/`,
+        { body }
+      );
+      // PATCH response: { success: true, comment: {...} }
+      if (response.success && response.data?.comment) return response.data.comment;
+      return null;
+    } catch (error) {
+      if (__DEV__) console.error("Error editing comment", error);
+      return null;
+    }
+  },
+
+  async deleteComment(commentID: string): Promise<boolean> {
+    try {
+      const response = await apiService.delete(
+        `/api/v1/listing-comments/${commentID}/`
+      );
+      return !!response.success;
+    } catch (error) {
+      if (__DEV__) console.error("Error deleting comment", error);
+      return false;
+    }
+  },
+
+  async getCommentReplies(
+    commentID: string,
+    page: number = 1
+  ): Promise<{ results: ListingComment[]; count: number; next: string | null } | null> {
+    try {
+      const response = await apiService.get(
+        `/api/v1/listing-comments/${commentID}/replies/?page=${page}`
+      );
+      if (response.success && response.data) return response.data;
+      return null;
+    } catch (error) {
+      if (__DEV__) console.error("Error fetching replies", error);
+      return null;
     }
   },
 
