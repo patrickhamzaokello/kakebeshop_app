@@ -87,7 +87,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
       "expo-font",
       {
         fonts: [
-          "node_modules/@expo-google-fonts/space-grotesk/500Medium/SpaceGrotesk_500Medium.ttf",
+          "node_modules/@expo-google-fonts/be-vietnam-pro/400Regular/BeVietnamPro_400Regular.ttf",
+          "node_modules/@expo-google-fonts/be-vietnam-pro/500Medium/BeVietnamPro_500Medium.ttf",
+          "node_modules/@expo-google-fonts/be-vietnam-pro/600SemiBold/BeVietnamPro_600SemiBold.ttf",
+          "node_modules/@expo-google-fonts/be-vietnam-pro/700Bold/BeVietnamPro_700Bold.ttf",
+          "node_modules/@expo-google-fonts/be-vietnam-pro/800ExtraBold/BeVietnamPro_800ExtraBold.ttf",
         ],
       },
     ],

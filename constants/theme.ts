@@ -406,56 +406,56 @@ export const lineHeight = {
 export const typography = {
   hero: {
     fontSize: fontSize.hero,
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontFamily: "BeVietnamPro_700Bold",
     color: colors.textPrimary,
     lineHeight: fontSize.hero * lineHeight.tight,
   } as TextStyle,
 
   headline: {
     fontSize: fontSize.headline,
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontFamily: "BeVietnamPro_700Bold",
     color: colors.textPrimary,
     lineHeight: fontSize.headline * lineHeight.tight,
   } as TextStyle,
 
   title: {
     fontSize: fontSize.xxxl,
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontFamily: "BeVietnamPro_700Bold",
     color: colors.textPrimary,
     lineHeight: fontSize.xxxl * lineHeight.tight,
   } as TextStyle,
 
   subtitle: {
     fontSize: fontSize.xl,
-    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontFamily: "BeVietnamPro_600SemiBold",
     color: colors.textPrimary,
     lineHeight: fontSize.xl * lineHeight.normal,
   } as TextStyle,
 
   body: {
     fontSize: fontSize.lg,
-    fontFamily: "SpaceGrotesk_400Regular",
+    fontFamily: "BeVietnamPro_400Regular",
     color: colors.textPrimary,
     lineHeight: fontSize.lg * lineHeight.normal,
   } as TextStyle,
 
   bodySmall: {
     fontSize: fontSize.md,
-    fontFamily: "SpaceGrotesk_400Regular",
+    fontFamily: "BeVietnamPro_400Regular",
     color: colors.textSecondary,
     lineHeight: fontSize.md * lineHeight.normal,
   } as TextStyle,
 
   caption: {
     fontSize: fontSize.sm,
-    fontFamily: "SpaceGrotesk_400Regular",
+    fontFamily: "BeVietnamPro_400Regular",
     color: colors.textMuted,
     lineHeight: fontSize.sm * lineHeight.normal,
   } as TextStyle,
 
   label: {
     fontSize: fontSize.sm,
-    fontFamily: "SpaceGrotesk_500Medium",
+    fontFamily: "BeVietnamPro_500Medium",
     color: colors.textSecondary,
     lineHeight: fontSize.sm * lineHeight.normal,
     textTransform: "uppercase",
@@ -464,20 +464,20 @@ export const typography = {
 
   button: {
     fontSize: fontSize.lg,
-    fontFamily: "SpaceGrotesk_600SemiBold",
+    fontFamily: "BeVietnamPro_600SemiBold",
     color: colors.white,
     lineHeight: fontSize.lg * lineHeight.tight,
   } as TextStyle,
 
   price: {
     fontSize: fontSize.xl,
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontFamily: "BeVietnamPro_700Bold",
     color: colors.textPrimary,
   } as TextStyle,
 
   priceSmall: {
     fontSize: fontSize.md,
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontFamily: "BeVietnamPro_700Bold",
     color: colors.textPrimary,
   } as TextStyle,
 };
@@ -663,7 +663,7 @@ export const components = {
   badgeText: {
     color: colors.white,
     fontSize: fontSize.xs,
-    fontFamily: "SpaceGrotesk_700Bold",
+    fontFamily: "BeVietnamPro_700Bold",
   } as TextStyle,
 
   // Chip/Tag
@@ -680,7 +680,7 @@ export const components = {
 
   chipText: {
     fontSize: fontSize.sm,
-    fontFamily: "SpaceGrotesk_500Medium",
+    fontFamily: "BeVietnamPro_500Medium",
     color: colors.textSecondary,
   } as TextStyle,
 

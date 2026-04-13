@@ -5,12 +5,13 @@ import { useAuthStore } from "@/utils/authStore";
 import PushNotificationManager from "@/utils/PushNotificationManager";
 import { useCartStore } from "@/utils/stores/useCartStore";
 import {
-  SpaceGrotesk_400Regular,
-  SpaceGrotesk_500Medium,
-  SpaceGrotesk_600SemiBold,
-  SpaceGrotesk_700Bold,
+  BeVietnamPro_400Regular,
+  BeVietnamPro_500Medium,
+  BeVietnamPro_600SemiBold,
+  BeVietnamPro_700Bold,
+  BeVietnamPro_800ExtraBold,
   useFonts,
-} from "@expo-google-fonts/space-grotesk";
+} from "@expo-google-fonts/be-vietnam-pro";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { router, Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -111,10 +112,11 @@ const RootLayoutContent = () => {
 // ─── Root layout — loads font before rendering anything ──────────────────────
 const RootLayout = () => {
   const [fontsLoaded, fontError] = useFonts({
-    SpaceGrotesk_400Regular,
-    SpaceGrotesk_500Medium,
-    SpaceGrotesk_600SemiBold,
-    SpaceGrotesk_700Bold,
+    BeVietnamPro_400Regular,
+    BeVietnamPro_500Medium,
+    BeVietnamPro_600SemiBold,
+    BeVietnamPro_700Bold,
+    BeVietnamPro_800ExtraBold,
   });
 
   // Read auth loading state so we can keep the splash up until both are ready
