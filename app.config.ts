@@ -53,6 +53,11 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     },
   },
   android: {
+    config: {
+      googleMaps: {
+        apiKey: "AIzaSyDlyu12Irp9Ewr1-bgXWsebiA8mtH2wKgY",
+      },
+    },
     adaptiveIcon: {
       foregroundImage: "./assets/icons/adaptive-icon.png",
       monochromeImage: "./assets/icons/adaptive-icon.png",
