@@ -18,7 +18,7 @@ const VerifyNewAccountEmail = () => {
   const [countdown, setCountdown] = useState(60);
   const [canResend, setCanResend] = useState(false);
 
-  const inputRefs = useRef<(TextInput | null)[]>([]);
+  const inputRefs = useRef<(React.ElementRef<typeof TextInput> | null)[]>([]);
   const router = useRouter();
   const { email } = useLocalSearchParams();
   const { verifyEmail, resendVerificationCode } = useAuthStore();
