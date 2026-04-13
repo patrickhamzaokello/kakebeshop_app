@@ -2,7 +2,7 @@ import Constants from "expo-constants";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 import * as SecureStore from "expo-secure-store";
-import React, { PropsWithChildren, useEffect } from "react";
+import React, { PropsWithChildren, useEffect, useRef } from "react";
 import { Platform } from "react-native";
 import { postNotificationToken } from "./apiEndpoints";
 import { router } from "expo-router";
@@ -73,7 +73,9 @@ function handleNotificationTap(data: NotificationData) {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const PushNotificationManager: React.FC<PropsWithChildren> = ({ children }) => {
-  const { isLoggedIn } = useAuthStore();
+  const { isLoggedIn, isLoading } = useAuthStore();
+  // Holds a pending notification tap that arrived before the Stack was ready.
+  const pendingNotificationData = useRef<NotificationData | null>(null);
 
   const registerForPushNotificationsAsync = async (): Promise<string | undefined> => {
     if (Platform.OS === "android") {
@@ -129,6 +131,16 @@ const PushNotificationManager: React.FC<PropsWithChildren> = ({ children }) => {
     }
   }, [isLoggedIn]);
 
+  // Once auth finishes loading the Stack has its first route — safe to navigate.
+  useEffect(() => {
+    if (isLoading) return;
+    const data = pendingNotificationData.current;
+    if (data) {
+      pendingNotificationData.current = null;
+      handleNotificationTap(data);
+    }
+  }, [isLoading]);
+
   useEffect(() => {
     // Handle notifications received while the app is foregrounded
     const receivedSub = Notifications.addNotificationReceivedListener((notification) => {
@@ -141,12 +153,15 @@ const PushNotificationManager: React.FC<PropsWithChildren> = ({ children }) => {
       if (data?.type) handleNotificationTap(data);
     });
 
-    // Handle taps that launched the app from a killed state
+    // Handle taps that launched the app from a killed state.
+    // Store the data rather than navigating immediately — the Stack has no
+    // active route yet at this point. The effect below drains it once auth
+    // resolves and the Stack has its first explicit route.
     Notifications.getLastNotificationResponseAsync().then((response) => {
       if (!response) return;
       const data = response.notification.request.content.data as NotificationData;
-      if (data?.type) handleNotificationTap(data);
-    });
+      if (data?.type) pendingNotificationData.current = data;
+    }).catch(() => {});
 
     return () => {
       receivedSub.remove();

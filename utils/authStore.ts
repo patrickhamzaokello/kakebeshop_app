@@ -508,10 +508,13 @@ export const useAuthStore = create<AuthState>()(
         getItem: getItemAsync,
         removeItem: deleteItemAsync,
       })),
-      // Only persist simple state, not functions
+      // Only persist UI-only flags — never auth state.
+      // isLoggedIn and hasCompletedOnboarding are derived from SecureStore
+      // by checkAuthState on every launch, so persisting them here creates
+      // a race condition: the persist middleware would flip Stack.Protected
+      // guards before checkAuthState has confirmed the real token state,
+      // which crashes Expo Router's navigation reconciliation.
       partialize: (state) => ({
-        isLoggedIn: state.isLoggedIn,
-        hasCompletedOnboarding: state.hasCompletedOnboarding,
         isNewUser: state.isNewUser,
       }),
     }
