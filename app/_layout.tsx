@@ -11,12 +11,13 @@ import {
   useFonts,
 } from "@expo-google-fonts/space-grotesk";
 import { GoogleSignin } from "@react-native-google-signin/google-signin";
-import { Stack } from "expo-router";
+import { router, Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 // ─── Keep splash visible until font + auth are both ready ────────────────────
 SplashScreen.preventAutoHideAsync();
@@ -56,9 +57,30 @@ const RootLayoutContent = () => {
     }
   }, [authLoading, isLoggedIn, hasCompletedOnboarding]);
 
-  // Single Stack for all states — avoids the full unmount/remount (and the
-  // resulting "(tabs)" header flash) that occurred when two separate <Stack>
-  // trees swapped in/out as authLoading changed.
+  // Handles two cases:
+  // 1. Initial routing — after auth first resolves, explicitly navigate to the
+  //    correct screen. Stack.Protected guards block unauthorized access but do
+  //    NOT push navigation by themselves, so without this the Stack has no
+  //    active route and renders nothing (black screen).
+  // 2. Logout transition — navigate to welcome when isLoggedIn drops to false.
+  const prevIsLoggedIn = useRef<boolean | null>(null);
+  useEffect(() => {
+    if (authLoading) return;
+
+    if (prevIsLoggedIn.current === null) {
+      // First time auth state is known: navigate to the correct screen.
+      prevIsLoggedIn.current = isLoggedIn;
+      router.replace(isLoggedIn ? ("/(tabs)" as any) : "/welcome");
+      return;
+    }
+
+    // Subsequent changes — only act on a logout transition.
+    if (prevIsLoggedIn.current && !isLoggedIn) {
+      router.replace("/welcome");
+    }
+    prevIsLoggedIn.current = isLoggedIn;
+  }, [authLoading, isLoggedIn]);
+
   return (
     <GestureHandlerRootView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -71,8 +93,6 @@ const RootLayoutContent = () => {
             contentStyle: { backgroundColor: colors.background },
           }}
         >
-          <Stack.Screen name="loading" />
-
           <Stack.Protected guard={isLoggedIn}>
             <Stack.Screen name="(tabs)" />
           </Stack.Protected>
@@ -112,9 +132,11 @@ const RootLayout = () => {
   if (!fontsLoaded && !fontError) return null;
 
   return (
-    <ThemeProvider>
-      <RootLayoutContent />
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <RootLayoutContent />
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 };
 

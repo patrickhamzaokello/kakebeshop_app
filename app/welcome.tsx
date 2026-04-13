@@ -113,12 +113,11 @@ export default function WelcomeScreen() {
   const row1Style = useAnimatedStyle(() => ({ transform: [{ translateX: tx1.value }] }));
 
   return (
-    <ScrollView
-      style={styles.root}
-      contentContainerStyle={styles.scrollContent}
-      showsVerticalScrollIndicator={false}
-    >
-      <SafeAreaView style={{ flex: 1 }}>
+    <SafeAreaView style={styles.root}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
 
         {/* ── Carousel ─────────────────────────────────────────────────────── */}
         <View style={styles.carouselSection}>
@@ -131,12 +130,11 @@ export default function WelcomeScreen() {
               </View>
             ))}
           </Animated.View>
-
         </View>
 
         {/* ── Content ──────────────────────────────────────────────────────── */}
         <Animated.View
-          entering={FadeInUp.delay(150).duration(600)}
+          entering={FadeInUp.duration(400)}
           style={styles.content}
         >
           {/* Badge */}
@@ -196,8 +194,8 @@ export default function WelcomeScreen() {
           </Text>
         </Animated.View>
 
-      </SafeAreaView>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -213,6 +211,7 @@ const styles = StyleSheet.create({
 
   // ── Carousel ──────────────────────────────────────────────────────────────
   carouselSection: {
+    height: CARD_H + spacingY._20 * 2,
     overflow: "hidden",
     paddingVertical: spacingY._20,
   },
