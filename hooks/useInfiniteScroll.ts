@@ -50,7 +50,7 @@ export function useInfiniteScroll<T>(
                 fetchRef.current(currentPage, itemsPerPageRef.current)
                     .then(response => {
                         if (mounted.current) {
-                            setData((prev) => [...prev, ...response.results]);
+                            setData((prev) => [...prev, ...(response.results ?? [])]);
                             setHasMore(response.next !== null);
                             hasMoreRef.current = response.next !== null;
                         }
@@ -88,7 +88,7 @@ export function useInfiniteScroll<T>(
             const response = await fetchRef.current(1, itemsPerPageRef.current);
 
             if (mounted.current) {
-                setData(response.results);
+                setData(response.results ?? []);
                 setPage(2);
                 setHasMore(response.next !== null);
                 hasMoreRef.current = response.next !== null;

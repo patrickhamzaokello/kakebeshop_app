@@ -1,3 +1,4 @@
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ThemeProvider, useTheme } from "@/contexts/ThemeContext";
 import { postUserIntent } from "@/utils/apiEndpoints";
 import { useAuthStore } from "@/utils/authStore";
@@ -132,11 +133,13 @@ const RootLayout = () => {
   if (!fontsLoaded && !fontError) return null;
 
   return (
-    <SafeAreaProvider>
-      <ThemeProvider>
-        <RootLayoutContent />
-      </ThemeProvider>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <ThemeProvider>
+          <RootLayoutContent />
+        </ThemeProvider>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 };
 

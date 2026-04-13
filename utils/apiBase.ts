@@ -170,20 +170,31 @@ class ApiService {
 
   private async handleAuthError() {
     try {
-      // Clear all auth data
       await SecureStore.deleteItemAsync("accessToken");
       await SecureStore.deleteItemAsync("refreshToken");
       await SecureStore.deleteItemAsync("userData");
       await SecureStore.deleteItemAsync("email");
       await SecureStore.deleteItemAsync("username");
       await SecureStore.deleteItemAsync("user_id");
-
-      // You might want to trigger a navigation to login here
-      // This could be done through a callback or event system
+      await SecureStore.deleteItemAsync("hasCompletedOnboarding");
+      await SecureStore.deleteItemAsync("hasCompletedSourceSelection");
     } catch (error) {
       if (__DEV__) {
         console.warn("Failed to clear auth tokens during auth error:", error);
       }
+    }
+
+    // Lazily import the store to avoid circular dependency at module init time
+    try {
+      const { useAuthStore } = await import("@/utils/authStore");
+      useAuthStore.setState({
+        user: null,
+        isLoggedIn: false,
+        hasCompletedOnboarding: false,
+        isLoading: false,
+      });
+    } catch (e) {
+      if (__DEV__) console.warn("Failed to reset auth store after auth error:", e);
     }
   }
 

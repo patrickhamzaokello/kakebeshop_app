@@ -95,9 +95,14 @@ const sectionStyles = StyleSheet.create({
 export default function CaptureListingDetails() {
   const { colors, isDark } = useTheme();
   const params = useLocalSearchParams();
-  const image_group_ids: string[] = params.image_group_ids
-    ? JSON.parse(params.image_group_ids as string)
-    : [];
+  let image_group_ids: string[] = [];
+  try {
+    image_group_ids = params.image_group_ids
+      ? JSON.parse(params.image_group_ids as string)
+      : [];
+  } catch {
+    image_group_ids = [];
+  }
 
   // ── Form state ──
   const [title, setTitle] = useState("");

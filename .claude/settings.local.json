@@ -34,7 +34,8 @@
       "Bash(adb -s R8YW50MMWVL uninstall com.kakebe.shop)",
       "Bash(adb -s R8YW50MMWVL install \"C:/React Native Projects/KakebeShop/android/app/build/outputs/apk/debug/app-debug.apk\")",
       "Bash(adb:*)",
-      "Bash(npx expo:*)"
+      "Bash(npx expo:*)",
+      "Bash(grep -E \"\\\\.\\(tsx?|json\\)$\")"
     ]
   }
 }

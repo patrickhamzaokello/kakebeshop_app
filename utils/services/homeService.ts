@@ -12,28 +12,23 @@ import {
 export const homeService = {
     // Header data - combine user profile and notifications
     async getHeaderData(): Promise<HeaderData> {
-        try {
-            const [userResponse, notificationsResponse] = await Promise.all([
-                apiService.get('/auth/profile/'),
-                apiService.get('/api/v1/notifications/unread_count/'),
-            ]);
+        const [userResponse, notificationsResponse] = await Promise.all([
+            apiService.get('/auth/profile/'),
+            apiService.get('/api/v1/notifications/unread_count/'),
+        ]);
 
-            return {
-                profile: userResponse.data.user,
-                notificationsCount: notificationsResponse.data.unread_count || 0,
-            };
-        } catch (error) {
-            throw error;
-        }
+        return {
+            profile: userResponse.data?.user ?? userResponse.data,
+            notificationsCount: notificationsResponse.data?.unread_count || 0,
+        };
     },
 
     // Carousel images
     async getCarouselImages(): Promise<CarouselImage[]> {
         try {
             const response = await apiService.get<PaginatedResponse<CarouselImage>>('/api/v1/banners/');
-            return response.data.results;
+            return response.data?.results ?? [];
         } catch (error) {
-            // Return empty array for graceful degradation
             return [];
         }
     },
@@ -87,11 +82,11 @@ export const homeService = {
 
             // Transform to match our hook's expected format
             return {
-                results: response.data.results,
-                hasMore: response.data.next !== null,
-                count: response.data.count,
-                next: response.data.next,
-                previous: response.data.previous,
+                results: response.data?.results ?? [],
+                hasMore: (response.data?.next ?? null) !== null,
+                count: response.data?.count ?? 0,
+                next: response.data?.next ?? null,
+                previous: response.data?.previous ?? null,
             };
         } catch (error) {
             return {
