@@ -56,19 +56,9 @@ const RootLayoutContent = () => {
     }
   }, [authLoading, isLoggedIn, hasCompletedOnboarding]);
 
-  if (authLoading) {
-    return (
-      <GestureHandlerRootView
-        style={[styles.container, { backgroundColor: colors.background }]}
-      >
-        <StatusBar style={isDark ? "light" : "dark"} />
-        <Stack>
-          <Stack.Screen name="loading" options={{ headerShown: false }} />
-        </Stack>
-      </GestureHandlerRootView>
-    );
-  }
-
+  // Single Stack for all states — avoids the full unmount/remount (and the
+  // resulting "(tabs)" header flash) that occurred when two separate <Stack>
+  // trees swapped in/out as authLoading changed.
   return (
     <GestureHandlerRootView
       style={[styles.container, { backgroundColor: colors.background }]}
@@ -77,16 +67,19 @@ const RootLayoutContent = () => {
         <StatusBar style={isDark ? "light" : "dark"} />
         <Stack
           screenOptions={{
+            headerShown: false,
             contentStyle: { backgroundColor: colors.background },
           }}
         >
+          <Stack.Screen name="loading" />
+
           <Stack.Protected guard={isLoggedIn}>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(tabs)" />
           </Stack.Protected>
 
           <Stack.Protected guard={!isLoggedIn}>
-            <Stack.Screen name="welcome" options={{ headerShown: false }} />
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen name="welcome" />
+            <Stack.Screen name="(auth)" />
           </Stack.Protected>
         </Stack>
       </PushNotificationManager>
@@ -103,11 +96,17 @@ const RootLayout = () => {
     SpaceGrotesk_700Bold,
   });
 
+  // Read auth loading state so we can keep the splash up until both are ready
+  const isAuthLoading = useAuthStore((state) => state.isLoading);
+
   useEffect(() => {
-    if (fontsLoaded || fontError) {
+    // Hide splash only when fonts AND auth check are both done.
+    // This prevents the "(tabs)" header flash that occurs when the
+    // loading Stack unmounts and the main Stack mounts mid-transition.
+    if ((fontsLoaded || fontError) && !isAuthLoading) {
       SplashScreen.hideAsync();
     }
-  }, [fontsLoaded, fontError]);
+  }, [fontsLoaded, fontError, isAuthLoading]);
 
   // Render nothing until font is ready — splash screen stays visible
   if (!fontsLoaded && !fontError) return null;
