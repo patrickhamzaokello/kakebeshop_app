@@ -684,7 +684,7 @@ export default function ListingDetailsScreen() {
     replyTo?: { id: string; user_name: string },
     editComment?: { id: string; body: string }
   ) => {
-    if (replyTo) setReplyingTo(replyTo);
+    setReplyingTo(replyTo ?? null);
     if (editComment) {
       setEditingComment(editComment);
       setCommentText(editComment.body);
@@ -1507,7 +1507,7 @@ export default function ListingDetailsScreen() {
           {/* "Add a comment" tappable row — opens the keyboard input overlay */}
           <TouchableOpacity
             style={[styles.commentAddTrigger, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}
-            onPress={openCommentInput}
+            onPress={() => openCommentInput()}
             activeOpacity={0.75}
           >
             {user?.profile_image ? (
