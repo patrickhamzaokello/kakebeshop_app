@@ -1,7 +1,6 @@
-import CustomButton from "@/components/CustomButton";
 import SocialAuthButtons from "@/components/SocialAuthButtons";
 import { Text } from "@/components/Text";
-import { MaterialCommunityIcons } from "@expo/vector-icons"; import { ImageBackground } from "expo-image"; import { router } from "expo-router"; import { useEffect, useState } from "react"; import { Dimensions, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons"; import { router } from "expo-router"; import { useEffect, useState } from "react"; import { Dimensions, Image, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 import Animated, {
   Easing,
   FadeInUp,
@@ -63,13 +62,17 @@ function PillBadge() {
 function CyclingHeadline() {
   const [idx, setIdx] = useState(0);
   const opacity = useSharedValue(1);
+  const idxSV = useSharedValue(0); // track current index on UI thread
   const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
 
   useEffect(() => {
     const id = setInterval(() => {
       opacity.value = withTiming(0, { duration: 380 }, (done) => {
+        'worklet';
         if (done) {
-          runOnJS(setIdx)((i) => (i + 1) % CYCLE_ITEMS.length);
+          const next = (idxSV.value + 1) % CYCLE_ITEMS.length;
+          idxSV.value = next;
+          runOnJS(setIdx)(next); // pass a plain number, not a function
           opacity.value = withTiming(1, { duration: 380 });
         }
       });
@@ -124,9 +127,8 @@ export default function WelcomeScreen() {
           <Animated.View style={[styles.row, row1Style]}>
             {[...ROW_1, ...ROW_1].map((item, i) => (
               <View key={`r1-${i}`} style={styles.card}>
-                <ImageBackground source={item.image} style={StyleSheet.absoluteFill} contentFit="cover">
-                  <View style={styles.cardOverlay} />
-                </ImageBackground>
+                <Image source={item.image} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                <View style={styles.cardOverlay} />
               </View>
             ))}
           </Animated.View>

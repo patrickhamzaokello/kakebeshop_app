@@ -131,28 +131,30 @@ const SocialAuthButtons: React.FC<SocialAuthButtonsProps> = ({
 
   return (
     <View style={styles.socialContainer}>
-      {/* Apple Button - Native */}
-      <View style={styles.appleButtonContainer}>
-        <AppleAuthentication.AppleAuthenticationButton
-          buttonType={
-            AppleAuthentication.AppleAuthenticationButtonType.CONTINUE
-          }
-          buttonStyle={
-            AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
-          }
-          cornerRadius={12}
-          style={[
-            styles.appleNativeButton,
-            (isAppleLoading || isGoogleLoading) && styles.disabledButton,
-          ]}
-          onPress={handleAppleSignIn}
-        />
-        {isAppleLoading && (
-          <View style={styles.appleLoadingOverlay}>
-            <Text style={styles.appleLoadingText}>Signing in...</Text>
-          </View>
-        )}
-      </View>
+      {/* Apple Button - Native (iOS only) */}
+      {Platform.OS === "ios" && (
+        <View style={styles.appleButtonContainer}>
+          <AppleAuthentication.AppleAuthenticationButton
+            buttonType={
+              AppleAuthentication.AppleAuthenticationButtonType.CONTINUE
+            }
+            buttonStyle={
+              AppleAuthentication.AppleAuthenticationButtonStyle.BLACK
+            }
+            cornerRadius={12}
+            style={[
+              styles.appleNativeButton,
+              (isAppleLoading || isGoogleLoading) && styles.disabledButton,
+            ]}
+            onPress={handleAppleSignIn}
+          />
+          {isAppleLoading && (
+            <View style={styles.appleLoadingOverlay}>
+              <Text style={styles.appleLoadingText}>Signing in...</Text>
+            </View>
+          )}
+        </View>
+      )}
 
       {/* Google Button */}
       <Pressable
