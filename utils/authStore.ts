@@ -1,6 +1,6 @@
 import apiService from "@/utils/apiBase";
-import { AuthVerificationResponse, UserType } from "@/utils/types/models";
 import { useListingDetailStore } from "@/utils/stores/useListingDetailStore";
+import { AuthVerificationResponse, UserType } from "@/utils/types/models";
 import { deleteItemAsync, getItemAsync, setItemAsync } from "expo-secure-store";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
@@ -210,6 +210,8 @@ export const useAuthStore = create<AuthState>()(
           });
           const data = response.data;
 
+          console.log(data)
+
           if (response.success) {
             const { tokens, email: userEmail, username, user_id } = data;
             // Store tokens
@@ -245,16 +247,12 @@ export const useAuthStore = create<AuthState>()(
               isNewUser,
             };
           } else {
-            return {
-              success: false,
-              msg: "An error occurred. Please try again.",
-            };
+            const msg = parseApiErrors(data, "An error occurred. Please try again.");
+            return { success: false, msg };
           }
         } catch (error: any) {
-          return {
-            success: false,
-            msg: "An unexpected error occurred. Please try again.",
-          };
+          const msg = parseApiErrors(error?.data, error?.message || "An unexpected error occurred. Please try again.");
+          return { success: false, msg };
         }
       },
 

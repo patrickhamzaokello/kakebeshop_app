@@ -16,7 +16,7 @@ class ApiService {
     reject: (error: any) => void;
   }> = [];
 
-  private authEndpoints = ["/auth/login/", "/auth/register/", "/auth/request-reset-email/", "/auth/verify-reset-code", "/auth/verify-email/", "/auth/resend-verification-code/","/auth/password-reset-complete/"];
+  private authEndpoints = ["/auth/login/","/social_auth/google/","/social_auth/apples/","/auth/register/", "/auth/request-reset-email/", "/auth/verify-reset-code", "/auth/verify-email/", "/auth/resend-verification-code/","/auth/password-reset-complete/"];
 
   constructor() {
     this.axiosInstance = axios.create({
@@ -315,3 +315,4 @@ export default apiService;
 
 // Also export the class for testing or multiple instances if needed
 export { ApiService };
+
