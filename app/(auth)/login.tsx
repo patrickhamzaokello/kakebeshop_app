@@ -1,4 +1,5 @@
 import Button from "@/components/CustomButton";
+import BackButton from "@/components/CustomBackButton";
 import ScreenWrapper from "@/components/ScreenWrapper";
 import Typo from "@/components/Typo";
 import SocialAuthButtons from "@/components/SocialAuthButtons";
@@ -106,16 +107,9 @@ const Login = () => {
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.container}>
+            <BackButton iconSize={26} />
             <View style={styles.welcomeSection}>
-              <Image
-                source={require("@/assets/icons/ios-dark.png")}
-                style={{
-                  width: 100,
-                  height: 100,
-                  marginBottom: spacingY._20,
-                  borderRadius: 10,
-                }}
-              />
+              
               <View style={styles.welcomeTextContainer}>
                 <Typo size={32} fontWeight={"900"} color="#1a1a1a">
                   Login
@@ -276,14 +270,11 @@ const styles = StyleSheet.create({
   },
   welcomeSection: {
     paddingVertical: spacingY._30,
-    alignItems: "center",
   },
   welcomeTextContainer: {
-    alignItems: "center",
     gap: spacingY._8,
   },
   subtitle: {
-    textAlign: "center",
     lineHeight: 22,
     fontWeight: 600,
     marginBottom: spacingY._20,

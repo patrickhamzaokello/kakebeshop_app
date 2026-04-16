@@ -54,11 +54,11 @@ export default function WelcomeScreen() {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
+      <StatusBar barStyle="dark-content" translucent backgroundColor="transparent" />
 
-      {/* Background — dark grey */}
+      {/* Background — light */}
       <LinearGradient
-        colors={["#1a1a1a", "#141414", "#0f0f0f"]}
+        colors={["#ffffff", "#f5f5f5", "#f0f0f0"]}
         style={StyleSheet.absoluteFill}
       />
 
@@ -84,7 +84,7 @@ export default function WelcomeScreen() {
 
           {/* Hero headline */}
           <View style={styles.heroBlock}>
-            <Text style={styles.headline}>Shop. Sell.{"\n"}Thrive.</Text>
+            <Text style={styles.headline}>Buy. Sell.{"\n"}Discover.</Text>
             <Text style={styles.subheadline}>
               Thousands of products from trusted sellers across Uganda — fashion,
               electronics, groceries &amp; more.
@@ -168,7 +168,7 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#141414",
+    backgroundColor: "#ffffff",
   },
   safeArea: {
     flex: 1,
@@ -196,13 +196,13 @@ const styles = StyleSheet.create({
   logoText: {
     fontSize: 20,
     fontWeight: "800",
-    color: "#FFFFFF",
+    color: "#111111",
     letterSpacing: -0.3,
   },
   badgePill: {
-    backgroundColor: "#222222",
+    backgroundColor: "#efefef",
     borderWidth: 1,
-    borderColor: "#2e2e2e",
+    borderColor: "#e0e0e0",
     borderRadius: 20,
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   badgePillText: {
     fontSize: 11,
     fontWeight: "600",
-    color: "rgba(255,255,255,0.50)",
+    color: "rgba(0,0,0,0.45)",
     letterSpacing: 0.3,
   },
 
@@ -222,14 +222,14 @@ const styles = StyleSheet.create({
   headline: {
     fontSize: 46,
     fontWeight: "900",
-    color: "#FFFFFF",
+    color: "#111111",
     lineHeight: 50,
     letterSpacing: -1.5,
     textAlign: "center",
   },
   subheadline: {
     fontSize: themeFontSize.sm,
-    color: "rgba(255,255,255,0.46)",
+    color: "rgba(0,0,0,0.46)",
     lineHeight: 20,
     fontWeight: "400",
     textAlign: "center",
@@ -243,7 +243,7 @@ const styles = StyleSheet.create({
   },
   ratingText: {
     fontSize: 12,
-    color: "rgba(255,255,255,0.50)",
+    color: "rgba(0,0,0,0.45)",
     fontWeight: "500",
     marginLeft: 4,
   },
@@ -260,10 +260,10 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#1e1e1e",
+    backgroundColor: "#f0f0f0",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#2a2a2a",
+    borderColor: "#e4e4e4",
     paddingVertical: spacingY._10,
     paddingHorizontal: spacingX._12,
     gap: 0,
@@ -282,12 +282,12 @@ const styles = StyleSheet.create({
   trustLabel: {
     fontSize: 11,
     fontWeight: "500",
-    color: "rgba(255,255,255,0.55)",
+    color: "rgba(0,0,0,0.50)",
   },
   trustSep: {
     width: 1,
     height: 14,
-    backgroundColor: "rgba(255,255,255,0.12)",
+    backgroundColor: "rgba(0,0,0,0.12)",
     marginHorizontal: 4,
   },
 
@@ -322,11 +322,11 @@ const styles = StyleSheet.create({
   divLine: {
     flex: 1,
     height: 1,
-    backgroundColor: "rgba(255,255,255,0.09)",
+    backgroundColor: "rgba(0,0,0,0.10)",
   },
   divText: {
     fontSize: 11,
-    color: "rgba(255,255,255,0.28)",
+    color: "rgba(0,0,0,0.35)",
     fontWeight: "500",
   },
 
@@ -334,9 +334,9 @@ const styles = StyleSheet.create({
   emailBtn: {
     height: 50,
     borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.04)",
+    backgroundColor: "#ffffff",
     borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.11)",
+    borderColor: "#e0e0e0",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
@@ -351,12 +351,12 @@ const styles = StyleSheet.create({
   // Terms
   terms: {
     fontSize: 10,
-    color: "rgba(255,255,255,0.20)",
+    color: "rgba(0,0,0,0.30)",
     textAlign: "center",
     lineHeight: 15,
   },
   termsLink: {
-    color: "rgba(255,255,255,0.38)",
+    color: "rgba(0,0,0,0.50)",
     textDecorationLine: "underline",
   },
 });

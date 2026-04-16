@@ -1,4 +1,4 @@
-import { StatusBar, StyleSheet } from "react-native";
+import { Platform, StatusBar, StyleSheet } from "react-native";
 import React from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import { useCallback } from "react";
@@ -22,6 +22,10 @@ const ScreenWrapper = ({
   useFocusEffect(
     useCallback(() => {
       StatusBar.setBarStyle(resolvedStyle);
+      if (Platform.OS === "android") {
+        StatusBar.setTranslucent(false);
+        StatusBar.setBackgroundColor("transparent");
+      }
     }, [resolvedStyle])
   );
 

@@ -7,12 +7,17 @@ import React from 'react'
 import { StyleSheet, TouchableOpacity } from 'react-native'
 
 const BackButton = ({
-    style, iconSize = 26
+    style, iconSize = 24
 }: BackButtonProps) => {
     const router = useRouter();
     return (
-        <TouchableOpacity onPress={() => router.back()} style={[styles.button, style]}>
-           <Ionicons name="chevron-back" size={verticalScale(iconSize)} color={colors.black} weight="bold" />
+        <TouchableOpacity
+            onPress={() => router.back()}
+            style={[styles.button, style]}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        >
+            <Ionicons name="chevron-back" size={verticalScale(iconSize)} color={colors.black} />
         </TouchableOpacity>
     )
 }
@@ -23,6 +28,8 @@ const styles = StyleSheet.create({
     button: {
         width: 40,
         height: 40,
+        borderRadius: 20,
+        backgroundColor: '#f2f2f2',
         justifyContent: "center",
         alignItems: "center",
     }
