@@ -37,7 +37,7 @@ export const moderateScale = (size: number, factor = 0.5) =>
 export const lightColors = {
   // Brand Colors - Vibrant Red Accent
   primary: "#d00000",
-  primaryLight: "#ff5400",
+  primaryLight: "#d00000",
   primaryDark: "#B8003A",
   primarySoft: "#FFFFFF",
 
@@ -152,7 +152,7 @@ export const lightColors = {
 // Dark Theme Colors
 export const darkColors: typeof lightColors = {
   // Brand Colors - Keep primary vibrant
-  primary: "#ff5400",
+  primary: "#d00000",
   primaryLight: "#FF6B8E",
   primaryDark: "#d00000",
   primarySoft: "#344e41",
@@ -238,7 +238,7 @@ export const darkColors: typeof lightColors = {
 
   // Special Colors
   star: "#FBBF24",
-  heart: "#ff5400",
+  heart: "#d00000",
   verified: "#60A5FA",
   online: "#4ADE80",
   offline: "#757575",
@@ -260,7 +260,7 @@ export const darkColors: typeof lightColors = {
   // Tab Bar
   tabBarBackground: "#1E1E1E",
   tabBarBorder: "#333333",
-  tabBarActive: "#ff5400",
+  tabBarActive: "#d00000",
   tabBarInactive: "#9E9E9E",
 
 };

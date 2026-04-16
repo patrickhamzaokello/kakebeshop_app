@@ -1,157 +1,138 @@
 import SocialAuthButtons from "@/components/SocialAuthButtons";
 import { Text } from "@/components/Text";
-import { MaterialCommunityIcons } from "@expo/vector-icons"; import { router } from "expo-router"; import { useEffect, useState } from "react"; import { Dimensions, Image, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
-import Animated, {
-  Easing,
-  FadeInUp,
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withTiming,
-} from "react-native-reanimated";
+import { Feather, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import { LinearGradient } from "expo-linear-gradient";
+import { router } from "expo-router";
+import { useState } from "react";
+import {
+  Dimensions,
+  Image,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import Animated, { FadeInDown, FadeInUp } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { darkColors, borderRadius as themeRadius, fontSize as themeFontSize, spacingX, spacingY } from "@/constants/theme";
+import {
+  darkColors,
+  fontSize as themeFontSize,
+  spacingX,
+  spacingY,
+} from "@/constants/theme";
 
-// ─── Dimensions ───────────────────────────────────────────────────────────────
 const { width } = Dimensions.get("window");
+const C = darkColors;
 
-// ─── Theme Aliases ────────────────────────────────────────────────────────────
-const C            = darkColors;
-const primaryMuted = "rgba(255, 84, 0, 0.12)";
-const primaryGlow  = "rgba(255, 84, 0, 0.28)";
-
-// ─── Carousel Data ────────────────────────────────────────────────────────────
-const ROW_1 = [
-  { id: 1, image: require("@/assets/images/grocery_collection.jpg") },
-  { id: 2, image: require("@/assets/images/shoes_collection.jpg") },
-  { id: 3, image: require("@/assets/images/shopping_collection.jpg") },
-  { id: 4, image: require("@/assets/images/fashion_collection.jpg") },
-  { id: 5, image: require("@/assets/images/grocery_collection.jpg") },
-  { id: 6, image: require("@/assets/images/shoes_collection.jpg") },
-];
-
-
-// ─── Card dimensions ──────────────────────────────────────────────────────────
-const CARD_W   = width * 0.62;
-const CARD_GAP = 12;
-const CARD_H   = Math.round(CARD_W * 0.68); // ~3:2 aspect ratio, height follows width
-
-// ─── Cycling headline data ────────────────────────────────────────────────────
-const CYCLE_ITEMS = [
-  { text: "KakebeShop",                          accent: true  },
-  { text: "Fresh groceries, delivered.",         accent: false },
-  { text: "KakebeShop",                          accent: true  },
-  { text: "Shop fashion & electronics.",         accent: false },
-  { text: "KakebeShop",                          accent: true  },
-  { text: "Trusted sellers. Best prices.",       accent: false },
-  { text: "KakebeShop",                          accent: true  },
-  { text: "Delivered fast across Uganda.",       accent: false },
+// ─── Data ─────────────────────────────────────────────────────────────────────
+const TRUST = [
+  { icon: "lock"       as const, label: "Secure Pay"    },
+  { icon: "zap"        as const, label: "Fast Delivery" },
+  { icon: "refresh-cw" as const, label: "Easy Returns"  },
 ];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
-function PillBadge() {
+function TrustItem({
+  icon,
+  label,
+}: {
+  icon: React.ComponentProps<typeof Feather>["name"];
+  label: string;
+}) {
   return (
-    <View style={styles.pill}>
-      <View style={styles.pillDot} />
-      <Text style={styles.pillText}>Uganda's #1 Marketplace</Text>
-    </View>
-  );
-}
-
-function CyclingHeadline() {
-  const [idx, setIdx] = useState(0);
-  const opacity = useSharedValue(1);
-  const idxSV = useSharedValue(0); // track current index on UI thread
-  const animStyle = useAnimatedStyle(() => ({ opacity: opacity.value }));
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      opacity.value = withTiming(0, { duration: 380 }, (done) => {
-        'worklet';
-        if (done) {
-          const next = (idxSV.value + 1) % CYCLE_ITEMS.length;
-          idxSV.value = next;
-          runOnJS(setIdx)(next); // pass a plain number, not a function
-          opacity.value = withTiming(1, { duration: 380 });
-        }
-      });
-    }, 2600);
-    return () => clearInterval(id);
-  }, []);
-
-  const { text, accent } = CYCLE_ITEMS[idx];
-  return (
-    <Animated.View style={[styles.cycleContainer, animStyle]}>
-      <Text style={[styles.cycleText, accent ? styles.cycleAccent : null]}>
-        {text}
-      </Text>
-    </Animated.View>
-  );
-}
-
-function OrDivider() {
-  return (
-    <View style={styles.divider}>
-      <View style={styles.divLine} />
-      <Text style={styles.divText}>or continue with</Text>
-      <View style={styles.divLine} />
+    <View style={styles.trustItem}>
+      <Feather name={icon} size={13} color={C.primary} />
+      <Text style={styles.trustLabel}>{label}</Text>
     </View>
   );
 }
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 export default function WelcomeScreen() {
-  const tx1 = useSharedValue(0);
-
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isAppleLoading, setIsAppleLoading]   = useState(false);
 
-  useEffect(() => {
-    // Animate exactly one set-width so the duplicate seamlessly loops
-    const loopDist = -(CARD_W + CARD_GAP) * ROW_1.length;
-    tx1.value = withRepeat(withTiming(loopDist, { duration: 24000, easing: Easing.linear }), -1, false);
-  }, []);
-
-  const row1Style = useAnimatedStyle(() => ({ transform: [{ translateX: tx1.value }] }));
-
   return (
-    <SafeAreaView style={styles.root}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
 
-        {/* ── Carousel ─────────────────────────────────────────────────────── */}
-        <View style={styles.carouselSection}>
-          <Animated.View style={[styles.row, row1Style]}>
-            {[...ROW_1, ...ROW_1].map((item, i) => (
-              <View key={`r1-${i}`} style={styles.card}>
-                <Image source={item.image} style={StyleSheet.absoluteFill} resizeMode="cover" />
-                <View style={styles.cardOverlay} />
-              </View>
-            ))}
-          </Animated.View>
-        </View>
+      {/* Background — dark grey */}
+      <LinearGradient
+        colors={["#1a1a1a", "#141414", "#0f0f0f"]}
+        style={StyleSheet.absoluteFill}
+      />
 
-        {/* ── Content ──────────────────────────────────────────────────────── */}
+      <SafeAreaView style={styles.safeArea}>
+
+        {/* ── Top content ───────────────────────────────────────────────── */}
         <Animated.View
-          entering={FadeInUp.duration(400)}
-          style={styles.content}
+          entering={FadeInDown.delay(100).duration(600)}
+          style={styles.topSection}
         >
-          {/* Badge */}
-          <PillBadge />
+          {/* Logo — centered */}
+          <View style={styles.logoSection}>
+            <Image
+              source={require("@/assets/icons/ios-dark.png")}
+              style={styles.appIcon}
+              resizeMode="contain"
+            />
+            <Text style={styles.logoText}>KakebeShop</Text>
+            <View style={styles.badgePill}>
+              <Text style={styles.badgePillText}>Uganda</Text>
+            </View>
+          </View>
 
-          {/* Headline */}
-          <View style={styles.headlineBlock}>
-            <CyclingHeadline />
-            <Text style={styles.subtitle}>
-            Buy, Sell & Discover Anything in Uganda.{"\n"}
-            From Products to Services — Fast, Easy, Trusted.
+          {/* Hero headline */}
+          <View style={styles.heroBlock}>
+            <Text style={styles.headline}>Shop. Sell.{"\n"}Thrive.</Text>
+            <Text style={styles.subheadline}>
+              Thousands of products from trusted sellers across Uganda — fashion,
+              electronics, groceries &amp; more.
             </Text>
           </View>
 
-          {/* Social auth (Google / Apple) */}
+          {/* Star rating — 4 full + 1 half for 4.8 */}
+          <View style={styles.ratingRow}>
+            {[1,2,3,4].map(i => (
+              <MaterialIcons key={i} name="star" size={14} color="#FFC107" />
+            ))}
+            <MaterialIcons name="star-half" size={14} color="#FFC107" />
+            <Text style={styles.ratingText}>4.8 · 50,000+ shoppers</Text>
+          </View>
+        </Animated.View>
+
+        {/* ── Auth section ──────────────────────────────────────────────── */}
+        <Animated.View
+          entering={FadeInUp.delay(100).duration(600)}
+          style={styles.authSection}
+        >
+          {/* Trust bar */}
+          <View style={styles.trustBar}>
+            {TRUST.map((t, i) => (
+              <View key={t.label} style={styles.trustRow}>
+                <TrustItem icon={t.icon} label={t.label} />
+                {i < TRUST.length - 1 && <View style={styles.trustSep} />}
+              </View>
+            ))}
+          </View>
+
+          {/* Sign In — primary CTA */}
+          <TouchableOpacity
+            style={styles.signInBtn}
+            onPress={() => router.push("/(auth)/login")}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.signInText}>Sign In</Text>
+            <Feather name="arrow-right" size={18} color="#fff" />
+          </TouchableOpacity>
+
+          {/* Social sign-up */}
+          <View style={styles.divider}>
+            <View style={styles.divLine} />
+            <Text style={styles.divText}>New customer? Create account</Text>
+            <View style={styles.divLine} />
+          </View>
+
           <SocialAuthButtons
             isGoogleLoading={isGoogleLoading}
             isAppleLoading={isAppleLoading}
@@ -160,44 +141,26 @@ export default function WelcomeScreen() {
             showSocialAuth={true}
           />
 
-          <OrDivider />
-
-          {/* Primary CTA */}
           <TouchableOpacity
             style={styles.emailBtn}
             onPress={() => router.push("/(auth)/register")}
-            activeOpacity={0.82}
+            activeOpacity={0.84}
           >
-            <MaterialCommunityIcons
-              name="email-outline"
-              color={C.background}
-              size={18}
-            />
+            <MaterialCommunityIcons name="email-outline" size={17} color={C.primary} />
             <Text style={styles.emailBtnText}>Sign up with Email</Text>
           </TouchableOpacity>
-
-          {/* Login row */}
-          <View style={styles.loginRow}>
-            <Text style={styles.loginHint}>Already have an account? </Text>
-            <TouchableOpacity
-              onPress={() => router.push("/(auth)/login")}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.loginLink}>Log In</Text>
-            </TouchableOpacity>
-          </View>
 
           {/* Terms */}
           <Text style={styles.terms}>
             By continuing you agree to our{" "}
             <Text style={styles.termsLink}>Terms of Service</Text>
-            {" "}&amp;{" "}
+            {" & "}
             <Text style={styles.termsLink}>Privacy Policy</Text>
           </Text>
         </Animated.View>
 
-      </ScrollView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -205,180 +168,195 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: C.background,
+    backgroundColor: "#141414",
   },
-  scrollContent: {
-    flexGrow: 1,
-  },
-
-  // ── Carousel ──────────────────────────────────────────────────────────────
-  carouselSection: {
-    height: CARD_H + spacingY._20 * 2,
-    overflow: "hidden",
-    paddingVertical: spacingY._20,
-  },
-  row: {
-    flexDirection: "row",
-    gap: CARD_GAP,
-  },
-  card: {
-    width: CARD_W,
-    height: CARD_H,
-    overflow: "hidden",
-    backgroundColor: C.surface,
-    borderRadius: 8
-  },
-  cardOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.22)",
-  },
-  fadeLeft: {
-    position: "absolute",
-    top: 0, bottom: 0, left: 0,
-    width: spacingX._32,
-    backgroundColor: C.background,
-    opacity: 0.85,
-  },
-  fadeRight: {
-    position: "absolute",
-    top: 0, bottom: 0, right: 0,
-    width: spacingX._32,
-    backgroundColor: C.background,
-    opacity: 0.85,
-  },
-
-  // ── Content ───────────────────────────────────────────────────────────────
-  content: {
+  safeArea: {
     flex: 1,
-    paddingHorizontal: spacingX._24,
-    paddingTop: spacingY._4,
-    paddingBottom: spacingX._32,
-    gap: spacingY._17,
+    justifyContent: "space-between",
   },
 
-  // Badge
-  pill: {
-    flexDirection: "row",
+  // ── Top section ─────────────────────────────────────────────────────────────
+  topSection: {
+    paddingHorizontal: spacingX._24,
+    paddingTop: spacingY._20,
+    gap: spacingY._17,
     alignItems: "center",
-    gap: spacingX._7,
-    alignSelf: "center",
-    backgroundColor: primaryMuted,
-    borderColor: primaryGlow,
+  },
+
+  // Logo — centered
+  logoSection: {
+    alignItems: "center",
+    gap: spacingY._8,
+  },
+  appIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 18,
+  },
+  logoText: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: -0.3,
+  },
+  badgePill: {
+    backgroundColor: "#222222",
     borderWidth: 1,
-    borderRadius: themeRadius.full,
-    paddingHorizontal: spacingX._15,
-    paddingVertical: spacingY._6,
+    borderColor: "#2e2e2e",
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
-  pillDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: C.primary,
-  },
-  pillText: {
-    fontSize: themeFontSize.xs,
+  badgePillText: {
+    fontSize: 11,
     fontWeight: "600",
-    color: C.primaryLight,
+    color: "rgba(255,255,255,0.50)",
     letterSpacing: 0.3,
   },
 
-  // Headline
-  headlineBlock: {
+  // Hero
+  heroBlock: {
     gap: spacingY._8,
     alignItems: "center",
   },
-  cycleContainer: {
-    minHeight: 76, // reserves space for 2 lines (lineHeight 38 × 2) — prevents layout shift
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  cycleText: {
-    fontSize: 32,
-    fontWeight: "800",
-    color: C.text,
-    lineHeight: 38,
-    letterSpacing: -0.5,
+  headline: {
+    fontSize: 46,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    lineHeight: 50,
+    letterSpacing: -1.5,
     textAlign: "center",
   },
-  cycleAccent: {
-    color: C.primary,
-  },
-  subtitle: {
-    fontSize: themeFontSize.md,
-    color: C.textMuted,
-    lineHeight: 21,
+  subheadline: {
+    fontSize: themeFontSize.sm,
+    color: "rgba(255,255,255,0.46)",
+    lineHeight: 20,
     fontWeight: "400",
     textAlign: "center",
   },
 
-  // Divider
-  divider: {
+  // Rating
+  ratingRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: spacingX._10,
-    marginVertical: -spacingY._4,
+    gap: 4,
   },
-  divLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: C.border,
-  },
-  divText: {
-    fontSize: themeFontSize.sm,
-    color: C.textPlaceholder,
+  ratingText: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.50)",
     fontWeight: "500",
-    letterSpacing: 0.2,
+    marginLeft: 4,
   },
 
-  // Email CTA
-  emailBtn: {
-    height: spacingY._50,
-    borderRadius:10,
+  // ── Auth section ────────────────────────────────────────────────────────────
+  authSection: {
+    paddingHorizontal: spacingX._24,
+    paddingBottom: spacingY._20,
+    gap: spacingY._12,
+  },
+
+  // Trust bar
+  trustBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#1e1e1e",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#2a2a2a",
+    paddingVertical: spacingY._10,
+    paddingHorizontal: spacingX._12,
+    gap: 0,
+  },
+  trustRow: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  trustItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  trustLabel: {
+    fontSize: 11,
+    fontWeight: "500",
+    color: "rgba(255,255,255,0.55)",
+  },
+  trustSep: {
+    width: 1,
+    height: 14,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    marginHorizontal: 4,
+  },
+
+  // Sign In
+  signInBtn: {
+    height: 54,
+    borderRadius: 14,
     backgroundColor: C.primary,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: spacingX._8,
     shadowColor: C.primary,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 18,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45,
+    shadowRadius: 16,
+    elevation: 8,
   },
-  emailBtnText: {
+  signInText: {
     fontSize: themeFontSize.lg,
-    fontWeight: "700",
-    color: C.background,
-    letterSpacing: 0.1,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: 0.2,
   },
 
-  // Login
-  loginRow: {
+  // Divider
+  divider: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacingX._8,
+  },
+  divLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "rgba(255,255,255,0.09)",
+  },
+  divText: {
+    fontSize: 11,
+    color: "rgba(255,255,255,0.28)",
+    fontWeight: "500",
+  },
+
+  // Email
+  emailBtn: {
+    height: 50,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.11)",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: -spacingY._4,
+    gap: spacingX._8,
   },
-  loginHint: {
-    fontSize: themeFontSize.sm,
-    color: C.textMuted,
-  },
-  loginLink: {
-    fontSize: themeFontSize.sm,
-    fontWeight: "700",
+  emailBtnText: {
+    fontSize: themeFontSize.md,
+    fontWeight: "600",
     color: C.primary,
   },
 
   // Terms
   terms: {
-    fontSize: themeFontSize.xs,
-    color: C.textPlaceholder,
+    fontSize: 10,
+    color: "rgba(255,255,255,0.20)",
     textAlign: "center",
-    lineHeight: 17,
-    marginTop: "auto",
+    lineHeight: 15,
   },
   termsLink: {
-    color: C.textMuted,
+    color: "rgba(255,255,255,0.38)",
     textDecorationLine: "underline",
   },
 });
