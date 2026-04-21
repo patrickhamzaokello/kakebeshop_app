@@ -1,23 +1,388 @@
-import {
-  borderRadius,
-  colors,
-  fontSize,
-  fontWeight,
-  shadow,
-  spacingX,
-  spacingY,
-} from "@/constants/theme";
+import { ThemeColors } from "@/constants/theme";
+import { useThemeColors } from "@/contexts/ThemeContext";
 import apiService from "@/utils/apiBase";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import * as ImagePicker from "expo-image-picker";
 import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Text } from "@/components/Text";
 import { TextInput } from "@/components/TextInput";
-import { Alert, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  Animated,
+  Dimensions,
+  Keyboard,
+  Modal,
+  PanResponder,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+
+const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+const SHEET_HEIGHT = SCREEN_HEIGHT * 0.88;
+
+// ─── Style factories ──────────────────────────────────────────────────────────
+
+const makeSheetStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    backdrop: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: c.backdrop,
+    },
+    // Outer: only position + size. Animated with native driver (transform only).
+    slideWrap: {
+      position: "absolute",
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: SHEET_HEIGHT,
+    },
+    // Inner: visual styling. Not animated — avoids native/JS driver conflict.
+    container: {
+      flex: 1,
+      backgroundColor: c.surface,
+      borderTopLeftRadius: 24,
+      borderTopRightRadius: 24,
+      overflow: "hidden",
+    },
+    handle: { alignItems: "center", paddingVertical: 12 },
+    handleBar: {
+      width: 40,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: c.gray300,
+    },
+  });
+
+const makeSuccessStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    backdrop: {
+      flex: 1,
+      backgroundColor: c.backdrop,
+      alignItems: "center",
+      justifyContent: "center",
+      padding: 24,
+    },
+    card: {
+      backgroundColor: c.surface,
+      borderRadius: 24,
+      padding: 28,
+      alignItems: "center",
+      width: "100%",
+    },
+    iconBg: {
+      width: 80,
+      height: 80,
+      borderRadius: 40,
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 20,
+    },
+    title: {
+      fontSize: 22,
+      fontWeight: "700",
+      color: c.textPrimary,
+      marginBottom: 12,
+      textAlign: "center",
+    },
+    body: {
+      fontSize: 15,
+      color: c.textSecondary,
+      textAlign: "center",
+      lineHeight: 22,
+      marginBottom: 24,
+    },
+    bold: { fontWeight: "600", color: c.textPrimary },
+    btn: {
+      backgroundColor: c.primary,
+      borderRadius: 12,
+      paddingVertical: 14,
+      paddingHorizontal: 40,
+    },
+    btnText: { fontSize: 16, fontWeight: "700", color: c.white },
+  });
+
+const makeStepStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    row: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 20,
+      paddingBottom: 20,
+    },
+    circle: {
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: c.gray200,
+      borderWidth: 2,
+      borderColor: c.gray300,
+    },
+    circleActive: { backgroundColor: c.primary, borderColor: c.primary },
+    circleDone: { backgroundColor: c.success, borderColor: c.success },
+    circleText: { fontSize: 11, fontWeight: "700", color: c.textMuted },
+    circleTextActive: { color: c.white },
+    line: { flex: 1, height: 2, backgroundColor: c.gray300, marginHorizontal: 4 },
+    lineDone: { backgroundColor: c.success },
+  });
+
+const makeStyles = (c: ThemeColors) =>
+  StyleSheet.create({
+    screen: { flex: 1, backgroundColor: c.backgroundSecondary },
+
+    // Hero
+    heroGradient: { flex: 1, minHeight: 260, maxHeight: 320 },
+    backBtn: {
+      margin: 16,
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: "rgba(255,255,255,0.2)",
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    heroContent: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 24,
+      paddingBottom: 24,
+    },
+    heroBadge: {
+      width: 72,
+      height: 72,
+      borderRadius: 36,
+      backgroundColor: "rgba(255,255,255,0.2)",
+      alignItems: "center",
+      justifyContent: "center",
+      marginBottom: 16,
+    },
+    heroTitle: {
+      fontSize: 28,
+      fontWeight: "700",
+      color: c.white,
+      textAlign: "center",
+      marginBottom: 8,
+    },
+    heroSub: {
+      fontSize: 15,
+      color: "rgba(255,255,255,0.85)",
+      textAlign: "center",
+      lineHeight: 22,
+    },
+
+    // Perks
+    perksCard: {
+      margin: 16,
+      backgroundColor: c.surface,
+      borderRadius: 16,
+      padding: 20,
+      gap: 14,
+    },
+    perkRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+    perkIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: c.primarySoft,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    perkText: { fontSize: 15, color: c.textPrimary, fontWeight: "500", flex: 1 },
+
+    // Hero footer
+    heroFooter: {
+      padding: 20,
+      paddingBottom: 24,
+      alignItems: "center",
+      gap: 10,
+    },
+    startBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: c.primary,
+      borderRadius: 12,
+      paddingVertical: 16,
+      paddingHorizontal: 32,
+      gap: 8,
+      width: "100%",
+    },
+    startBtnText: { fontSize: 17, fontWeight: "700", color: c.white },
+    footerNote: { fontSize: 13, color: c.textMuted },
+
+    // Sheet header
+    sheetHeader: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 20,
+      paddingBottom: 12,
+    },
+    sheetTitle: { fontSize: 18, fontWeight: "700", color: c.textPrimary },
+    sheetSub: { fontSize: 13, color: c.textMuted, marginTop: 2 },
+    sheetClose: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: c.gray100,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    progressTrack: {
+      height: 3,
+      backgroundColor: c.gray200,
+      marginHorizontal: 20,
+      marginBottom: 20,
+      borderRadius: 2,
+      overflow: "hidden",
+    },
+    progressFill: { height: "100%", backgroundColor: c.primary, borderRadius: 2 },
+    sheetBody: { paddingHorizontal: 20, paddingBottom: 12 },
+
+    // Sheet footer
+    sheetFooter: {
+      borderTopWidth: 1,
+      borderTopColor: c.border,
+      backgroundColor: c.surface,
+    },
+    footerRow: {
+      flexDirection: "row",
+      paddingHorizontal: 20,
+      paddingTop: 14,
+      paddingBottom: 14,
+      gap: 12,
+    },
+    backSheetBtn: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      borderRadius: 12,
+      paddingVertical: 14,
+      paddingHorizontal: 16,
+      borderWidth: 1,
+      borderColor: c.border,
+      gap: 6,
+      minWidth: 100,
+    },
+    backSheetBtnText: { fontSize: 15, fontWeight: "600", color: c.textSecondary },
+    nextBtn: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: c.primary,
+      borderRadius: 12,
+      paddingVertical: 16,
+      gap: 8,
+    },
+    nextBtnDisabled: { opacity: 0.65 },
+    nextBtnText: { fontSize: 17, fontWeight: "700", color: c.white },
+
+    // Step header row
+    stepHeaderRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 12,
+      marginBottom: 24,
+      backgroundColor: c.backgroundSecondary,
+      borderRadius: 12,
+      padding: 14,
+    },
+    stepIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: c.primarySoft,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    stepIconSuccess: {
+      width: 44,
+      height: 44,
+      borderRadius: 22,
+      backgroundColor: c.successLight,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    stepTitle: { fontSize: 16, fontWeight: "700", color: c.textPrimary },
+    stepSub: { fontSize: 13, color: c.textMuted, marginTop: 2 },
+
+    // Field
+    fieldGroup: { marginBottom: 20 },
+    labelRow: { flexDirection: "row", alignItems: "center", marginBottom: 8, gap: 3 },
+    label: { fontSize: 15, fontWeight: "600", color: c.textPrimary },
+    required: { fontSize: 15, color: c.error, fontWeight: "700" },
+    optional: { fontSize: 13, color: c.textMuted },
+    input: {
+      backgroundColor: c.surface,
+      borderRadius: 10,
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      fontSize: 15,
+      color: c.textPrimary,
+      borderWidth: 1.5,
+      borderColor: c.border,
+    },
+    inputError: { borderColor: c.error },
+    textArea: { height: 110, paddingTop: 12, textAlignVertical: "top" as const },
+    errorRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
+    errorText: { fontSize: 13, color: c.error },
+    helperText: { fontSize: 13, color: c.textMuted, marginTop: 6 },
+    charCount: {
+      fontSize: 11,
+      color: c.textMuted,
+      textAlign: "right" as const,
+      marginTop: 4,
+    },
+
+    // Review
+    reviewCard: { backgroundColor: c.backgroundSecondary, borderRadius: 14, padding: 16 },
+    reviewCardTitle: {
+      fontSize: 15,
+      fontWeight: "700",
+      color: c.textPrimary,
+      marginBottom: 12,
+      paddingBottom: 8,
+      borderBottomWidth: 1,
+      borderBottomColor: c.border,
+    },
+    reviewRow: { marginBottom: 10 },
+    reviewLabel: {
+      fontSize: 11,
+      color: c.textMuted,
+      marginBottom: 2,
+      textTransform: "uppercase" as const,
+      letterSpacing: 0.5,
+    },
+    reviewValue: { fontSize: 15, color: c.textPrimary, lineHeight: 22 },
+
+    // Notice
+    noticeCard: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      backgroundColor: c.warningLight,
+      borderRadius: 12,
+      padding: 14,
+      marginTop: 16,
+      gap: 10,
+      borderLeftWidth: 3,
+      borderLeftColor: c.warning,
+    },
+    noticeTitle: { fontSize: 13, fontWeight: "600", color: c.textPrimary, marginBottom: 3 },
+    noticeText: { fontSize: 13, color: c.textSecondary, lineHeight: 20 },
+  });
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface FormData {
   display_name: string;
@@ -26,8 +391,6 @@ interface FormData {
   business_phone: string;
   business_email: string;
   location: string;
-  logo: string | null;
-  cover_image: string | null;
 }
 
 interface FormErrors {
@@ -39,10 +402,264 @@ interface FormErrors {
   location?: string;
 }
 
+// ─── Bottom Sheet ─────────────────────────────────────────────────────────────
+
+function BottomSheet({
+  visible,
+  onClose,
+  children,
+  footer,
+}: {
+  visible: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+  footer: React.ReactNode;
+}) {
+  const colors = useThemeColors();
+  const sheetStyles = useMemo(() => makeSheetStyles(colors), [colors]);
+
+  // Native driver: transform only (slide in/out)
+  const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
+  // JS driver: height only (keyboard spacer) — must be on a SEPARATE Animated.View
+  const keyboardPad = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.spring(translateY, {
+        toValue: 0,
+        useNativeDriver: true,
+        damping: 20,
+        stiffness: 180,
+      }).start();
+    } else {
+      Animated.timing(translateY, {
+        toValue: SHEET_HEIGHT,
+        duration: 260,
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible]);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === "ios" ? "keyboardWillShow" : "keyboardDidShow";
+    const hideEvent = Platform.OS === "ios" ? "keyboardWillHide" : "keyboardDidHide";
+
+    const showSub = Keyboard.addListener(showEvent, (e) => {
+      Animated.timing(keyboardPad, {
+        toValue: e.endCoordinates.height,
+        duration: e.duration ?? 250,
+        useNativeDriver: false,
+      }).start();
+    });
+    const hideSub = Keyboard.addListener(hideEvent, (e) => {
+      Animated.timing(keyboardPad, {
+        toValue: 0,
+        duration: e.duration ?? 250,
+        useNativeDriver: false,
+      }).start();
+    });
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onMoveShouldSetPanResponder: (_, gs) => gs.dy > 8,
+      onPanResponderMove: (_, gs) => {
+        if (gs.dy > 0) translateY.setValue(gs.dy);
+      },
+      onPanResponderRelease: (_, gs) => {
+        if (gs.dy > 120 || gs.vy > 0.5) {
+          Keyboard.dismiss();
+          onClose();
+        } else {
+          Animated.spring(translateY, {
+            toValue: 0,
+            useNativeDriver: true,
+            damping: 20,
+          }).start();
+        }
+      },
+    })
+  ).current;
+
+  return (
+    <Modal
+      visible={visible}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
+      <TouchableWithoutFeedback onPress={() => { Keyboard.dismiss(); onClose(); }}>
+        <View style={sheetStyles.backdrop} />
+      </TouchableWithoutFeedback>
+
+      {/* Outer: transform animation only (native driver — no layout props here) */}
+      <Animated.View style={[sheetStyles.slideWrap, { transform: [{ translateY }] }]}>
+        {/* Inner: visual sheet styling (plain View — not animated) */}
+        <View style={sheetStyles.container}>
+          <View {...panResponder.panHandlers} style={sheetStyles.handle}>
+            <View style={sheetStyles.handleBar} />
+          </View>
+
+          {/* Scroll content (flex: 1 — shrinks when spacer grows) */}
+          {children}
+
+          {/* Footer — always visible above keyboard */}
+          {footer}
+
+          {/* Keyboard spacer (JS driver, separate Animated.View from translateY) */}
+          <Animated.View style={{ height: keyboardPad }} />
+        </View>
+      </Animated.View>
+    </Modal>
+  );
+}
+
+// ─── Success Modal ────────────────────────────────────────────────────────────
+
+function SuccessModal({ visible, onDone }: { visible: boolean; onDone: () => void }) {
+  const colors = useThemeColors();
+  const s = useMemo(() => makeSuccessStyles(colors), [colors]);
+
+  const scaleAnim = useRef(new Animated.Value(0.7)).current;
+  const opacityAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      Animated.parallel([
+        Animated.spring(scaleAnim, {
+          toValue: 1,
+          useNativeDriver: true,
+          damping: 16,
+          stiffness: 200,
+        }),
+        Animated.timing(opacityAnim, {
+          toValue: 1,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      scaleAnim.setValue(0.7);
+      opacityAnim.setValue(0);
+    }
+  }, [visible]);
+
+  return (
+    <Modal visible={visible} transparent animationType="none" statusBarTranslucent>
+      <View style={s.backdrop}>
+        <Animated.View
+          style={[s.card, { transform: [{ scale: scaleAnim }], opacity: opacityAnim }]}
+        >
+          <LinearGradient
+            colors={[colors.primary, colors.primaryDark]}
+            style={s.iconBg}
+          >
+            <Ionicons name="checkmark" size={40} color={colors.white} />
+          </LinearGradient>
+          <Text style={s.title}>Application Submitted!</Text>
+          <Text style={s.body}>
+            Our team will review your merchant profile within{" "}
+            <Text style={s.bold}>24–48 hours</Text>. You'll receive a
+            notification once approved.
+          </Text>
+          <TouchableOpacity style={s.btn} onPress={onDone}>
+            <Text style={s.btnText}>Got it</Text>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+    </Modal>
+  );
+}
+
+// ─── Step Indicator ───────────────────────────────────────────────────────────
+
+function StepIndicator({ current, total }: { current: number; total: number }) {
+  const colors = useThemeColors();
+  const s = useMemo(() => makeStepStyles(colors), [colors]);
+
+  return (
+    <View style={s.row}>
+      {Array.from({ length: total }).map((_, i) => {
+        const done = i + 1 < current;
+        const active = i + 1 === current;
+        return (
+          <React.Fragment key={i}>
+            <View style={[s.circle, active && s.circleActive, done && s.circleDone]}>
+              {done ? (
+                <Ionicons name="checkmark" size={12} color={colors.white} />
+              ) : (
+                <Text style={[s.circleText, (active || done) && s.circleTextActive]}>
+                  {i + 1}
+                </Text>
+              )}
+            </View>
+            {i < total - 1 && (
+              <View style={[s.line, done && s.lineDone]} />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </View>
+  );
+}
+
+// ─── Field (top-level — must NOT be defined inside a render function) ─────────
+
+function Field({
+  label,
+  required,
+  optional,
+  error,
+  helper,
+  children,
+  s,
+  colors,
+}: {
+  label: string;
+  required?: boolean;
+  optional?: boolean;
+  error?: string;
+  helper?: string;
+  children: React.ReactNode;
+  s: ReturnType<typeof makeStyles>;
+  colors: ThemeColors;
+}) {
+  return (
+    <View style={s.fieldGroup}>
+      <View style={s.labelRow}>
+        <Text style={s.label}>{label}</Text>
+        {required && <Text style={s.required}>*</Text>}
+        {optional && <Text style={s.optional}> (optional)</Text>}
+      </View>
+      {children}
+      {error ? (
+        <View style={s.errorRow}>
+          <Ionicons name="alert-circle" size={13} color={colors.error} />
+          <Text style={s.errorText}>{error}</Text>
+        </View>
+      ) : helper ? (
+        <Text style={s.helperText}>{helper}</Text>
+      ) : null}
+    </View>
+  );
+}
+
+// ─── Main Screen ──────────────────────────────────────────────────────────────
+
 export default function BecomeMerchantScreen() {
+  const colors = useThemeColors();
+  const s = useMemo(() => makeStyles(colors), [colors]);
+
+  const [sheetVisible, setSheetVisible] = useState(false);
+  const [successVisible, setSuccessVisible] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
   const [formData, setFormData] = useState<FormData>({
     display_name: "",
     business_name: "",
@@ -50,397 +667,227 @@ export default function BecomeMerchantScreen() {
     business_phone: "",
     business_email: "",
     location: "",
-    logo: null,
-    cover_image: null,
   });
-
   const [errors, setErrors] = useState<FormErrors>({});
-
   const totalSteps = 3;
 
-  // Form validation
-  const validateStep = (step: number): boolean => {
-    const newErrors: FormErrors = {};
-
-    switch (step) {
-      case 1: // Business Info
-        if (!formData.display_name.trim()) {
-          newErrors.display_name = "Display name is required";
-        } else if (formData.display_name.trim().length < 3) {
-          newErrors.display_name = "Display name must be at least 3 characters";
-        }
-
-        if (!formData.business_name.trim()) {
-          newErrors.business_name = "Business name is required";
-        }
-
-        if (!formData.description.trim()) {
-          newErrors.description = "Business description is required";
-        } else if (formData.description.trim().length < 20) {
-          newErrors.description = "Description must be at least 20 characters";
-        }
-        break;
-
-      case 2: // Contact Info
-        if (!formData.business_phone.trim()) {
-          newErrors.business_phone = "Phone number is required";
-        } else if (!/^[0-9+\-\s()]{10,}$/.test(formData.business_phone)) {
-          newErrors.business_phone = "Enter a valid phone number";
-        }
-
-        if (formData.business_email.trim()) {
-          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-          if (!emailRegex.test(formData.business_email)) {
-            newErrors.business_email = "Enter a valid email address";
-          }
-        }
-
-        if (!formData.location.trim()) {
-          newErrors.location = "Location is required";
-        }
-        break;
+  const updateField = <K extends keyof FormData>(key: K, value: string) => {
+    setFormData((prev) => ({ ...prev, [key]: value }));
+    if (errors[key as keyof FormErrors]) {
+      setErrors((prev) => ({ ...prev, [key]: undefined }));
     }
+  };
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const validateStep = (step: number): boolean => {
+    const e: FormErrors = {};
+    if (step === 1) {
+      if (!formData.display_name.trim()) e.display_name = "Display name is required";
+      else if (formData.display_name.trim().length < 3) e.display_name = "Minimum 3 characters";
+      if (!formData.business_name.trim()) e.business_name = "Business name is required";
+      if (!formData.description.trim()) e.description = "Description is required";
+      else if (formData.description.trim().length < 20) e.description = "Minimum 20 characters";
+    }
+    if (step === 2) {
+      if (!formData.business_phone.trim()) e.business_phone = "Phone number is required";
+      else if (!/^[0-9+\-\s()]{10,}$/.test(formData.business_phone))
+        e.business_phone = "Enter a valid phone number";
+      if (formData.business_email.trim()) {
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.business_email))
+          e.business_email = "Enter a valid email address";
+      }
+      if (!formData.location.trim()) e.location = "Location is required";
+    }
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
   const handleNext = () => {
-    if (validateStep(currentStep)) {
-      if (currentStep < totalSteps) {
-        setCurrentStep(currentStep + 1);
-      }
+    if (validateStep(currentStep) && currentStep < totalSteps) {
+      Keyboard.dismiss();
+      setCurrentStep((n) => n + 1);
     }
   };
 
   const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
-    } else {
-      router.back();
-    }
+    if (currentStep > 1) setCurrentStep((n) => n - 1);
+    else setSheetVisible(false);
   };
 
   const handleSubmit = async () => {
-    if (!validateStep(currentStep)) {
-      return;
-    }
-
+    if (!validateStep(currentStep)) return;
     setIsSubmitting(true);
-
     try {
-      const submitData = {
-        business_name: formData.business_name,
-        display_name: formData.display_name,
-        description: formData.description,
-        business_phone: formData.business_phone,
-        business_email: formData.business_email,
-      };
-
-      // Replace with actual API call
-      const response = await apiService.post("/api/v1/merchants/create_profile/", submitData, {
-        headers: {
-          "Content-Type": "application/json",
+      const response = await apiService.post(
+        "/api/v1/merchants/create_profile/",
+        {
+          business_name: formData.business_name,
+          display_name: formData.display_name,
+          description: formData.description,
+          business_phone: formData.business_phone,
+          business_email: formData.business_email,
         },
-      });
-
+        { headers: { "Content-Type": "application/json" } }
+      );
       if (response.success) {
-        router.back();
-      } else {
-        Alert.alert(
-          "Submission Failed",
-          "Your merchant profile could not be saved. Please try again."
-        );
+        setSheetVisible(false);
+        setSuccessVisible(true);
       }
     } catch (error) {
-      Alert.alert(
-        "Error",
-        error instanceof Error ? error.message : "Something went wrong. Please try again."
-      );
+      setErrors({
+        display_name:
+          error instanceof Error ? error.message : "Something went wrong.",
+      });
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const pickImage = async (type: "logo" | "cover_image") => {
-    const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
-    if (!permissionResult.granted) {
-      Alert.alert(
-        "Permission Required",
-        "Please allow access to your photo library to upload images."
-      );
-      return;
-    }
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: type === "logo" ? [1, 1] : [16, 9],
-      quality: 0.8,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      // In production, upload to your server/cloud storage
-      // For now, we'll use the local URI
-      setFormData((prev) => ({
-        ...prev,
-        [type]: result.assets[0].uri,
-      }));
-    }
+  const openSheet = () => {
+    setCurrentStep(1);
+    setErrors({});
+    setSheetVisible(true);
   };
 
-  const removeImage = (type: "logo" | "cover_image") => {
-    setFormData((prev) => ({
-      ...prev,
-      [type]: null,
-    }));
-  };
-
-  // Step 1: Business Information
+  // ── Step 1 ──
   const renderStep1 = () => (
-    <View style={styles.stepContainer}>
-      <View style={styles.stepHeader}>
-        <View style={styles.stepIconContainer}>
-          <MaterialCommunityIcons
-            name="store"
-            size={32}
-            color={colors.primary}
-          />
+    <View>
+      <View style={s.stepHeaderRow}>
+        <View style={s.stepIcon}>
+          <MaterialCommunityIcons name="store" size={22} color={colors.primary} />
         </View>
-        <Text style={styles.stepTitle}>Business Information</Text>
-        <Text style={styles.stepDescription}>
-          Tell us about your business
-        </Text>
+        <View style={{ flex: 1 }}>
+          <Text style={s.stepTitle}>Business Information</Text>
+          <Text style={s.stepSub}>Tell us about your business</Text>
+        </View>
       </View>
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>
-          Display Name <Text style={styles.required}>*</Text>
-        </Text>
+      <Field s={s} colors={colors} label="Display Name" required error={errors.display_name} helper="Visible to customers on your store page">
         <TextInput
-          style={[styles.input, errors.display_name && styles.inputError]}
-          placeholder="How you want to be shown (e.g., Sarah's Boutique)"
+          style={[s.input, errors.display_name && s.inputError]}
+          placeholder="e.g. Sarah's Boutique"
           placeholderTextColor={colors.textMuted}
           value={formData.display_name}
-          onChangeText={(text) => {
-            setFormData((prev) => ({ ...prev, display_name: text }));
-            if (errors.display_name) {
-              setErrors((prev) => ({ ...prev, display_name: undefined }));
-            }
-          }}
+          onChangeText={(t) => updateField("display_name", t)}
         />
-        {errors.display_name && (
-          <Text style={styles.errorText}>{errors.display_name}</Text>
-        )}
-        <Text style={styles.helperText}>
-          This is what customers will see
-        </Text>
-      </View>
+      </Field>
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>
-          Business Name <Text style={styles.required}>*</Text>
-        </Text>
+      <Field s={s} colors={colors} label="Business Name" required error={errors.business_name}>
         <TextInput
-          style={[styles.input, errors.business_name && styles.inputError]}
-          placeholder="Official registered business name"
+          style={[s.input, errors.business_name && s.inputError]}
+          placeholder="Official registered name"
           placeholderTextColor={colors.textMuted}
           value={formData.business_name}
-          onChangeText={(text) => {
-            setFormData((prev) => ({ ...prev, business_name: text }));
-            if (errors.business_name) {
-              setErrors((prev) => ({ ...prev, business_name: undefined }));
-            }
-          }}
+          onChangeText={(t) => updateField("business_name", t)}
         />
-        {errors.business_name && (
-          <Text style={styles.errorText}>{errors.business_name}</Text>
-        )}
-      </View>
+      </Field>
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>
-          Business Description <Text style={styles.required}>*</Text>
-        </Text>
+      <Field s={s} colors={colors} label="Business Description" required error={errors.description}>
         <TextInput
-          style={[
-            styles.input,
-            styles.textArea,
-            errors.description && styles.inputError,
-          ]}
-          placeholder="Describe what you sell and what makes your business unique..."
+          style={[s.input, s.textArea, errors.description && s.inputError]}
+          placeholder="Describe what you sell and what makes you unique…"
           placeholderTextColor={colors.textMuted}
           value={formData.description}
-          onChangeText={(text) => {
-            setFormData((prev) => ({ ...prev, description: text }));
-            if (errors.description) {
-              setErrors((prev) => ({ ...prev, description: undefined }));
-            }
-          }}
+          onChangeText={(t) => updateField("description", t)}
           multiline
-          numberOfLines={5}
+          numberOfLines={4}
           textAlignVertical="top"
           maxLength={500}
         />
-        {errors.description && (
-          <Text style={styles.errorText}>{errors.description}</Text>
-        )}
-        <Text style={styles.characterCount}>
-          {formData.description.length}/500
-        </Text>
-      </View>
+        <Text style={s.charCount}>{formData.description.length}/500</Text>
+      </Field>
     </View>
   );
 
-  // Step 2: Contact Information
+  // ── Step 2 ──
   const renderStep2 = () => (
-    <View style={styles.stepContainer}>
-      <View style={styles.stepHeader}>
-        <View style={styles.stepIconContainer}>
-          <Ionicons name="call" size={32} color={colors.primary} />
+    <View>
+      <View style={s.stepHeaderRow}>
+        <View style={s.stepIcon}>
+          <Ionicons name="call" size={22} color={colors.primary} />
         </View>
-        <Text style={styles.stepTitle}>Contact Information</Text>
-        <Text style={styles.stepDescription}>
-          How can customers reach you?
-        </Text>
+        <View style={{ flex: 1 }}>
+          <Text style={s.stepTitle}>Contact Information</Text>
+          <Text style={s.stepSub}>How can customers reach you?</Text>
+        </View>
       </View>
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>
-          Business Phone <Text style={styles.required}>*</Text>
-        </Text>
+      <Field s={s} colors={colors} label="Business Phone" required error={errors.business_phone} helper="Will be visible to customers">
         <TextInput
-          style={[styles.input, errors.business_phone && styles.inputError]}
-          placeholder="+256770650636"
+          style={[s.input, errors.business_phone && s.inputError]}
+          placeholder="+256 770 650 636"
           placeholderTextColor={colors.textMuted}
           value={formData.business_phone}
-          onChangeText={(text) => {
-            setFormData((prev) => ({ ...prev, business_phone: text }));
-            if (errors.business_phone) {
-              setErrors((prev) => ({ ...prev, business_phone: undefined }));
-            }
-          }}
+          onChangeText={(t) => updateField("business_phone", t)}
           keyboardType="phone-pad"
         />
-        {errors.business_phone && (
-          <Text style={styles.errorText}>{errors.business_phone}</Text>
-        )}
-        <Text style={styles.helperText}>
-          This will be visible to customers
-        </Text>
-      </View>
+      </Field>
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>
-          Business Email <Text style={styles.optional}>(Optional)</Text>
-        </Text>
+      <Field s={s} colors={colors} label="Business Email" optional error={errors.business_email}>
         <TextInput
-          style={[styles.input, errors.business_email && styles.inputError]}
+          style={[s.input, errors.business_email && s.inputError]}
           placeholder="business@example.com"
           placeholderTextColor={colors.textMuted}
           value={formData.business_email}
-          onChangeText={(text) => {
-            setFormData((prev) => ({ ...prev, business_email: text }));
-            if (errors.business_email) {
-              setErrors((prev) => ({ ...prev, business_email: undefined }));
-            }
-          }}
+          onChangeText={(t) => updateField("business_email", t)}
           keyboardType="email-address"
           autoCapitalize="none"
         />
-        {errors.business_email && (
-          <Text style={styles.errorText}>{errors.business_email}</Text>
-        )}
-      </View>
+      </Field>
 
-      <View style={styles.inputGroup}>
-        <Text style={styles.inputLabel}>
-          Location <Text style={styles.required}>*</Text>
-        </Text>
+      <Field s={s} colors={colors} label="Location" required error={errors.location} helper="Where are you primarily based?">
         <TextInput
-          style={[styles.input, errors.location && styles.inputError]}
-          placeholder="e.g., Kampala, Uganda"
+          style={[s.input, errors.location && s.inputError]}
+          placeholder="e.g. Kampala, Uganda"
           placeholderTextColor={colors.textMuted}
           value={formData.location}
-          onChangeText={(text) => {
-            setFormData((prev) => ({ ...prev, location: text }));
-            if (errors.business_email) {
-              setErrors((prev) => ({ ...prev, location: undefined }));
-            }
-          }}
-          keyboardType="default"
-          autoCapitalize="none"
+          onChangeText={(t) => updateField("location", t)}
         />
-        
-        {errors.location && (
-          <Text style={styles.errorText}>{errors.location}</Text>
-        )}
-        <Text style={styles.helperText}>
-          Where are you primarily based?
-        </Text>
-      </View>
+      </Field>
     </View>
   );
 
-  
+  // ── Step 3 ──
+  const ReviewRow = ({ label, value }: { label: string; value: string }) =>
+    value ? (
+      <View style={s.reviewRow}>
+        <Text style={s.reviewLabel}>{label}</Text>
+        <Text style={s.reviewValue}>{value}</Text>
+      </View>
+    ) : null;
 
-  // Step 3: Review & Submit
   const renderStep3 = () => (
-    <View style={styles.stepContainer}>
-      <View style={styles.stepHeader}>
-        <View style={styles.stepIconContainer}>
-          <Ionicons name="checkmark-circle" size={32} color={colors.success} />
+    <View>
+      <View style={s.stepHeaderRow}>
+        <View style={s.stepIconSuccess}>
+          <Ionicons name="checkmark-circle" size={22} color={colors.success} />
         </View>
-        <Text style={styles.stepTitle}>Review Your Information</Text>
-        <Text style={styles.stepDescription}>
-          Please confirm everything is correct
-        </Text>
-      </View>
-
-      <View style={styles.reviewSection}>
-        <Text style={styles.reviewSectionTitle}>Business Details</Text>
-        <View style={styles.reviewItem}>
-          <Text style={styles.reviewLabel}>Display Name:</Text>
-          <Text style={styles.reviewValue}>{formData.display_name}</Text>
-        </View>
-        <View style={styles.reviewItem}>
-          <Text style={styles.reviewLabel}>Business Name:</Text>
-          <Text style={styles.reviewValue}>{formData.business_name}</Text>
-        </View>
-        <View style={styles.reviewItem}>
-          <Text style={styles.reviewLabel}>Description:</Text>
-          <Text style={styles.reviewValue}>{formData.description}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={s.stepTitle}>Review & Submit</Text>
+          <Text style={s.stepSub}>Confirm your details before sending</Text>
         </View>
       </View>
 
-      <View style={styles.reviewSection}>
-        <Text style={styles.reviewSectionTitle}>Contact Information</Text>
-        <View style={styles.reviewItem}>
-          <Text style={styles.reviewLabel}>Phone:</Text>
-          <Text style={styles.reviewValue}>{formData.business_phone}</Text>
-        </View>
-        {formData.business_email && (
-          <View style={styles.reviewItem}>
-            <Text style={styles.reviewLabel}>Email:</Text>
-            <Text style={styles.reviewValue}>{formData.business_email}</Text>
-          </View>
-        )}
-        <View style={styles.reviewItem}>
-          <Text style={styles.reviewLabel}>Location:</Text>
-          <Text style={styles.reviewValue}>{formData.location}</Text>
-        </View>
-      </View>      
+      <View style={s.reviewCard}>
+        <Text style={s.reviewCardTitle}>Business Details</Text>
+        <ReviewRow label="Display Name" value={formData.display_name} />
+        <ReviewRow label="Business Name" value={formData.business_name} />
+        <ReviewRow label="Description" value={formData.description} />
+      </View>
 
-      <View style={styles.verificationNotice}>
-        <Ionicons name="time-outline" size={24} color={colors.warning} />
-        <View style={styles.verificationNoticeContent}>
-          <Text style={styles.verificationNoticeTitle}>
-            Verification Required
-          </Text>
-          <Text style={styles.verificationNoticeText}>
-            Your profile will be reviewed by our team within 24-48 hours. You'll
-            receive a notification once approved.
+      <View style={[s.reviewCard, { marginTop: 12 }]}>
+        <Text style={s.reviewCardTitle}>Contact Information</Text>
+        <ReviewRow label="Phone" value={formData.business_phone} />
+        <ReviewRow label="Email" value={formData.business_email} />
+        <ReviewRow label="Location" value={formData.location} />
+      </View>
+
+      <View style={s.noticeCard}>
+        <Ionicons name="time-outline" size={20} color={colors.warning} />
+        <View style={{ flex: 1 }}>
+          <Text style={s.noticeTitle}>Verification Required</Text>
+          <Text style={s.noticeText}>
+            Your profile will be reviewed within 24–48 hours. You'll receive a
+            notification once approved.
           </Text>
         </View>
       </View>
@@ -448,445 +895,139 @@ export default function BecomeMerchantScreen() {
   );
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-    >
-      <StatusBar style="light" />
+    <>
+      <StatusBar style="auto" />
 
-      {/* Header */}
-      <LinearGradient
-        colors={[colors.primary, colors.primaryDark]}
-        style={styles.header}
-      >
-        <SafeAreaView edges={["top"]}>
-          <View style={styles.headerContent}>
-            <TouchableOpacity style={styles.backButton} onPress={handleBack}>
-              <Ionicons name="arrow-back" size={24} color={colors.white} />
+      {/* ── Hero Landing Screen ── */}
+      <View style={s.screen}>
+        <LinearGradient
+          colors={[colors.primary, colors.primaryDark]}
+          style={s.heroGradient}
+        >
+          <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
+            <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
+              <Ionicons name="arrow-back" size={22} color={colors.white} />
             </TouchableOpacity>
-            <View style={styles.headerTextContainer}>
-              <Text style={styles.headerTitle}>Become a Seller</Text>
-              <Text style={styles.headerSubtitle}>
-                Step {currentStep} of {totalSteps}
+            <View style={s.heroContent}>
+              <View style={s.heroBadge}>
+                <MaterialCommunityIcons name="store-check" size={36} color={colors.white} />
+              </View>
+              <Text style={s.heroTitle}>Become a Seller</Text>
+              <Text style={s.heroSub}>
+                Join thousands of merchants already growing their business on KakebeShop
               </Text>
             </View>
-            <View style={{ width: 40 }} />
-          </View>
+          </SafeAreaView>
+        </LinearGradient>
 
-          {/* Progress Bar */}
-          <View style={styles.progressBarContainer}>
-            <View
-              style={[
-                styles.progressBar,
-                { width: `${(currentStep / totalSteps) * 100}%` },
-              ]}
-            />
-          </View>
-        </SafeAreaView>
-      </LinearGradient>
+        <View style={s.perksCard}>
+          {[
+            { icon: "people-outline", text: "Reach thousands of buyers" },
+            { icon: "trending-up-outline", text: "Grow your sales effortlessly" },
+            { icon: "shield-checkmark-outline", text: "Secure & trusted platform" },
+          ].map(({ icon, text }) => (
+            <View key={icon} style={s.perkRow}>
+              <View style={s.perkIcon}>
+                <Ionicons name={icon as any} size={18} color={colors.primary} />
+              </View>
+              <Text style={s.perkText}>{text}</Text>
+            </View>
+          ))}
+        </View>
 
-      <ScrollView
-        style={styles.scrollView}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {currentStep === 1 && renderStep1()}
-        {currentStep === 2 && renderStep2()}
-        {currentStep === 3 && renderStep3()}
-      </ScrollView>
-
-      {/* Footer Buttons */}
-      <View style={styles.footer}>
-        <SafeAreaView edges={["bottom"]}>
-          <View style={styles.footerButtons}>
-            {currentStep > 1 && (
-              <TouchableOpacity
-                style={styles.secondaryButton}
-                onPress={handleBack}
-              >
-                <Ionicons name="arrow-back" size={20} color={colors.primary} />
-                <Text style={styles.secondaryButtonText}>Back</Text>
-              </TouchableOpacity>
-            )}
-
-            <TouchableOpacity
-              style={[
-                styles.primaryButton,
-                currentStep === 1 && styles.primaryButtonFull,
-                isSubmitting && styles.primaryButtonDisabled,
-              ]}
-              onPress={currentStep === totalSteps ? handleSubmit : handleNext}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
-                <Text style={styles.primaryButtonText}>Submitting...</Text>
-              ) : (
-                <>
-                  <Text style={styles.primaryButtonText}>
-                    {currentStep === totalSteps ? "Submit" : "Continue"}
-                  </Text>
-                  <Ionicons
-                    name={
-                      currentStep === totalSteps ? "checkmark" : "arrow-forward"
-                    }
-                    size={20}
-                    color={colors.white}
-                  />
-                </>
-              )}
-            </TouchableOpacity>
-          </View>
-        </SafeAreaView>
+        <View style={s.heroFooter}>
+          <TouchableOpacity style={s.startBtn} onPress={openSheet}>
+            <Text style={s.startBtnText}>Start Application</Text>
+            <Ionicons name="arrow-forward" size={20} color={colors.white} />
+          </TouchableOpacity>
+          <Text style={s.footerNote}>Takes less than 3 minutes · Free to join</Text>
+        </View>
       </View>
-    </KeyboardAvoidingView>
+
+      {/* ── Form Bottom Sheet ── */}
+      <BottomSheet
+        visible={sheetVisible}
+        onClose={() => setSheetVisible(false)}
+        footer={
+          <View style={s.sheetFooter}>
+            <SafeAreaView edges={["bottom"]}>
+              <View style={s.footerRow}>
+              <TouchableOpacity style={s.backSheetBtn} onPress={handleBack}>
+                <Ionicons name="arrow-back" size={18} color={colors.textSecondary} />
+                <Text style={s.backSheetBtnText}>
+                  {currentStep === 1 ? "Cancel" : "Back"}
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[s.nextBtn, isSubmitting && s.nextBtnDisabled]}
+                onPress={currentStep === totalSteps ? handleSubmit : handleNext}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator color={colors.white} size="small" />
+                ) : (
+                  <>
+                    <Text style={s.nextBtnText}>
+                      {currentStep === totalSteps ? "Submit" : "Continue"}
+                    </Text>
+                    <Ionicons
+                      name={currentStep === totalSteps ? "checkmark" : "arrow-forward"}
+                      size={18}
+                      color={colors.white}
+                    />
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </SafeAreaView>
+        </View>
+        }
+      >
+        {/* Sheet header */}
+        <View style={s.sheetHeader}>
+          <View>
+            <Text style={s.sheetTitle}>Merchant Application</Text>
+            <Text style={s.sheetSub}>Step {currentStep} of {totalSteps}</Text>
+          </View>
+          <TouchableOpacity
+            onPress={() => setSheetVisible(false)}
+            style={s.sheetClose}
+          >
+            <Ionicons name="close" size={20} color={colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Progress bar */}
+        <View style={s.progressTrack}>
+          <View
+            style={[s.progressFill, { width: `${(currentStep / totalSteps) * 100}%` }]}
+          />
+        </View>
+
+        <StepIndicator current={currentStep} total={totalSteps} />
+
+        {/* Step content — flex:1 shrinks when keyboard spacer grows */}
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={s.sheetBody}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {currentStep === 1 && renderStep1()}
+          {currentStep === 2 && renderStep2()}
+          {currentStep === 3 && renderStep3()}
+        </ScrollView>
+      </BottomSheet>
+
+      {/* ── Success Modal ── */}
+      <SuccessModal
+        visible={successVisible}
+        onDone={() => {
+          setSuccessVisible(false);
+          router.back();
+        }}
+      />
+    </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.white,
-  },
-
-  // Header
-  header: {
-    paddingBottom: spacingY._16,
-  },
-  headerContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: spacingX._20,
-    paddingTop: spacingY._12,
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  headerTextContainer: {
-    flex: 1,
-    alignItems: "center",
-  },
-  headerTitle: {
-    fontSize: fontSize.xl,
-    fontWeight: fontWeight.bold,
-    color: colors.white,
-  },
-  headerSubtitle: {
-    fontSize: fontSize.sm,
-    color: "rgba(255, 255, 255, 0.8)",
-    marginTop: spacingY._2,
-  },
-
-  // Progress Bar
-  progressBarContainer: {
-    height: 4,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    marginTop: spacingY._16,
-    marginHorizontal: spacingX._20,
-    borderRadius: 2,
-    overflow: "hidden",
-  },
-  progressBar: {
-    height: "100%",
-    backgroundColor: colors.white,
-    borderRadius: 2,
-  },
-
-  // Scroll View
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: spacingX._20,
-    paddingBottom: 100,
-  },
-
-  // Step Container
-  stepContainer: {
-    flex: 1,
-  },
-  stepHeader: {
-    alignItems: "center",
-    marginBottom: spacingY._30,
-  },
-  stepIconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.primarySoft,
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: spacingY._16,
-  },
-  stepTitle: {
-    fontSize: fontSize.xxl,
-    fontWeight: fontWeight.bold,
-    color: colors.textPrimary,
-    textAlign: "center",
-    marginBottom: spacingY._8,
-  },
-  stepDescription: {
-    fontSize: fontSize.md,
-    color: colors.textSecondary,
-    textAlign: "center",
-  },
-
-  // Input Group
-  inputGroup: {
-    marginBottom: spacingY._24,
-  },
-  inputLabel: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
-    color: colors.textPrimary,
-    marginBottom: spacingY._8,
-  },
-  required: {
-    color: colors.error,
-  },
-  optional: {
-    color: colors.textMuted,
-  },
-  input: {
-    backgroundColor: colors.white,
-    borderRadius: borderRadius.md,
-    padding: spacingX._16,
-    fontSize: fontSize.md,
-    color: colors.textPrimary,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  inputError: {
-    borderColor: colors.error,
-    borderWidth: 1.5,
-  },
-  textArea: {
-    height: 120,
-    paddingTop: spacingY._16,
-  },
-  helperText: {
-    fontSize: fontSize.sm,
-    color: colors.textMuted,
-    marginTop: spacingY._6,
-  },
-  errorText: {
-    fontSize: fontSize.sm,
-    color: colors.error,
-    marginTop: spacingY._6,
-  },
-  characterCount: {
-    fontSize: fontSize.xs,
-    color: colors.textMuted,
-    textAlign: "right",
-    marginTop: spacingY._4,
-  },
-
-  // Select Input
-  selectInput: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-  },
-  selectInputText: {
-    fontSize: fontSize.md,
-    color: colors.textPrimary,
-    flex: 1,
-  },
-  selectInputPlaceholder: {
-    color: colors.textMuted,
-  },
-
-  // Image Upload
-  uploadButton: {
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: borderRadius.lg,
-    padding: spacingX._30,
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: colors.border,
-    borderStyle: "dashed",
-  },
-  uploadButtonText: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold,
-    color: colors.textPrimary,
-    marginTop: spacingY._12,
-  },
-  uploadButtonSubtext: {
-    fontSize: fontSize.sm,
-    color: colors.textSecondary,
-    marginTop: spacingY._4,
-  },
-  imagePreviewContainer: {
-    position: "relative",
-    alignItems: "center",
-  },
-  logoPreview: {
-    width: 150,
-    height: 150,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.backgroundSecondary,
-  },
-  coverPreview: {
-    width: "100%",
-    height: 200,
-    borderRadius: borderRadius.md,
-    backgroundColor: colors.backgroundSecondary,
-  },
-  removeImageButton: {
-    position: "absolute",
-    top: 8,
-    right: 8,
-    backgroundColor: colors.white,
-    borderRadius: 14,
-  },
-
-  // Info Card
-  infoCard: {
-    flexDirection: "row",
-    backgroundColor: colors.primarySoft,
-    borderRadius: borderRadius.md,
-    padding: spacingX._16,
-    gap: 12,
-  },
-  infoCardText: {
-    flex: 1,
-    fontSize: fontSize.sm,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-
-  // Review Section
-  reviewSection: {
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: borderRadius.lg,
-    padding: spacingX._16,
-    marginBottom: spacingY._16,
-  },
-  reviewSectionTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.bold,
-    color: colors.textPrimary,
-    marginBottom: spacingY._12,
-  },
-  reviewItem: {
-    marginBottom: spacingY._12,
-  },
-  reviewLabel: {
-    fontSize: fontSize.sm,
-    color: colors.textMuted,
-    marginBottom: spacingY._4,
-  },
-  reviewValue: {
-    fontSize: fontSize.md,
-    color: colors.textPrimary,
-    lineHeight: 22,
-  },
-  reviewImages: {
-    gap: 12,
-  },
-  reviewImageContainer: {
-    alignItems: "center",
-  },
-  reviewImageLabel: {
-    fontSize: fontSize.sm,
-    color: colors.textMuted,
-    marginBottom: spacingY._8,
-  },
-  reviewImage: {
-    width: 120,
-    height: 120,
-    borderRadius: borderRadius.md,
-  },
-  reviewImageWide: {
-    width: "100%",
-    height: 150,
-    borderRadius: borderRadius.md,
-  },
-
-  // Verification Notice
-  verificationNotice: {
-    flexDirection: "row",
-    backgroundColor: colors.backgroundSecondary,
-    borderRadius: borderRadius.lg,
-    padding: spacingX._16,
-    borderLeftWidth: 4,
-    borderLeftColor: colors.warning,
-    gap: 12,
-  },
-  verificationNoticeContent: {
-    flex: 1,
-  },
-  verificationNoticeTitle: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
-    color: colors.textPrimary,
-    marginBottom: spacingY._4,
-  },
-  verificationNoticeText: {
-    fontSize: fontSize.sm,
-    color: colors.textSecondary,
-    lineHeight: 20,
-  },
-
-  // Footer
-  footer: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: colors.white,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-    ...shadow.lg,
-  },
-  footerButtons: {
-    flexDirection: "row",
-    paddingHorizontal: spacingX._20,
-    paddingTop: spacingY._16,
-    paddingBottom: spacingY._8,
-    gap: 12,
-  },
-  primaryButton: {
-    flex: 1,
-    backgroundColor: colors.primary,
-    borderRadius: borderRadius.lg,
-    paddingVertical: spacingY._16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    ...shadow.primary,
-  },
-  primaryButtonFull: {
-    flex: 1,
-  },
-  primaryButtonDisabled: {
-    opacity: 0.6,
-  },
-  primaryButtonText: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.bold,
-    color: colors.white,
-  },
-  secondaryButton: {
-    flex: 1,
-    backgroundColor: colors.white,
-    borderRadius: borderRadius.lg,
-    paddingVertical: spacingY._16,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  secondaryButtonText: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold,
-    color: colors.primary,
-  },
-});
