@@ -11,6 +11,7 @@ type AuthState = {
   isLoggedIn: boolean;
   isLoading: boolean;
   hasCompletedOnboarding: boolean;
+  hasPhoneNumber: boolean;
   isNewUser: boolean;
 
   // Actions
@@ -65,6 +66,7 @@ type AuthState = {
 
   // Onboarding & setup
   completeOnboarding: () => Promise<void>;
+  completePhoneSubmission: () => Promise<void>;
 };
 
 /**
@@ -89,6 +91,7 @@ export const useAuthStore = create<AuthState>()(
       isLoggedIn: false,
       isLoading: true,
       hasCompletedOnboarding: false,
+      hasPhoneNumber: false,
       isNewUser: false,
 
       // Simple state setters
@@ -115,13 +118,20 @@ export const useAuthStore = create<AuthState>()(
               user: parsedUser,
               isLoggedIn: true,
               hasCompletedOnboarding: hasCompletedOnboarding === "true",
-           
             });
+            // Fetch fresh user data to get accurate phone number status
+            await get().updateUserData();
+            // Also honour the local "user has been through add-phone screen" flag
+            const hasAddedPhone = await getItemAsync("hasAddedPhone");
+            if (hasAddedPhone === "true") {
+              set({ hasPhoneNumber: true });
+            }
           } else {
             set({
               user: null,
               isLoggedIn: false,
               hasCompletedOnboarding: false,
+              hasPhoneNumber: false,
             });
           }
         } catch (error) {
@@ -129,6 +139,7 @@ export const useAuthStore = create<AuthState>()(
             user: null,
             isLoggedIn: false,
             hasCompletedOnboarding: false,
+            hasPhoneNumber: false,
           });
         } finally {
           set({ isLoading: false });
@@ -171,11 +182,12 @@ export const useAuthStore = create<AuthState>()(
             };
 
             await setItemAsync("userData", JSON.stringify(userData));
+            set({ user: userData });
 
-            set({
-              user: userData,
-              isLoggedIn: true,
-            });
+            // Fetch fresh profile so hasPhoneNumber is set before the guard fires
+            await get().updateUserData();
+
+            set({ isLoggedIn: true });
 
             return { success: true };
           } else {
@@ -233,13 +245,14 @@ export const useAuthStore = create<AuthState>()(
             };
 
             await setItemAsync("userData", JSON.stringify(userData));
+            set({ user: userData });
+
+            // Fetch fresh profile so hasPhoneNumber is set before the guard fires
+            await get().updateUserData();
 
             const { isNewUser } = get();
 
-            set({
-              user: userData,
-              isLoggedIn: true,
-            });
+            set({ isLoggedIn: true });
 
             return {
               success: true,
@@ -427,14 +440,14 @@ export const useAuthStore = create<AuthState>()(
             const userData: UserType = {
               user_id: data?.uid || data?.id,
               email: data?.email,
-              full_name: data?.full_name || data?.user_fullname,
-              phone_number: data?.phone_number,
+              full_name: data?.full_name || data?.user_fullname || data?.name,
+              phone_number: data?.phone || data?.phone_number,
               username: data?.username || data?.user_name,
               image: data?.image || data?.profile_image,
             };
 
             await setItemAsync("userData", JSON.stringify(userData));
-            set({ user: userData });
+            set({ user: userData, hasPhoneNumber: !!(userData.phone_number) });
             return { success: true };
           } else {
             return {
@@ -463,12 +476,14 @@ export const useAuthStore = create<AuthState>()(
           await deleteItemAsync("hasCompletedOnboarding");
           await deleteItemAsync("hasCompletedSourceSelection");
           await deleteItemAsync("selectedNewsSources");
+          await deleteItemAsync("hasAddedPhone");
 
           // Reset state
           set({
             user: null,
             isLoggedIn: false,
             hasCompletedOnboarding: false,
+            hasPhoneNumber: false,
             isNewUser: false,
           });
 
@@ -491,12 +506,22 @@ export const useAuthStore = create<AuthState>()(
         } catch (e) {
           if (__DEV__) console.warn("SecureStore write failed in completeOnboarding:", e);
         }
-        // Always update in-memory state so the navigation guard fires
-        // even if SecureStore is unavailable.
         set({ hasCompletedOnboarding: true });
       },
 
-   
+      // Mark that the user has been through the add-phone screen.
+      // Persisted locally so the gate doesn't reappear on restart even when
+      // the backend hasn't stored the number yet (e.g. Twilio misconfigured).
+      completePhoneSubmission: async () => {
+        try {
+          await setItemAsync("hasAddedPhone", "true");
+        } catch (e) {
+          if (__DEV__) console.warn("SecureStore write failed in completePhoneSubmission:", e);
+        }
+        set({ hasPhoneNumber: true });
+      },
+
+
 
     }),
     {

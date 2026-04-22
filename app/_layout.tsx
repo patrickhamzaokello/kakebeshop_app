@@ -29,6 +29,7 @@ const RootLayoutContent = () => {
   const {
     isLoggedIn,
     hasCompletedOnboarding,
+    hasPhoneNumber,
     isLoading: authLoading,
     checkAuthState,
     completeOnboarding,
@@ -72,7 +73,13 @@ const RootLayoutContent = () => {
     if (prevIsLoggedIn.current === null) {
       // First time auth state is known: navigate to the correct screen.
       prevIsLoggedIn.current = isLoggedIn;
-      router.replace(isLoggedIn ? ("/(tabs)" as any) : "/welcome");
+      router.replace(
+        isLoggedIn
+          ? hasPhoneNumber
+            ? ("/(tabs)" as any)
+            : ("/add-phone" as any)
+          : "/welcome"
+      );
       return;
     }
 
@@ -81,7 +88,7 @@ const RootLayoutContent = () => {
       router.replace("/welcome");
     }
     prevIsLoggedIn.current = isLoggedIn;
-  }, [authLoading, isLoggedIn]);
+  }, [authLoading, isLoggedIn, hasPhoneNumber]);
 
   return (
     <GestureHandlerRootView
@@ -95,8 +102,12 @@ const RootLayoutContent = () => {
             contentStyle: { backgroundColor: colors.background },
           }}
         >
-          <Stack.Protected guard={isLoggedIn}>
+          <Stack.Protected guard={isLoggedIn && hasPhoneNumber}>
             <Stack.Screen name="(tabs)" />
+          </Stack.Protected>
+
+          <Stack.Protected guard={isLoggedIn && !hasPhoneNumber}>
+            <Stack.Screen name="add-phone" />
           </Stack.Protected>
 
           <Stack.Protected guard={!isLoggedIn}>
