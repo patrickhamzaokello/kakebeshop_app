@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import { useScrollToTop } from "@react-navigation/native";
@@ -469,33 +468,6 @@ const QuickAction: React.FC<QuickActionProps> = ({
   );
 };
 
-// ─── Benefit card ─────────────────────────────────────────────────────────────
-
-interface BenefitCardProps {
-  icon: string;
-  title: string;
-  description: string;
-}
-
-const BenefitCard: React.FC<BenefitCardProps> = ({ icon, title, description }) => {
-  const { colors } = useTheme();
-  return (
-    <View
-      style={[
-        styles.benefitCard,
-        { backgroundColor: colors.surface, borderColor: colors.border },
-      ]}
-    >
-      <Text style={styles.benefitIcon}>{icon}</Text>
-      <Text style={[styles.benefitTitle, { color: colors.textPrimary }]}>
-        {title}
-      </Text>
-      <Text style={[styles.benefitDescription, { color: colors.textMuted }]}>
-        {description}
-      </Text>
-    </View>
-  );
-};
 
 // ─── Merchant dashboard view ──────────────────────────────────────────────────
 
@@ -602,6 +574,12 @@ const MerchantView: React.FC<{
 
 // ─── Non-merchant onboarding view ────────────────────────────────────────────
 
+const PERKS = [
+  { icon: "pricetag-outline" as const, text: "Free to list — 5% only on sales" },
+  { icon: "flash-outline" as const, text: "Live in minutes, no approval wait" },
+  { icon: "cash-outline" as const, text: "Paid to mobile money within 48 h" },
+] as const;
+
 const OnboardingView: React.FC<{ scrollRef: React.RefObject<ScrollView | null> }> = ({
   scrollRef,
 }) => {
@@ -609,173 +587,64 @@ const OnboardingView: React.FC<{ scrollRef: React.RefObject<ScrollView | null> }
   useScrollToTop(scrollRef);
 
   return (
-    <ScrollView
-      ref={scrollRef}
-      style={[styles.scrollView, { backgroundColor: colors.background }]}
-      showsVerticalScrollIndicator={false}
-      contentContainerStyle={styles.scrollContent}
+    <SafeAreaView
+      edges={["top"]}
+      style={[styles.onboardingRoot, { backgroundColor: colors.background }]}
     >
-      <LinearGradient
-        colors={[colors.primarySoft, colors.background]}
-        style={styles.onboardingHero}
-      >
-        <SafeAreaView edges={["top"]} style={{ alignItems: "center" }}>
-          <View style={[styles.heroIcon, { backgroundColor: colors.surface }]}>
-            <MaterialCommunityIcons
-              name="storefront"
-              size={64}
-              color={colors.primary}
-            />
-          </View>
-          <Text
-            style={[styles.onboardingTitle, { color: colors.textPrimary }]}
-          >
-            Start Selling Today
-          </Text>
-          <Text
-            style={[styles.onboardingSubtitle, { color: colors.textMuted }]}
-          >
-            Join thousands of sellers and turn your products into profit
-          </Text>
-          <View style={styles.statsContainer}>
-            {[
-              { number: "10K+", label: "Buyers" },
-              { number: "Free", label: "Listing" },
-              { number: "24/7", label: "Support" },
-            ].map((s) => (
-              <View
-                key={s.label}
-                style={[
-                  styles.statBadge,
-                  { backgroundColor: colors.surfaceElevated },
-                ]}
-              >
-                <Text style={[styles.statNumber, { color: colors.primary }]}>
-                  {s.number}
-                </Text>
-                <Text style={[styles.statText, { color: colors.textMuted }]}>
-                  {s.label}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </SafeAreaView>
-      </LinearGradient>
-
-      <View style={styles.section}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-          Why Sell on Kakebe?
-        </Text>
-        <View style={styles.benefitsGrid}>
-          <BenefitCard
-            icon="💰"
-            title="Zero Fees"
-            description="List for free, pay only when you sell"
-          />
-          <BenefitCard
-            icon="🚀"
-            title="Quick Setup"
-            description="Start selling in under 5 minutes"
-          />
-          <BenefitCard
-            icon="🔒"
-            title="Secure"
-            description="Safe payments to your account"
-          />
-          <BenefitCard
-            icon="📈"
-            title="Grow"
-            description="Reach thousands of buyers"
-          />
+      {/* Hero */}
+      <View style={styles.onboardingHero}>
+        <View style={[styles.heroIcon, { backgroundColor: colors.backgroundSecondary }]}>
+          <MaterialCommunityIcons name="storefront" size={56} color={colors.primary} />
         </View>
+        <Text style={[styles.onboardingTitle, { color: colors.textPrimary }]}>
+          Open Your Shop
+        </Text>
+        <Text style={[styles.onboardingSubtitle, { color: colors.textSecondary }]}>
+          Sell to thousands of buyers on Kakebe
+        </Text>
       </View>
 
-      <View style={[styles.section, styles.howItWorksSection]}>
-        <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-          How It Works
-        </Text>
-        <View style={styles.stepsList}>
-          {[
-            {
-              n: "1",
-              title: "Sign Up as Seller",
-              desc: "Quick registration with basic info",
-            },
-            {
-              n: "2",
-              title: "Add Your Products",
-              desc: "Photos, description, and price",
-            },
-            {
-              n: "3",
-              title: "Start Earning",
-              desc: "Receive orders and get paid",
-            },
-          ].map((step) => (
-            <View key={step.n} style={styles.step}>
-              <View
-                style={[styles.stepNumber, { backgroundColor: colors.primary }]}
-              >
-                <Text
-                  style={[styles.stepNumberText, { color: "#FFFFFF" }]}
-                >
-                  {step.n}
-                </Text>
-              </View>
-              <View style={styles.stepContent}>
-                <Text
-                  style={[styles.stepTitle, { color: colors.textPrimary }]}
-                >
-                  {step.title}
-                </Text>
-                <Text
-                  style={[
-                    styles.stepDescription,
-                    { color: colors.textSecondary },
-                  ]}
-                >
-                  {step.desc}
-                </Text>
-              </View>
+      {/* Perks */}
+      <View style={[styles.perksList, { borderColor: colors.border }]}>
+        {PERKS.map((p, i) => (
+          <View
+            key={p.icon}
+            style={[
+              styles.perkRow,
+              i < PERKS.length - 1 && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border },
+            ]}
+          >
+            <View style={[styles.perkIconWrap, { backgroundColor: colors.backgroundSecondary }]}>
+              <Ionicons name={p.icon} size={20} color={colors.primary} />
             </View>
-          ))}
-        </View>
+            <Text style={[styles.perkText, { color: colors.textPrimary }]}>{p.text}</Text>
+          </View>
+        ))}
       </View>
 
+      {/* CTAs */}
       <View style={styles.ctaSection}>
         <TouchableOpacity
           style={[styles.ctaPrimaryButton, { backgroundColor: colors.primary }]}
           onPress={() => router.push("/merchant/apply/signup")}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
         >
-          <Text style={[styles.ctaPrimaryButtonText, { color: "#FFFFFF" }]}>
-            Become a Seller
-          </Text>
+          <Text style={styles.ctaPrimaryButtonText}>Start Selling</Text>
           <Ionicons name="arrow-forward" size={20} color="#FFFFFF" />
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={[styles.ctaSecondaryButton, { borderColor: colors.primary }]}
+          style={styles.ctaTextButton}
           onPress={() => router.push("/merchant/apply/benefits")}
-          activeOpacity={0.8}
+          activeOpacity={0.7}
         >
-          <Text
-            style={[
-              styles.ctaSecondaryButtonText,
-              { color: colors.primary },
-            ]}
-          >
-            Learn More
+          <Text style={[styles.ctaTextButtonText, { color: colors.primary }]}>
+            How it works
           </Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.primary} />
         </TouchableOpacity>
-
-        <Text style={[styles.ctaFootnote, { color: colors.textMuted }]}>
-          Free to join • No monthly fees • Secure payments
-        </Text>
       </View>
-
-      <View style={{ height: 40 }} />
-    </ScrollView>
+    </SafeAreaView>
   );
 };
 
@@ -897,104 +766,65 @@ const styles = StyleSheet.create({
   },
   tipsText: { fontSize: fontSize.md, lineHeight: 22 },
 
-  // ── Onboarding hero ──
+  // ── Onboarding ──
+  onboardingRoot: {
+    flex: 1,
+    paddingHorizontal: spacingX._24,
+    justifyContent: "center",
+  },
   onboardingHero: {
-    paddingHorizontal: spacingX._20,
-    paddingTop: spacingY._30,
-    paddingBottom: spacingY._30,
     alignItems: "center",
+    marginBottom: spacingY._32,
   },
   heroIcon: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
+    width: 96,
+    height: 96,
+    borderRadius: 48,
     alignItems: "center",
     justifyContent: "center",
     marginBottom: spacingY._20,
-    ...shadow.lg,
   },
   onboardingTitle: {
-    fontSize: 32,
+    fontSize: fontSize.xxxl,
     fontWeight: fontWeight.bold,
     textAlign: "center",
-    marginBottom: spacingY._12,
+    marginBottom: spacingY._8,
   },
   onboardingSubtitle: {
     fontSize: fontSize.lg,
     textAlign: "center",
     lineHeight: 24,
-    paddingHorizontal: spacingX._10,
-  },
-  statsContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 12,
-    marginTop: spacingY._24,
-  },
-  statBadge: {
-    borderRadius: borderRadius.md,
-    paddingVertical: spacingY._12,
-    paddingHorizontal: spacingX._20,
-    alignItems: "center",
-    minWidth: 90,
-    ...shadow.sm,
-  },
-  statNumber: { fontSize: fontSize.xl, fontWeight: fontWeight.bold },
-  statText: { fontSize: fontSize.xs, marginTop: spacingY._2 },
-
-  // ── Section title ──
-  sectionTitle: {
-    fontSize: fontSize.xl,
-    fontWeight: fontWeight.bold,
-    marginBottom: spacingY._16,
   },
 
-  // ── Benefits grid ──
-  benefitsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  benefitCard: {
-    flex: 1,
-    minWidth: "47%",
+  // ── Perks list ──
+  perksList: {
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: borderRadius.lg,
-    padding: spacingX._16,
+    overflow: "hidden",
+    marginBottom: spacingY._32,
+  },
+  perkRow: {
+    flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
+    paddingVertical: spacingY._14,
+    paddingHorizontal: spacingX._16,
+    gap: 12,
   },
-  benefitIcon: { fontSize: 36, marginBottom: spacingY._8 },
-  benefitTitle: {
-    fontSize: fontSize.md,
-    fontWeight: fontWeight.semibold,
-    marginBottom: spacingY._4,
-    textAlign: "center",
-  },
-  benefitDescription: {
-    fontSize: fontSize.sm,
-    textAlign: "center",
-    lineHeight: 18,
-  },
-
-  // ── How it works ──
-  howItWorksSection: { marginTop: spacingY._20, paddingVertical: spacingY._24 },
-  stepsList: { gap: 16 },
-  step: { flexDirection: "row", alignItems: "flex-start" },
-  stepNumber: {
+  perkIconWrap: {
     width: 36,
     height: 36,
-    borderRadius: 18,
+    borderRadius: borderRadius.md,
     alignItems: "center",
     justifyContent: "center",
-    marginRight: spacingX._12,
   },
-  stepNumberText: { fontSize: fontSize.lg, fontWeight: fontWeight.bold },
-  stepContent: { flex: 1, paddingTop: spacingY._4 },
-  stepTitle: {
-    fontSize: fontSize.lg,
-    fontWeight: fontWeight.semibold,
-    marginBottom: spacingY._4,
+  perkText: {
+    fontSize: fontSize.md,
+    fontWeight: fontWeight.medium,
+    flex: 1,
   },
-  stepDescription: { fontSize: fontSize.md, lineHeight: 20 },
 
-  // ── CTA ──
-  ctaSection: { paddingHorizontal: spacingX._20, paddingTop: spacingY._24 },
+  // ── CTAs ──
+  ctaSection: { gap: 12 },
   ctaPrimaryButton: {
     borderRadius: borderRadius.lg,
     paddingVertical: spacingY._16,
@@ -1004,23 +834,21 @@ const styles = StyleSheet.create({
     gap: 8,
     ...shadow.primary,
   },
-  ctaPrimaryButtonText: { fontSize: fontSize.lg, fontWeight: fontWeight.bold },
-  ctaSecondaryButton: {
-    borderRadius: borderRadius.lg,
-    paddingVertical: spacingY._16,
+  ctaPrimaryButtonText: {
+    fontSize: fontSize.lg,
+    fontWeight: fontWeight.bold,
+    color: "#FFFFFF",
+  },
+  ctaTextButton: {
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: spacingY._12,
-    borderWidth: 1,
+    paddingVertical: spacingY._8,
+    gap: 2,
   },
-  ctaSecondaryButtonText: {
-    fontSize: fontSize.lg,
+  ctaTextButtonText: {
+    fontSize: fontSize.md,
     fontWeight: fontWeight.semibold,
-  },
-  ctaFootnote: {
-    fontSize: fontSize.sm,
-    textAlign: "center",
-    marginTop: spacingY._16,
   },
 
   // ── Application status view ──

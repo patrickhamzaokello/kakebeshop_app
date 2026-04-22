@@ -1,4 +1,16 @@
-import { ThemeColors } from "@/constants/theme";
+import { Text } from "@/components/Text";
+import { TextInput } from "@/components/TextInput";
+import {
+  ThemeColors,
+  borderRadius,
+  fontSize,
+  fontWeight,
+  layout,
+  radius,
+  shadow,
+  spacingX,
+  spacingY,
+} from "@/constants/theme";
 import { useThemeColors } from "@/contexts/ThemeContext";
 import apiService from "@/utils/apiBase";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -6,8 +18,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { router } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Text } from "@/components/Text";
-import { TextInput } from "@/components/TextInput";
 import {
   ActivityIndicator,
   Animated,
@@ -35,7 +45,6 @@ const makeSheetStyles = (c: ThemeColors) =>
       ...StyleSheet.absoluteFillObject,
       backgroundColor: c.backdrop,
     },
-    // Outer: only position + size. Animated with native driver (transform only).
     slideWrap: {
       position: "absolute",
       bottom: 0,
@@ -43,19 +52,18 @@ const makeSheetStyles = (c: ThemeColors) =>
       right: 0,
       height: SHEET_HEIGHT,
     },
-    // Inner: visual styling. Not animated — avoids native/JS driver conflict.
     container: {
       flex: 1,
       backgroundColor: c.surface,
-      borderTopLeftRadius: 24,
-      borderTopRightRadius: 24,
+      borderTopLeftRadius: borderRadius.xxl,
+      borderTopRightRadius: borderRadius.xxl,
       overflow: "hidden",
     },
-    handle: { alignItems: "center", paddingVertical: 12 },
+    handle: { alignItems: "center", paddingVertical: spacingY._12 },
     handleBar: {
-      width: 40,
-      height: 4,
-      borderRadius: 2,
+      width: spacingX._40,
+      height: spacingY._4,
+      borderRadius: radius._3,
       backgroundColor: c.gray300,
     },
   });
@@ -67,45 +75,48 @@ const makeSuccessStyles = (c: ThemeColors) =>
       backgroundColor: c.backdrop,
       alignItems: "center",
       justifyContent: "center",
-      padding: 24,
+      padding: spacingX._24,
     },
     card: {
       backgroundColor: c.surface,
-      borderRadius: 24,
-      padding: 28,
+      borderRadius: borderRadius.xxl,
+      padding: spacingX._24,
       alignItems: "center",
       width: "100%",
+      ...shadow.lg,
     },
     iconBg: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
+      width: layout.iconSize.xl * 2,
+      height: layout.iconSize.xl * 2,
+      borderRadius: layout.iconSize.xl,
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: 20,
+      marginBottom: spacingY._20,
     },
     title: {
-      fontSize: 22,
-      fontWeight: "700",
+      fontSize: fontSize.xxl,
+      fontWeight: fontWeight.bold,
       color: c.textPrimary,
-      marginBottom: 12,
+      marginBottom: spacingY._12,
       textAlign: "center",
     },
     body: {
-      fontSize: 15,
+      fontSize: fontSize.md,
+      fontWeight: fontWeight.regular,
       color: c.textSecondary,
       textAlign: "center",
-      lineHeight: 22,
-      marginBottom: 24,
+      lineHeight: fontSize.md * 1.6,
+      marginBottom: spacingY._24,
     },
-    bold: { fontWeight: "600", color: c.textPrimary },
+    bold: { fontWeight: fontWeight.semibold, color: c.textPrimary },
     btn: {
       backgroundColor: c.primary,
-      borderRadius: 12,
-      paddingVertical: 14,
-      paddingHorizontal: 40,
+      borderRadius: borderRadius.sm,
+      paddingVertical: spacingY._14,
+      paddingHorizontal: spacingX._40,
+      ...shadow.primary,
     },
-    btnText: { fontSize: 16, fontWeight: "700", color: c.white },
+    btnText: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: c.textInverse },
   });
 
 const makeStepStyles = (c: ThemeColors) =>
@@ -114,38 +125,38 @@ const makeStepStyles = (c: ThemeColors) =>
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      paddingHorizontal: 20,
-      paddingBottom: 20,
+      paddingHorizontal: spacingX._20,
+      paddingBottom: spacingY._20,
     },
     circle: {
-      width: 28,
-      height: 28,
-      borderRadius: 14,
+      width: spacingX._25,
+      height: spacingX._25,
+      borderRadius: radius._14,
       alignItems: "center",
       justifyContent: "center",
-      backgroundColor: c.gray200,
+      backgroundColor: c.backgroundTertiary,
       borderWidth: 2,
-      borderColor: c.gray300,
+      borderColor: c.border,
     },
     circleActive: { backgroundColor: c.primary, borderColor: c.primary },
     circleDone: { backgroundColor: c.success, borderColor: c.success },
-    circleText: { fontSize: 11, fontWeight: "700", color: c.textMuted },
-    circleTextActive: { color: c.white },
-    line: { flex: 1, height: 2, backgroundColor: c.gray300, marginHorizontal: 4 },
+    circleText: { fontSize: fontSize.xs, fontWeight: fontWeight.bold, color: c.textMuted },
+    circleTextActive: { color: c.textInverse },
+    line: { flex: 1, height: 2, backgroundColor: c.border, marginHorizontal: spacingX._4 },
     lineDone: { backgroundColor: c.success },
   });
 
 const makeStyles = (c: ThemeColors) =>
   StyleSheet.create({
-    screen: { flex: 1, backgroundColor: c.backgroundSecondary },
+    screen: { flex: 1, backgroundColor: c.background },
 
     // Hero
     heroGradient: { flex: 1, minHeight: 260, maxHeight: 320 },
     backBtn: {
-      margin: 16,
-      width: 40,
-      height: 40,
-      borderRadius: 20,
+      margin: spacingX._16,
+      width: layout.iconSize.xl + spacingX._8,
+      height: layout.iconSize.xl + spacingX._8,
+      borderRadius: radius._20,
       backgroundColor: "rgba(255,255,255,0.2)",
       alignItems: "center",
       justifyContent: "center",
@@ -154,232 +165,318 @@ const makeStyles = (c: ThemeColors) =>
       flex: 1,
       alignItems: "center",
       justifyContent: "center",
-      paddingHorizontal: 24,
-      paddingBottom: 24,
+      paddingHorizontal: spacingX._24,
+      paddingBottom: spacingY._24,
     },
     heroBadge: {
-      width: 72,
-      height: 72,
-      borderRadius: 36,
+      width: spacingX._40 + spacingX._32,
+      height: spacingX._40 + spacingX._32,
+      borderRadius: radius._30,
       backgroundColor: "rgba(255,255,255,0.2)",
       alignItems: "center",
       justifyContent: "center",
-      marginBottom: 16,
+      marginBottom: spacingY._16,
     },
     heroTitle: {
-      fontSize: 28,
-      fontWeight: "700",
-      color: c.white,
+      fontSize: fontSize.xxxl,
+      fontWeight: fontWeight.bold,
+      color: c.textInverse,
       textAlign: "center",
-      marginBottom: 8,
+      marginBottom: spacingY._8,
     },
     heroSub: {
-      fontSize: 15,
+      fontSize: fontSize.md,
+      fontWeight: fontWeight.regular,
       color: "rgba(255,255,255,0.85)",
       textAlign: "center",
-      lineHeight: 22,
+      lineHeight: fontSize.md * 1.6,
     },
 
-    // Perks
+    // Perks card
     perksCard: {
-      margin: 16,
+      marginHorizontal: spacingX._16,
+      marginTop: spacingY._16,
       backgroundColor: c.surface,
-      borderRadius: 16,
-      padding: 20,
-      gap: 14,
+      borderRadius: borderRadius.lg,
+      padding: spacingX._20,
+      gap: spacingY._16,
+      borderWidth: 1,
+      borderColor: c.border,
+      ...shadow.card,
     },
-    perkRow: { flexDirection: "row", alignItems: "center", gap: 12 },
+    perkRow: { flexDirection: "row", alignItems: "center", gap: spacingX._12 },
     perkIcon: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: c.primarySoft,
+      width: spacingX._35,
+      height: spacingX._35,
+      borderRadius: radius._17,
+      backgroundColor: c.primary,
       alignItems: "center",
       justifyContent: "center",
     },
-    perkText: { fontSize: 15, color: c.textPrimary, fontWeight: "500", flex: 1 },
+    perkText: {
+      fontSize: fontSize.md,
+      fontWeight: fontWeight.medium,
+      color: c.textPrimary,
+      flex: 1,
+    },
 
     // Hero footer
     heroFooter: {
-      padding: 20,
-      paddingBottom: 24,
+      paddingHorizontal: spacingX._16,
+      paddingTop: spacingY._16,
+      paddingBottom: spacingY._24,
       alignItems: "center",
-      gap: 10,
+      gap: spacingY._10,
     },
     startBtn: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: c.primary,
-      borderRadius: 12,
-      paddingVertical: 16,
-      paddingHorizontal: 32,
-      gap: 8,
+      borderRadius: borderRadius.sm,
+      height: layout.buttonHeight,
+      paddingHorizontal: spacingX._32,
+      gap: spacingX._8,
       width: "100%",
+      ...shadow.primary,
     },
-    startBtnText: { fontSize: 17, fontWeight: "700", color: c.white },
-    footerNote: { fontSize: 13, color: c.textMuted },
+    startBtnText: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: c.textInverse },
+    footerNote: { fontSize: fontSize.sm, fontWeight: fontWeight.regular, color: c.textMuted },
 
     // Sheet header
     sheetHeader: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "space-between",
-      paddingHorizontal: 20,
-      paddingBottom: 12,
+      paddingHorizontal: spacingX._20,
+      paddingBottom: spacingY._12,
     },
-    sheetTitle: { fontSize: 18, fontWeight: "700", color: c.textPrimary },
-    sheetSub: { fontSize: 13, color: c.textMuted, marginTop: 2 },
+    sheetTitle: { fontSize: fontSize.xl, fontWeight: fontWeight.bold, color: c.textPrimary },
+    sheetSub: {
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.regular,
+      color: c.textMuted,
+      marginTop: spacingY._2,
+    },
     sheetClose: {
-      width: 36,
-      height: 36,
-      borderRadius: 18,
-      backgroundColor: c.gray100,
+      width: spacingX._32,
+      height: spacingX._32,
+      borderRadius: radius._16,
+      backgroundColor: c.backgroundSecondary,
       alignItems: "center",
       justifyContent: "center",
     },
     progressTrack: {
-      height: 3,
-      backgroundColor: c.gray200,
-      marginHorizontal: 20,
-      marginBottom: 20,
-      borderRadius: 2,
+      height: spacingY._4,
+      backgroundColor: c.backgroundTertiary,
+      marginHorizontal: spacingX._20,
+      marginBottom: spacingY._20,
+      borderRadius: radius._3,
       overflow: "hidden",
     },
-    progressFill: { height: "100%", backgroundColor: c.primary, borderRadius: 2 },
-    sheetBody: { paddingHorizontal: 20, paddingBottom: 12 },
+    progressFill: {
+      height: "100%",
+      backgroundColor: c.primary,
+      borderRadius: radius._3,
+    },
+    sheetBody: {
+      paddingHorizontal: spacingX._20,
+      paddingBottom: spacingY._12,
+    },
 
     // Sheet footer
     sheetFooter: {
       borderTopWidth: 1,
-      borderTopColor: c.border,
+      borderTopColor: c.separator,
       backgroundColor: c.surface,
     },
     footerRow: {
       flexDirection: "row",
-      paddingHorizontal: 20,
-      paddingTop: 14,
-      paddingBottom: 14,
-      gap: 12,
+      paddingHorizontal: spacingX._16,
+      paddingTop: spacingY._12,
+      paddingBottom: spacingY._12,
+      gap: spacingX._10,
     },
     backSheetBtn: {
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
-      borderRadius: 12,
-      paddingVertical: 14,
-      paddingHorizontal: 16,
-      borderWidth: 1,
-      borderColor: c.border,
-      gap: 6,
+      borderRadius: borderRadius.sm,
+      height: layout.buttonHeight,
+      paddingHorizontal: spacingX._16,
+      borderWidth: 1.5,
+      borderColor: c.primary,
+      gap: spacingX._6,
       minWidth: 100,
     },
-    backSheetBtnText: { fontSize: 15, fontWeight: "600", color: c.textSecondary },
+    backSheetBtnText: {
+      fontSize: fontSize.md,
+      fontWeight: fontWeight.semibold,
+      color: c.primary,
+    },
     nextBtn: {
       flex: 1,
       flexDirection: "row",
       alignItems: "center",
       justifyContent: "center",
       backgroundColor: c.primary,
-      borderRadius: 12,
-      paddingVertical: 16,
-      gap: 8,
+      borderRadius: borderRadius.sm,
+      height: layout.buttonHeight,
+      gap: spacingX._8,
+      ...shadow.primary,
     },
-    nextBtnDisabled: { opacity: 0.65 },
-    nextBtnText: { fontSize: 17, fontWeight: "700", color: c.white },
+    nextBtnDisabled: { opacity: 0.6 },
+    nextBtnText: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: c.textInverse },
 
     // Step header row
     stepHeaderRow: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 12,
-      marginBottom: 24,
+      gap: spacingX._12,
+      marginBottom: spacingY._24,
       backgroundColor: c.backgroundSecondary,
-      borderRadius: 12,
-      padding: 14,
+      borderRadius: borderRadius.md,
+      padding: spacingX._12,
     },
     stepIcon: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: c.primarySoft,
+      width: layout.iconSize.xl + spacingX._12,
+      height: layout.iconSize.xl + spacingX._12,
+      borderRadius: radius._20,
+      backgroundColor: c.primary,
       alignItems: "center",
       justifyContent: "center",
     },
     stepIconSuccess: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
+      width: layout.iconSize.xl + spacingX._12,
+      height: layout.iconSize.xl + spacingX._12,
+      borderRadius: radius._20,
       backgroundColor: c.successLight,
       alignItems: "center",
       justifyContent: "center",
     },
-    stepTitle: { fontSize: 16, fontWeight: "700", color: c.textPrimary },
-    stepSub: { fontSize: 13, color: c.textMuted, marginTop: 2 },
+    stepTitle: { fontSize: fontSize.lg, fontWeight: fontWeight.bold, color: c.textPrimary },
+    stepSub: {
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.regular,
+      color: c.textMuted,
+      marginTop: spacingY._2,
+    },
 
     // Field
-    fieldGroup: { marginBottom: 20 },
-    labelRow: { flexDirection: "row", alignItems: "center", marginBottom: 8, gap: 3 },
-    label: { fontSize: 15, fontWeight: "600", color: c.textPrimary },
-    required: { fontSize: 15, color: c.error, fontWeight: "700" },
-    optional: { fontSize: 13, color: c.textMuted },
+    fieldGroup: { marginBottom: spacingY._20 },
+    labelRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      marginBottom: spacingY._8,
+      gap: spacingX._3,
+    },
+    label: { fontSize: fontSize.md, fontWeight: fontWeight.semibold, color: c.textPrimary },
+    required: { fontSize: fontSize.md, color: c.error, fontWeight: fontWeight.bold },
+    optional: {
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.regular,
+      color: c.textMuted,
+    },
     input: {
-      backgroundColor: c.surface,
-      borderRadius: 10,
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      fontSize: 15,
+      backgroundColor: c.inputBackground,
+      borderRadius: borderRadius.sm,
+      paddingHorizontal: spacingX._16,
+      paddingVertical: spacingY._14,
+      fontSize: fontSize.md,
+      fontWeight: fontWeight.regular,
       color: c.textPrimary,
       borderWidth: 1.5,
-      borderColor: c.border,
+      borderColor: c.inputBorder,
+      height: layout.inputHeight,
     },
-    inputError: { borderColor: c.error },
-    textArea: { height: 110, paddingTop: 12, textAlignVertical: "top" as const },
-    errorRow: { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 6 },
-    errorText: { fontSize: 13, color: c.error },
-    helperText: { fontSize: 13, color: c.textMuted, marginTop: 6 },
+    inputError: { borderColor: c.error, borderWidth: 1.5 },
+    textArea: {
+      height: spacingY._80 + spacingY._30,
+      paddingTop: spacingY._12,
+      textAlignVertical: "top" as const,
+    },
+    errorRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: spacingX._4,
+      marginTop: spacingY._6,
+    },
+    errorText: {
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.regular,
+      color: c.error,
+    },
+    helperText: {
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.regular,
+      color: c.textMuted,
+      marginTop: spacingY._6,
+    },
     charCount: {
-      fontSize: 11,
+      fontSize: fontSize.xs,
+      fontWeight: fontWeight.regular,
       color: c.textMuted,
       textAlign: "right" as const,
-      marginTop: 4,
+      marginTop: spacingY._4,
     },
 
     // Review
-    reviewCard: { backgroundColor: c.backgroundSecondary, borderRadius: 14, padding: 16 },
+    reviewCard: {
+      backgroundColor: c.backgroundSecondary,
+      borderRadius: borderRadius.md,
+      padding: spacingX._16,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
     reviewCardTitle: {
-      fontSize: 15,
-      fontWeight: "700",
+      fontSize: fontSize.md,
+      fontWeight: fontWeight.bold,
       color: c.textPrimary,
-      marginBottom: 12,
-      paddingBottom: 8,
+      marginBottom: spacingY._12,
+      paddingBottom: spacingY._8,
       borderBottomWidth: 1,
-      borderBottomColor: c.border,
+      borderBottomColor: c.divider,
     },
-    reviewRow: { marginBottom: 10 },
+    reviewRow: { marginBottom: spacingY._10 },
     reviewLabel: {
-      fontSize: 11,
+      fontSize: fontSize.xs,
+      fontWeight: fontWeight.medium,
       color: c.textMuted,
-      marginBottom: 2,
+      marginBottom: spacingY._2,
       textTransform: "uppercase" as const,
-      letterSpacing: 0.5,
+      letterSpacing: 0.6,
     },
-    reviewValue: { fontSize: 15, color: c.textPrimary, lineHeight: 22 },
+    reviewValue: {
+      fontSize: fontSize.md,
+      fontWeight: fontWeight.regular,
+      color: c.textPrimary,
+      lineHeight: fontSize.md * 1.5,
+    },
 
     // Notice
     noticeCard: {
       flexDirection: "row",
       alignItems: "flex-start",
       backgroundColor: c.warningLight,
-      borderRadius: 12,
-      padding: 14,
-      marginTop: 16,
-      gap: 10,
+      borderRadius: borderRadius.md,
+      padding: spacingX._12,
+      marginTop: spacingY._16,
+      gap: spacingX._10,
       borderLeftWidth: 3,
       borderLeftColor: c.warning,
     },
-    noticeTitle: { fontSize: 13, fontWeight: "600", color: c.textPrimary, marginBottom: 3 },
-    noticeText: { fontSize: 13, color: c.textSecondary, lineHeight: 20 },
+    noticeTitle: {
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.semibold,
+      color: c.textPrimary,
+      marginBottom: spacingY._3,
+    },
+    noticeText: {
+      fontSize: fontSize.sm,
+      fontWeight: fontWeight.regular,
+      color: c.textSecondary,
+      lineHeight: fontSize.sm * 1.6,
+    },
   });
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -751,15 +848,6 @@ export default function BecomeMerchantScreen() {
   // ── Step 1 ──
   const renderStep1 = () => (
     <View>
-      <View style={s.stepHeaderRow}>
-        <View style={s.stepIcon}>
-          <MaterialCommunityIcons name="store" size={22} color={colors.primary} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Text style={s.stepTitle}>Business Information</Text>
-          <Text style={s.stepSub}>Tell us about your business</Text>
-        </View>
-      </View>
 
       <Field s={s} colors={colors} label="Display Name" required error={errors.display_name} helper="Visible to customers on your store page">
         <TextInput
@@ -803,7 +891,7 @@ export default function BecomeMerchantScreen() {
     <View>
       <View style={s.stepHeaderRow}>
         <View style={s.stepIcon}>
-          <Ionicons name="call" size={22} color={colors.primary} />
+          <Ionicons name="call" size={22} color={colors.textInverse} />
         </View>
         <View style={{ flex: 1 }}>
           <Text style={s.stepTitle}>Contact Information</Text>
@@ -928,7 +1016,7 @@ export default function BecomeMerchantScreen() {
           ].map(({ icon, text }) => (
             <View key={icon} style={s.perkRow}>
               <View style={s.perkIcon}>
-                <Ionicons name={icon as any} size={18} color={colors.primary} />
+                <Ionicons name={icon as any} size={18} color={colors.textInverse} />
               </View>
               <Text style={s.perkText}>{text}</Text>
             </View>
@@ -953,7 +1041,7 @@ export default function BecomeMerchantScreen() {
             <SafeAreaView edges={["bottom"]}>
               <View style={s.footerRow}>
               <TouchableOpacity style={s.backSheetBtn} onPress={handleBack}>
-                <Ionicons name="arrow-back" size={18} color={colors.textSecondary} />
+                <Ionicons name="arrow-back" size={18} color={colors.primary} />
                 <Text style={s.backSheetBtnText}>
                   {currentStep === 1 ? "Cancel" : "Back"}
                 </Text>
@@ -994,7 +1082,7 @@ export default function BecomeMerchantScreen() {
             onPress={() => setSheetVisible(false)}
             style={s.sheetClose}
           >
-            <Ionicons name="close" size={20} color={colors.textSecondary} />
+            <Ionicons name="close" size={20} color={colors.primary} />
           </TouchableOpacity>
         </View>
 
