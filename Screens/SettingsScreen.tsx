@@ -37,6 +37,30 @@ const getMerchantStatusDisplay = (
   return { label: status ?? "Unknown", color: "#9CA3AF", bg: "#F3F4F6" };
 };
 
+type MerchantNotice = { icon: string; text: string; color: string; bg: string } | null;
+
+const getMerchantNotice = (
+  merchant: NonNullable<UserProfile["merchant"]>
+): MerchantNotice => {
+  const status = merchant.status?.toUpperCase();
+  if (status === "ACTIVE" && !merchant.verified) {
+    return { icon: "lock-closed-outline", color: "#F59E0B", bg: "#FEF3C7", text: "Available once your account is verified by our team." };
+  }
+  if (status === "PENDING" || status === "UNDER_REVIEW") {
+    return { icon: "time-outline", color: "#F59E0B", bg: "#FEF3C7", text: "Features unlock once your application is approved. We'll notify you within 24–48 hours." };
+  }
+  if (status === "REJECTED") {
+    return { icon: "close-circle-outline", color: "#EF4444", bg: "#FEE2E2", text: "Your application was not approved. Please reapply from the Sell tab." };
+  }
+  if (status === "SUSPENDED") {
+    return { icon: "warning-outline", color: "#F97316", bg: "#FFEDD5", text: "Your seller account is temporarily suspended. Contact support for details." };
+  }
+  if (status === "BANNED") {
+    return { icon: "remove-circle-outline", color: "#DC2626", bg: "#FEE2E2", text: "Your seller account has been permanently banned. Contact support if you believe this is an error." };
+  }
+  return null;
+};
+
 export default function AccountScreen() {
   const router = useRouter();
   const scrollRef = useRef<ScrollView>(null);
@@ -384,28 +408,33 @@ export default function AccountScreen() {
           {/* Divider */}
           <View style={[styles.merchantDivider, { backgroundColor: colors.border }]} />
 
-          {/* Unverified notice */}
-          {!profile.merchant.verified && (
-            <View style={[styles.unverifiedNotice, { backgroundColor: "#FEF3C7" }]}>
-              <Ionicons name="lock-closed-outline" size={15} color="#F59E0B" />
-              <Text style={styles.unverifiedNoticeText}>
-                Available once your account is verified
-              </Text>
-            </View>
-          )}
+          {/* Status notice — shown for any non-active state */}
+          {(() => {
+            const notice = getMerchantNotice(profile.merchant!);
+            if (!notice) return null;
+            return (
+              <View style={[styles.merchantNotice, { backgroundColor: notice.bg }]}>
+                <Ionicons name={notice.icon as any} size={15} color={notice.color} />
+                <Text style={[styles.merchantNoticeText, { color: notice.color }]}>
+                  {notice.text}
+                </Text>
+              </View>
+            );
+          })()}
 
-          {/* Action rows — locked when unverified */}
+          {/* Action rows — locked unless status is ACTIVE and verified */}
           {[
-            { icon: "pricetags-outline", label: "My Listings",         color: "#4CAF50", onPress: () => router.push("/merchant/mylistings" as any) },
-            { icon: "cube-outline",      label: "Orders",              color: "#4CAF50", onPress: () => router.push("/merchant/orders" as any) },
+            { icon: "pricetags-outline", label: "My Listings", color: "#4CAF50", onPress: () => router.push("/merchant/mylistings" as any) },
+            { icon: "cube-outline",      label: "Orders",      color: "#4CAF50", onPress: () => router.push("/merchant/orders" as any) },
           ].map((item) => {
-            const locked = !profile.merchant!.verified;
+            const merchantStatus = profile.merchant!.status?.toUpperCase();
+            const locked = !(merchantStatus === "ACTIVE" && profile.merchant!.verified);
             return (
               <TouchableOpacity
                 key={item.label}
                 style={[styles.merchantActionRow, locked && styles.merchantActionRowLocked]}
                 onPress={locked
-                  ? () => Alert.alert("Verification Required", "This feature is only available after your account has been verified.")
+                  ? () => Alert.alert("Not Available", getMerchantNotice(profile.merchant!)?.text ?? "This feature is not available for your current account status.")
                   : item.onPress}
                 activeOpacity={locked ? 1 : 0.6}
               >
@@ -418,7 +447,7 @@ export default function AccountScreen() {
                 <Ionicons
                   name={locked ? "lock-closed-outline" : "chevron-forward"}
                   size={16}
-                  color={locked ? colors.textMuted : colors.textMuted}
+                  color={colors.textMuted}
                 />
               </TouchableOpacity>
             );
@@ -435,13 +464,14 @@ export default function AccountScreen() {
               }
             },
           ].map((item) => {
-            const locked = !profile.merchant!.verified;
+            const merchantStatus = profile.merchant!.status?.toUpperCase();
+            const locked = !(merchantStatus === "ACTIVE" && profile.merchant!.verified);
             return (
               <TouchableOpacity
                 key={item.label}
                 style={[styles.merchantActionRow, locked && styles.merchantActionRowLocked]}
                 onPress={locked
-                  ? () => Alert.alert("Verification Required", "This feature is only available after your account has been verified.")
+                  ? () => Alert.alert("Not Available", getMerchantNotice(profile.merchant!)?.text ?? "This feature is not available for your current account status.")
                   : item.onPress}
                 activeOpacity={locked ? 1 : 0.6}
               >
@@ -764,17 +794,18 @@ const styles = StyleSheet.create({
   merchantActionRowLocked: {
     opacity: 0.45,
   },
-  unverifiedNotice: {
+  merchantNotice: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 7,
+    alignItems: "flex-start",
+    gap: 8,
     paddingHorizontal: 18,
-    paddingVertical: 10,
+    paddingVertical: 12,
   },
-  unverifiedNoticeText: {
+  merchantNoticeText: {
+    flex: 1,
     fontSize: 12,
     fontWeight: "600",
-    color: "#92400E",
+    lineHeight: 17,
   },
   merchantActionLeft: {
     flexDirection: "row",

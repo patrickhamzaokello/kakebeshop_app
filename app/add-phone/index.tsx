@@ -37,23 +37,33 @@ const AddPhone = () => {
     const fullNumber = `+256${trimmed}`;
     setIsLoading(true);
     try {
-      const response = await phoneService.addPhone(fullNumber);
-      const errorData = response.data;
-
-      // Validation errors (bad format, already in use, etc.) — show and stay
-      if (!response.success && errorData?.details) {
-        const details = errorData.details;
-        const messages = (Object.values(details) as string[][]).flat();
-        Alert.alert("Invalid Phone Number", messages.join("\n"));
-        return;
-      }
-
-      // Success or OTP-delivery failure — number was received; proceed to app
-      // and let the user verify later from their profile settings
+      await phoneService.addPhone(fullNumber);
       await completePhoneSubmission();
       router.replace("/(tabs)" as any);
-    } catch {
-      Alert.alert("Error", "An error occurred. Please try again.");
+    } catch (err: any) {
+      // apiService always throws on error: { success: false, message, data: <API body> }
+      const apiData = err?.data;
+      if (apiData) {
+        const messages: string[] = [];
+        if (apiData.phone) {
+          // Field-level validation errors on the phone field
+          const errs = Array.isArray(apiData.phone) ? apiData.phone : [String(apiData.phone)];
+          messages.push(...errs);
+        } else if (apiData.detail) {
+          messages.push(String(apiData.detail));
+        } else {
+          // Flatten all field errors generically
+          Object.values(apiData).forEach((v) => {
+            if (Array.isArray(v)) v.forEach((s) => messages.push(String(s)));
+            else if (typeof v === "string") messages.push(v);
+          });
+        }
+        if (messages.length > 0) {
+          Alert.alert("Invalid Phone Number", messages.join("\n"));
+          return;
+        }
+      }
+      Alert.alert("Error", err?.message || "An error occurred. Please try again.");
     } finally {
       setIsLoading(false);
     }

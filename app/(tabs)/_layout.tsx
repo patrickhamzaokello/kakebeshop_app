@@ -7,6 +7,7 @@ import {
   MaterialCommunityIcons,
   Octicons,
 } from "@expo/vector-icons";
+import * as Haptics from "expo-haptics";
 import { Tabs } from "expo-router";
 import React from "react";
 import { Text } from "@/components/Text";
@@ -51,6 +52,7 @@ const makeTabResetListener = (tabName: string, rootScreen: string) =>
   ({ navigation }: { navigation: any }) => ({
     tabPress: (e: any) => {
       e.preventDefault();
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
       navigation.navigate(tabName, { screen: rootScreen });
     },
   });

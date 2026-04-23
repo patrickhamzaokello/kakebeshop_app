@@ -1,5 +1,9 @@
 import { Stack } from "expo-router";
 
-export default function SettingsLayout() {
-  return <Stack screenOptions={{ headerShown: false, animation: "default" }} />;
+export default function AccountsLayout() {
+  return (
+    <Stack screenOptions={{ headerShown: false, animation: "slide_from_right" }}>
+      <Stack.Screen name="settings" options={{ animation: "none" }} />
+    </Stack>
+  );
 }

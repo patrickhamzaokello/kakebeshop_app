@@ -122,6 +122,7 @@ export default function MerchantProfileScreen() {
   const [loadingListings, setLoadingListings] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [gridView, setGridView] = useState(true);
+  const [notAvailable, setNotAvailable] = useState(false);
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -144,8 +145,12 @@ export default function MerchantProfileScreen() {
       ]);
       setMerchant(profile);
       setListings(products ?? []);
-    } catch {
-      Alert.alert("Error", "Failed to load merchant profile");
+    } catch (err: any) {
+      if (err?.statusCode === 404) {
+        setNotAvailable(true);
+      } else {
+        Alert.alert("Error", "Failed to load merchant profile");
+      }
     } finally {
       setLoadingProfile(false);
       setLoadingListings(false);
@@ -184,6 +189,32 @@ export default function MerchantProfileScreen() {
     return (
       <View style={[styles.centered, { backgroundColor: colors.background }]}>
         <ActivityIndicator size="large" color={colors.primary} />
+      </View>
+    );
+  }
+
+  if (notAvailable) {
+    return (
+      <View style={[styles.centered, { backgroundColor: colors.background }]}>
+        <SafeAreaView edges={["top"]} style={styles.floatingNav} pointerEvents="box-none">
+          <TouchableOpacity style={styles.floatingBtn} onPress={() => router.back()} activeOpacity={0.85}>
+            <Ionicons name="chevron-back" size={20} color="#fff" />
+          </TouchableOpacity>
+          <View />
+        </SafeAreaView>
+        <Ionicons name="storefront-outline" size={56} color={colors.textMuted} />
+        <Text style={[styles.notFoundTitle, { color: colors.textPrimary }]}>
+          Store Not Available
+        </Text>
+        <Text style={[styles.notFoundText, { color: colors.textMuted }]}>
+          This seller's store is not currently available. They may still be setting up their account.
+        </Text>
+        <TouchableOpacity
+          style={[styles.backPill, { backgroundColor: colors.primary }]}
+          onPress={() => router.back()}
+        >
+          <Text style={{ color: "#fff", fontWeight: "600" }}>Go back</Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -575,7 +606,8 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 60,
   },
-  notFoundText: { fontSize: 15 },
+  notFoundTitle: { fontSize: 18, fontWeight: "700", marginTop: 4 },
+  notFoundText: { fontSize: 14, textAlign: "center", lineHeight: 21, paddingHorizontal: 32 },
   backPill: {
     paddingHorizontal: 20,
     paddingVertical: 10,

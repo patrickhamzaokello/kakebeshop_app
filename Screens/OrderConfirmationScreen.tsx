@@ -219,60 +219,65 @@ export default function OrderConfirmationScreen() {
         )}
 
         {/* Delivery Method */}
-        {(availableModes.length > 0 || loadingModes) && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Ionicons name="bicycle-outline" size={20} color="#E60549" />
-              <Text style={styles.sectionTitle}>Delivery Method</Text>
-            </View>
-            {loadingModes ? (
-              <View style={styles.modesLoading}>
-                <ActivityIndicator size="small" color="#E60549" />
-                <Text style={styles.modesLoadingText}>Loading options...</Text>
-              </View>
-            ) : (
-              availableModes.map((mode) => {
-                const isSelected = selectedMode === mode.mode;
-                return (
-                  <TouchableOpacity
-                    key={mode.mode}
-                    style={[styles.modeCard, isSelected && styles.modeCardSelected]}
-                    onPress={() => setSelectedMode(mode.mode)}
-                    activeOpacity={0.7}
-                  >
-                    <View style={styles.modeLeft}>
-                      <View style={[styles.modeIconWrap, isSelected && styles.modeIconWrapSelected]}>
-                        <Ionicons
-                          name={MODE_ICONS[mode.mode]}
-                          size={20}
-                          color={isSelected ? "#fff" : colors.textSecondary}
-                        />
-                      </View>
-                      <View style={styles.modeInfo}>
-                        <Text style={[styles.modeLabel, isSelected && styles.modeLabelSelected]}>
-                          {mode.mode_display}
-                        </Text>
-                        {mode.notes && (
-                          <Text style={styles.modeNotes} numberOfLines={1}>
-                            {mode.notes}
-                          </Text>
-                        )}
-                        {mode.estimated_days && (
-                          <Text style={styles.modeEta}>
-                            Est. {mode.estimated_days} {mode.estimated_days === 1 ? "day" : "days"}
-                          </Text>
-                        )}
-                      </View>
-                    </View>
-                    <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
-                      {isSelected && <View style={styles.radioInner} />}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })
-            )}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="bicycle-outline" size={20} color="#E60549" />
+            <Text style={styles.sectionTitle}>Delivery Method</Text>
           </View>
-        )}
+          {loadingModes ? (
+            <View style={styles.modesLoading}>
+              <ActivityIndicator size="small" color="#E60549" />
+              <Text style={styles.modesLoadingText}>Loading options...</Text>
+            </View>
+          ) : availableModes.length > 0 ? (
+            availableModes.map((mode) => {
+              const isSelected = selectedMode === mode.mode;
+              return (
+                <TouchableOpacity
+                  key={mode.mode}
+                  style={[styles.modeCard, isSelected && styles.modeCardSelected]}
+                  onPress={() => setSelectedMode(mode.mode)}
+                  activeOpacity={0.7}
+                >
+                  <View style={styles.modeLeft}>
+                    <View style={[styles.modeIconWrap, isSelected && styles.modeIconWrapSelected]}>
+                      <Ionicons
+                        name={MODE_ICONS[mode.mode]}
+                        size={20}
+                        color={isSelected ? "#fff" : colors.textSecondary}
+                      />
+                    </View>
+                    <View style={styles.modeInfo}>
+                      <Text style={[styles.modeLabel, isSelected && styles.modeLabelSelected]}>
+                        {mode.mode_display}
+                      </Text>
+                      {mode.notes && (
+                        <Text style={styles.modeNotes} numberOfLines={1}>
+                          {mode.notes}
+                        </Text>
+                      )}
+                      {mode.estimated_days && (
+                        <Text style={styles.modeEta}>
+                          Est. {mode.estimated_days} {mode.estimated_days === 1 ? "day" : "days"}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                  <View style={[styles.radioOuter, isSelected && styles.radioOuterSelected]}>
+                    {isSelected && <View style={styles.radioInner} />}
+                  </View>
+                </TouchableOpacity>
+              );
+            })
+          ) : (
+            <View style={styles.modeNotice}>
+              <Ionicons name="information-circle-outline" size={18} color={colors.textSecondary} />
+              <Text style={styles.modeNoticeText}>
+                No delivery options configured for these items. The merchant will confirm how they'll fulfil your order.
+              </Text>
+            </View>
+          )}
+        </View>
 
         {/* Order Items */}
         <View style={styles.section}>
@@ -475,6 +480,17 @@ const getStyles = (colors: any) =>
       gap: 10,
     },
     modesLoadingText: { fontSize: 14, color: colors.textSecondary },
+    modeNotice: {
+      flexDirection: "row",
+      alignItems: "flex-start",
+      gap: 10,
+      backgroundColor: colors.backgroundSecondary,
+      borderRadius: 10,
+      padding: 14,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    modeNoticeText: { flex: 1, fontSize: 13, color: colors.textSecondary, lineHeight: 19 },
 
     itemCard: {
       backgroundColor: colors.surface,

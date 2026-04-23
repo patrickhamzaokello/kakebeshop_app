@@ -11,16 +11,11 @@ export type MerchantOrderStatus =
 
 export const merchantBase = {
   async merchantProfile(merchantID: string): Promise<MerchantDetails | null> {
-    try {
-      const response = await apiService.get(`/api/v1/merchants/${merchantID}`);
-      if (response.success && response.data) {
-        return response.data;
-      }
-      return null;
-    } catch (error) {
-      if (__DEV__) console.error("Error fetching merchant profile:", error);
-      return null;
+    const response = await apiService.get(`/api/v1/merchants/${merchantID}`);
+    if (response.success && response.data) {
+      return response.data;
     }
+    return null;
   },
 
   async getMyMerchantProfile(): Promise<MerchantDetails | null> {

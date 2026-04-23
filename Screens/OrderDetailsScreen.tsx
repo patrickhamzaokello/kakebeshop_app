@@ -219,6 +219,8 @@ interface OrderDetail {
   merchant_name: string;
   total_amount: string;
   delivery_fee: string;
+  delivery_mode?: string;
+  delivery_mode_display?: string;
   status: string;
   created_at: string;
   notes?: string;
@@ -663,6 +665,21 @@ export default function OrderDetailScreen() {
           </View>
         )}
 
+        {/* Delivery Mode */}
+        {order.delivery_mode && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Delivery Method</Text>
+            <View style={styles.card}>
+              <View style={styles.infoRow}>
+                <Ionicons name="bicycle-outline" size={20} color={colors.textSecondary} />
+                <Text style={styles.infoText}>
+                  {order.delivery_mode_display || order.delivery_mode}
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* Order Summary */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Order Summary</Text>
@@ -674,7 +691,7 @@ export default function OrderDetailScreen() {
                 {(parseFloat(order.total_amount ?? "0") - parseFloat(order.delivery_fee || "0")).toLocaleString()}
               </Text>
             </View>
-         
+
             <View style={styles.divider} />
             <View style={styles.summaryRow}>
               <Text style={styles.totalLabel}>Total</Text>
