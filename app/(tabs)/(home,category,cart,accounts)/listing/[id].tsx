@@ -1153,7 +1153,7 @@ export default function ListingDetailsScreen() {
           )}
 
           {/* ── Comments entry point ── */}
-          <View style={styles.section}>
+          <View style={[styles.section, { paddingVertical: 20 }]}>
             <View style={styles.sectionHeader}>
               <View style={styles.commentCountRow}>
                 <Ionicons name="chatbubble-outline" size={15} color={colors.textPrimary} />
@@ -1173,7 +1173,7 @@ export default function ListingDetailsScreen() {
               activeOpacity={0.75}
             >
                 <View style={[styles.commentTriggerAvatar, styles.commentAvatarFallback, { backgroundColor: colors.border }]}>
-                  <Ionicons name="person-outline" size={15} color={colors.textMuted} />
+                  <Ionicons name="chatbubble-outline" size={15} color={colors.textMuted} />
                 </View>
               <Text style={[styles.commentTriggerText, { color: colors.textMuted }]}>
                 {(commentCount ?? 0) > 0 ? "Add a comment…" : "Be the first to comment…"}
