@@ -674,14 +674,7 @@ export default function OrderDetailScreen() {
                 {(parseFloat(order.total_amount ?? "0") - parseFloat(order.delivery_fee || "0")).toLocaleString()}
               </Text>
             </View>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Delivery Fee</Text>
-              <Text style={styles.summaryValue}>
-                {!order.delivery_fee || order.delivery_fee === "0.00" || order.delivery_fee === "0"
-                  ? "FREE"
-                  : `UGX ${parseFloat(order.delivery_fee).toLocaleString()}`}
-              </Text>
-            </View>
+         
             <View style={styles.divider} />
             <View style={styles.summaryRow}>
               <Text style={styles.totalLabel}>Total</Text>

@@ -1,9 +1,9 @@
+import { Text } from "@/components/Text";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cartService } from "@/utils/services/cartService";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { Text } from "@/components/Text";
 import { ActivityIndicator, Animated, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 interface OrderGroup {
@@ -109,7 +109,7 @@ export default function OrderSuccessScreen({ orderIds, orderGroupId }: OrderSucc
   };
 
   const handleViewAllOrders = () => {
-    router.replace("/(tabs)/(accounts)/orders/orders");
+    router.replace("/(tabs)/(accounts)/orders");
   };
 
   const styles = getStyles(colors);

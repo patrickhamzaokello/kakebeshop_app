@@ -133,7 +133,7 @@ export const merchantBase = {
     }
   },
 
-  // GET /api/v1/orders/orders/merchant-search/
+  // GET /api/v1/orders/merchant-search/
   async merchantOrderSearch(params: {
     q?: string;
     status?: string;

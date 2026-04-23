@@ -225,15 +225,27 @@ export interface ListingDetail extends Listing   {
     images: ListingDetailImageType[];
     business_hours: any[];
     share_url: string;
+    delivery_modes: DeliveryModeDetail[];
 }
 
+
+export type DeliveryMode = "PICKUP" | "DELIVERY" | "DIGITAL" | "IN_PERSON" | "REMOTE";
+
+export interface DeliveryModeDetail {
+  id: string;
+  mode: DeliveryMode;
+  mode_display: string;
+  notes: string | null;
+  delivery_fee: string | null; // null means free
+  estimated_days: number | null;
+}
 
 // Cart Listing Image
 export interface CartListingImage {
     image: string;
     thumbnail: string;
   }
-  
+
   // Cart Listing type
   export interface CartListing {
     id: string;
@@ -242,6 +254,8 @@ export interface CartListingImage {
     primary_image: CartListingImage;
     status: "ACTIVE" | "INACTIVE";
     is_active: boolean;
+    merchant?: { id: string; display_name: string };
+    delivery_modes?: DeliveryMode[];
   }
 
 

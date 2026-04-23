@@ -172,9 +172,10 @@ export const cartService = {
    */
   checkout: async (data: {
     address_id: string;
-    notes?: string;
+    delivery_mode?: string;
     delivery_fee?: number;
     expected_delivery_date?: string;
+    notes?: string;
   }) => {
     try {
       const response = await apiService.post("/api/v1/orders/checkout/", data);
@@ -250,7 +251,7 @@ export const cartService = {
     }
   },
 
-  // GET /api/v1/orders/orders/buyer-search/
+  // GET /api/v1/orders/buyer-search/
   buyerOrderSearch: async (params: {
     q?: string;
     status?: string;

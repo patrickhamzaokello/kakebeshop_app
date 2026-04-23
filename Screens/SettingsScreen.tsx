@@ -1,3 +1,4 @@
+import { Text } from "@/components/Text";
 import { useTheme } from "@/contexts/ThemeContext";
 import apiService from "@/utils/apiBase";
 import { useAuthStore } from "@/utils/authStore";
@@ -6,7 +7,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useScrollToTop } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { Text } from "@/components/Text";
 import { ActivityIndicator, Alert, Image, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
 
 
@@ -94,7 +94,7 @@ export default function AccountScreen() {
   };
 
   const handleBecomeMerchant = () => {
-    router.push("/merchant/apply/signup" as any);
+    router.push({ pathname: "/merchant/apply/signup" as any, params: { autoOpen: "1" } });
   };
 
 
@@ -279,7 +279,7 @@ export default function AccountScreen() {
         {/* Account action rows */}
         <TouchableOpacity
           style={styles.profileActionRow}
-          onPress={() => router.push("/orders/orders" as any)}
+          onPress={() => router.push("/orders" as any)}
           activeOpacity={0.6}
         >
           <View style={styles.profileActionLeft}>

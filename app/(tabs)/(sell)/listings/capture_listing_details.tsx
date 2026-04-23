@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
 import { TextInput } from "@/components/TextInput";
-import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput as RNTextInput, TouchableOpacity, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -118,7 +118,7 @@ export default function CaptureListingDetails() {
   // free-text tags: committed chips + current input
   const [tagChips, setTagChips] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
-  const tagInputRef = useRef<TextInput>(null);
+  const tagInputRef = useRef<RNTextInput>(null);
   const scrollRef = useRef<ScrollView>(null);
 
   // ── Data state ──
@@ -128,6 +128,9 @@ export default function CaptureListingDetails() {
 
   // ── Inline errors ──
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // ── Delivery modes ──
+  const [deliveryModes, setDeliveryModes] = useState<Record<string, { notes: string; estimated_days: string }>>({});
 
   // ── Modals ──
   const [showCategoryModal, setShowCategoryModal] = useState(false);
@@ -194,6 +197,24 @@ export default function CaptureListingDetails() {
     setCategoryQuery("");
     setSearchResults([]);
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+  };
+
+  const toggleDeliveryMode = (mode: string) => {
+    setDeliveryModes((prev) => {
+      if (mode in prev) {
+        const next = { ...prev };
+        delete next[mode];
+        return next;
+      }
+      return { ...prev, [mode]: { notes: "", estimated_days: "" } };
+    });
+  };
+
+  const updateDeliveryModeField = (mode: string, field: "notes" | "estimated_days", value: string) => {
+    setDeliveryModes((prev) => ({
+      ...prev,
+      [mode]: { ...prev[mode], [field]: value },
+    }));
   };
 
   const clearError = (field: string) => {
@@ -266,6 +287,13 @@ export default function CaptureListingDetails() {
         : tagChips;
       if (allTags.length > 0) body.tags = allTags;
 
+      const selectedModes = Object.entries(deliveryModes).map(([mode, cfg]) => ({
+        mode,
+        ...(cfg.notes.trim() ? { notes: cfg.notes.trim() } : {}),
+        ...(cfg.estimated_days.trim() ? { estimated_days: parseInt(cfg.estimated_days, 10) } : {}),
+      }));
+      if (selectedModes.length > 0) body.delivery_modes = selectedModes;
+
       const listingRes = await apiService.post<{ id: string }>("/api/v1/listings/", body);
       if (!listingRes.success || !listingRes.data?.id) {
         throw new Error(listingRes.message || "Failed to create listing.");
@@ -294,7 +322,7 @@ export default function CaptureListingDetails() {
               // Replace to sell root first — this clears the entire listings stack
               // (both the stale capture_listing_images and this details screen).
               // Then push a completely fresh capture_listing_images on top.
-              router.replace("/(tabs)/(sell)");
+              router.replace("/(tabs)/(sell)" as any);
               setTimeout(() => {
                 router.push("/(tabs)/(sell)/listings/capture_listing_images");
               }, 0);
@@ -469,7 +497,7 @@ export default function CaptureListingDetails() {
                   backgroundColor: colors.inputBackground,
                 },
               ]}
-              onPress={() => setShowCategoryModal(true)}
+              onPress={() => { Keyboard.dismiss(); setShowCategoryModal(true); }}
               disabled={submitting}
             >
               <Typo size={15} color={selectedCategory ? colors.textPrimary : colors.textPlaceholder}>
@@ -485,7 +513,7 @@ export default function CaptureListingDetails() {
           <Field label="Price Type" required colors={colors}>
             <TouchableOpacity
               style={[styles.selectBtn, { borderColor: colors.inputBorder, backgroundColor: colors.inputBackground }]}
-              onPress={() => setShowPriceTypeModal(true)}
+              onPress={() => { Keyboard.dismiss(); setShowPriceTypeModal(true); }}
               disabled={submitting}
             >
               <Typo size={15} color={colors.textPrimary}>{priceTypeLabel}</Typo>
@@ -578,6 +606,64 @@ export default function CaptureListingDetails() {
               </View>
             </TouchableOpacity>
           )}
+
+          {/* ── Delivery & Fulfillment ── */}
+          <SectionHeader title="Delivery & Fulfillment" colors={colors} />
+          {([
+            { mode: "PICKUP",    label: "Pickup",    desc: "Buyer collects from your location",   icon: "storefront-outline",      showDays: false },
+            { mode: "DELIVERY",  label: "Delivery",  desc: "You deliver to buyer's address",      icon: "bicycle-outline",         showDays: true  },
+            { mode: "DIGITAL",   label: "Digital",   desc: "Download or link (digital products)", icon: "cloud-download-outline",  showDays: false },
+            { mode: "IN_PERSON", label: "In Person", desc: "Service at buyer's location",         icon: "person-outline",          showDays: true  },
+            { mode: "REMOTE",    label: "Remote",    desc: "Service performed online/remotely",   icon: "laptop-outline",          showDays: false },
+          ] as { mode: string; label: string; desc: string; icon: any; showDays: boolean }[]).map((opt) => {
+            const isOn = opt.mode in deliveryModes;
+            return (
+              <View key={opt.mode} style={[dmStyles.card, { borderColor: isOn ? colors.primary : colors.inputBorder, backgroundColor: colors.inputBackground }]}>
+                <TouchableOpacity
+                  style={dmStyles.row}
+                  onPress={() => toggleDeliveryMode(opt.mode)}
+                  disabled={submitting}
+                  activeOpacity={0.7}
+                >
+                  <View style={[dmStyles.iconWrap, { backgroundColor: isOn ? colors.primary + "18" : colors.backgroundSecondary }]}>
+                    <Ionicons name={opt.icon} size={18} color={isOn ? colors.primary : colors.textMuted} />
+                  </View>
+                  <View style={dmStyles.labelWrap}>
+                    <Typo size={14} fontWeight="600" color={isOn ? colors.primary : colors.textPrimary}>{opt.label}</Typo>
+                    <Typo size={12} color={colors.textMuted}>{opt.desc}</Typo>
+                  </View>
+                  <View style={[dmStyles.toggle, { backgroundColor: isOn ? colors.primary : colors.border }]}>
+                    <View style={[dmStyles.toggleThumb, { transform: [{ translateX: isOn ? 18 : 2 }] }]} />
+                  </View>
+                </TouchableOpacity>
+
+                {isOn && (
+                  <View style={[dmStyles.expandedFields, { borderTopColor: colors.border }]}>
+                    <TextInput
+                      style={[dmStyles.expandInput, { borderColor: colors.inputBorder, color: colors.textPrimary, backgroundColor: colors.background }]}
+                      placeholder="Notes (optional) — e.g. Kampala only, Mon–Fri 9am–5pm"
+                      placeholderTextColor={colors.textPlaceholder}
+                      value={deliveryModes[opt.mode].notes}
+                      onChangeText={(v) => updateDeliveryModeField(opt.mode, "notes", v)}
+                      editable={!submitting}
+                    />
+                    {opt.showDays && (
+                      <TextInput
+                        style={[dmStyles.expandInput, { borderColor: colors.inputBorder, color: colors.textPrimary, backgroundColor: colors.background }]}
+                        placeholder="Estimated delivery days (optional) — e.g. 2"
+                        placeholderTextColor={colors.textPlaceholder}
+                        value={deliveryModes[opt.mode].estimated_days}
+                        onChangeText={(v) => updateDeliveryModeField(opt.mode, "estimated_days", v.replace(/[^0-9]/g, ""))}
+                        keyboardType="numeric"
+                        editable={!submitting}
+                      />
+                    )}
+                  </View>
+                )}
+              </View>
+            );
+          })}
+          <View style={{ height: 8 }} />
 
           {/* ── Tags (optional) ── */}
           <SectionHeader title="Tags (Optional)" colors={colors} />
@@ -1100,5 +1186,57 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 40,
     paddingTop: 80,
+  },
+});
+
+const dmStyles = StyleSheet.create({
+  card: {
+    borderWidth: 1.5,
+    borderRadius: 12,
+    marginBottom: 10,
+    overflow: "hidden",
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  iconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  labelWrap: {
+    flex: 1,
+    marginLeft: 12,
+    gap: 2,
+  },
+  toggle: {
+    width: 40,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center",
+  },
+  toggleThumb: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#fff",
+  },
+  expandedFields: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    gap: 8,
+  },
+  expandInput: {
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 14,
   },
 });

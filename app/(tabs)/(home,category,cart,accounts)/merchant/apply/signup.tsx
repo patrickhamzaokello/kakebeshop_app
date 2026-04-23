@@ -15,7 +15,7 @@ import { useThemeColors } from "@/contexts/ThemeContext";
 import apiService from "@/utils/apiBase";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -209,7 +209,7 @@ const makeStyles = (c: ThemeColors) =>
       width: spacingX._35,
       height: spacingX._35,
       borderRadius: radius._17,
-      backgroundColor: c.primary,
+      backgroundColor: "rgba(255,255,255,0.2)",
       alignItems: "center",
       justifyContent: "center",
     },
@@ -305,14 +305,14 @@ const makeStyles = (c: ThemeColors) =>
       height: layout.buttonHeight,
       paddingHorizontal: spacingX._16,
       borderWidth: 1.5,
-      borderColor: c.primary,
+      borderColor: c.border,
       gap: spacingX._6,
       minWidth: 100,
     },
     backSheetBtnText: {
       fontSize: fontSize.md,
       fontWeight: fontWeight.semibold,
-      color: c.primary,
+      color: c.textSecondary,
     },
     nextBtn: {
       flex: 1,
@@ -342,7 +342,7 @@ const makeStyles = (c: ThemeColors) =>
       width: layout.iconSize.xl + spacingX._12,
       height: layout.iconSize.xl + spacingX._12,
       borderRadius: radius._20,
-      backgroundColor: c.primary,
+      backgroundColor: c.textPrimary,
       alignItems: "center",
       justifyContent: "center",
     },
@@ -522,6 +522,7 @@ function BottomSheet({
 
   useEffect(() => {
     if (visible) {
+      keyboardPad.setValue(0);
       Animated.spring(translateY, {
         toValue: 0,
         useNativeDriver: true,
@@ -751,6 +752,7 @@ function Field({
 export default function BecomeMerchantScreen() {
   const colors = useThemeColors();
   const s = useMemo(() => makeStyles(colors), [colors]);
+  const { autoOpen } = useLocalSearchParams<{ autoOpen?: string }>();
 
   const [sheetVisible, setSheetVisible] = useState(false);
   const [successVisible, setSuccessVisible] = useState(false);
@@ -807,7 +809,7 @@ export default function BecomeMerchantScreen() {
 
   const handleBack = () => {
     if (currentStep > 1) setCurrentStep((n) => n - 1);
-    else setSheetVisible(false);
+    else { Keyboard.dismiss(); setSheetVisible(false); }
   };
 
   const handleSubmit = async () => {
@@ -844,6 +846,10 @@ export default function BecomeMerchantScreen() {
     setErrors({});
     setSheetVisible(true);
   };
+
+  useEffect(() => {
+    if (autoOpen === "1") openSheet();
+  }, []);
 
   // ── Step 1 ──
   const renderStep1 = () => (
@@ -989,7 +995,7 @@ export default function BecomeMerchantScreen() {
       {/* ── Hero Landing Screen ── */}
       <View style={s.screen}>
         <LinearGradient
-          colors={[colors.primary, colors.primaryDark]}
+          colors={["#43A047", "#2E7D32"]}
           style={s.heroGradient}
         >
           <SafeAreaView edges={["top"]} style={{ flex: 1 }}>
@@ -1041,7 +1047,7 @@ export default function BecomeMerchantScreen() {
             <SafeAreaView edges={["bottom"]}>
               <View style={s.footerRow}>
               <TouchableOpacity style={s.backSheetBtn} onPress={handleBack}>
-                <Ionicons name="arrow-back" size={18} color={colors.primary} />
+                <Ionicons name="arrow-back" size={18} color={colors.textSecondary} />
                 <Text style={s.backSheetBtnText}>
                   {currentStep === 1 ? "Cancel" : "Back"}
                 </Text>
@@ -1079,10 +1085,10 @@ export default function BecomeMerchantScreen() {
             <Text style={s.sheetSub}>Step {currentStep} of {totalSteps}</Text>
           </View>
           <TouchableOpacity
-            onPress={() => setSheetVisible(false)}
+            onPress={() => { Keyboard.dismiss(); setSheetVisible(false); }}
             style={s.sheetClose}
           >
-            <Ionicons name="close" size={20} color={colors.primary} />
+            <Ionicons name="close" size={20} color={colors.textSecondary} />
           </TouchableOpacity>
         </View>
 

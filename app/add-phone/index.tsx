@@ -97,12 +97,11 @@ const AddPhone = () => {
                 style={styles.appIcon}
               />
               <View style={styles.textContainer}>
-                <Typo size={30} fontWeight={"800"} style={styles.title}>
+                <Typo size={26} fontWeight={"800"} style={styles.title}>
                   Add Phone Number
                 </Typo>
                 <Typo size={16} style={styles.subtitle}>
-                  Merchants need your phone number to contact you about orders
-                  and deliveries.
+                  Kakebe shop requires you to add a phone number to your account for better experience  and communication.
                 </Typo>
               </View>
             </View>
