@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Text } from "@/components/Text";
-import { StyleSheet, View, FlatList, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Linking, Alert, Dimensions, Animated, StatusBar } from "react-native";
+import { StyleSheet, View, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Linking, Alert, Dimensions, Animated, StatusBar, Share } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -12,7 +12,6 @@ import { useTheme } from "@/contexts/ThemeContext";
 import { merchantBase } from "@/utils/services/merchantService";
 import { MerchantDetails, Listing } from "@/utils/types/models";
 import { ListingImage } from "@/components/test/common/ListingImage";
-import { Share } from "react-native";
 
 const { width: W } = Dimensions.get("window");
 const PAD = 16;
@@ -35,32 +34,35 @@ function formatPrice(listing: Listing): string {
   return "—";
 }
 
-function memberSince(dateString: string): string {
-  const months = Math.floor(
-    (Date.now() - new Date(dateString).getTime()) / (1000 * 60 * 60 * 24 * 30)
-  );
-  if (months < 1) return "New";
-  if (months < 12) return `${months}mo`;
-  const y = Math.floor(months / 12);
-  return `${y}yr${y > 1 ? "s" : ""}`;
+function memberSince(dateString: string): { value: string; label: string } {
+  const now = new Date();
+  const joined = new Date(dateString);
+
+  let years = now.getFullYear() - joined.getFullYear();
+  let months = now.getMonth() - joined.getMonth();
+  if (months < 0) { years--; months += 12; }
+
+  const totalMonths = years * 12 + months;
+
+  const joinLabel = joined.toLocaleDateString("en-US", { month: "short", year: "numeric" });
+
+  if (totalMonths < 1)  return { value: "New",                                          label: `Joined ${joinLabel}` };
+  if (totalMonths < 12) return { value: `${totalMonths} mo`,                            label: `Joined ${joinLabel}` };
+  if (months === 0)     return { value: `${years} yr${years > 1 ? "s" : ""}`,           label: `Joined ${joinLabel}` };
+                        return { value: `${years} yr${years > 1 ? "s" : ""} ${months} mo`, label: `Joined ${joinLabel}` };
 }
 
-// ─── Listing card ─────────────────────────────────────────────────────────────
+// ─── Grid card ────────────────────────────────────────────────────────────────
 
-function ListingCard({ item, colors }: { item: Listing; colors: any }) {
+function GridCard({ item, colors }: { item: Listing; colors: any }) {
   return (
     <TouchableOpacity
       style={[styles.card, { backgroundColor: colors.surface }]}
-      onPress={() =>
-        router.push({ pathname: "/listing/[id]", params: { id: item.id } })
-      }
+      onPress={() => router.push({ pathname: "/listing/[id]", params: { id: item.id } })}
       activeOpacity={0.85}
     >
       <View style={styles.cardImageWrap}>
-        <ListingImage
-          primaryImage={item.primary_image}
-          style={styles.cardImage as any}
-        />
+        <ListingImage primaryImage={item.primary_image} style={styles.cardImage as any} />
         {item.is_featured && (
           <View style={styles.featuredBadge}>
             <Ionicons name="star" size={9} color="#fff" />
@@ -69,16 +71,10 @@ function ListingCard({ item, colors }: { item: Listing; colors: any }) {
         )}
       </View>
       <View style={styles.cardBody}>
-        <Text
-          style={[styles.cardTitle, { color: colors.textPrimary }]}
-          numberOfLines={2}
-        >
+        <Text style={[styles.cardTitle, { color: colors.textPrimary }]} numberOfLines={2}>
           {item.title}
         </Text>
-        <Text
-          style={[styles.cardPrice, { color: colors.primary }]}
-          numberOfLines={1}
-        >
+        <Text style={[styles.cardPrice, { color: colors.primary }]} numberOfLines={1}>
           {formatPrice(item)}
         </Text>
       </View>
@@ -86,26 +82,45 @@ function ListingCard({ item, colors }: { item: Listing; colors: any }) {
   );
 }
 
-// ─── Stat chip ────────────────────────────────────────────────────────────────
+// ─── List row card ─────────────────────────────────────────────────────────────
 
-function StatChip({
-  value,
-  label,
-  colors,
-}: {
-  value: string | number;
-  label: string;
-  colors: any;
-}) {
+function RowCard({ item, colors }: { item: Listing; colors: any }) {
   return (
-    <View style={styles.statChip}>
-      <Text style={[styles.statValue, { color: colors.textPrimary }]}>
-        {value}
-      </Text>
-      <Text style={[styles.statLabel, { color: colors.textMuted }]}>
-        {label}
-      </Text>
-    </View>
+    <TouchableOpacity
+      style={[styles.rowCard, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}
+      onPress={() => router.push({ pathname: "/listing/[id]", params: { id: item.id } })}
+      activeOpacity={0.82}
+    >
+      <View style={styles.rowImageWrap}>
+        <ListingImage primaryImage={item.primary_image} style={styles.rowImage as any} />
+        {item.is_featured && (
+          <View style={styles.rowFeaturedDot}>
+            <Ionicons name="star" size={9} color="#fff" />
+          </View>
+        )}
+      </View>
+      <View style={styles.rowBody}>
+        <Text style={[styles.rowTitle, { color: colors.textPrimary }]} numberOfLines={2}>
+          {item.title}
+        </Text>
+        {item.category_name ? (
+          <Text style={[styles.rowCategory, { color: colors.textMuted }]} numberOfLines={1}>
+            {item.category_name}
+          </Text>
+        ) : null}
+        <View style={styles.rowFooter}>
+          <Text style={[styles.rowPrice, { color: colors.primary }]} numberOfLines={1}>
+            {formatPrice(item)}
+          </Text>
+          {item.is_featured && (
+            <View style={styles.rowFeaturedChip}>
+              <Text style={styles.rowFeaturedText}>Featured</Text>
+            </View>
+          )}
+        </View>
+      </View>
+      <Ionicons name="chevron-forward" size={16} color={colors.textMuted} style={{ alignSelf: "center" }} />
+    </TouchableOpacity>
   );
 }
 
@@ -123,6 +138,7 @@ export default function MerchantProfileScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [gridView, setGridView] = useState(true);
   const [notAvailable, setNotAvailable] = useState(false);
+  const [descExpanded, setDescExpanded] = useState(false);
 
   const scrollY = useRef(new Animated.Value(0)).current;
 
@@ -174,16 +190,6 @@ export default function MerchantProfileScreen() {
       });
     } catch {}
   };
-
-  const renderStars = (rating: number) =>
-    Array.from({ length: 5 }, (_, i) => (
-      <Ionicons
-        key={i}
-        name={i < Math.floor(rating) ? "star" : "star-outline"}
-        size={12}
-        color="#FFB800"
-      />
-    ));
 
   if (loadingProfile) {
     return (
@@ -240,256 +246,194 @@ export default function MerchantProfileScreen() {
     );
   }
 
-  // ── Redesigned header ──────────────────────────────────────────────────────
+  const tenure = memberSince(merchant.created_at);
+
+  // ── Status badge config ───────────────────────────────────────────────────
+  const statusConfig = (() => {
+    if (merchant.status === "SUSPENDED")
+      return { label: "Suspended", color: "#F59E0B", bg: "#FEF3C7", icon: "warning-outline" as const };
+    if (merchant.status === "BANNED")
+      return { label: "Banned", color: "#EF4444", bg: "#FEE2E2", icon: "ban-outline" as const };
+    if (merchant.verified)
+      return { label: "Verified", color: "#1D9BF0", bg: "#E8F5FD", icon: "checkmark-circle" as const };
+    return { label: "Active", color: "#3B82F6", bg: "#DBEAFE", icon: "checkmark-circle-outline" as const };
+  })();
+
   const Header = (
     <View>
       {/* ── Banner ── */}
-
-      {/* ── Banner + Avatar (avatar absolutely straddles the boundary) ── */}
       <View style={{ position: "relative", zIndex: 2, elevation: 2 }}>
         <View style={{ height: BANNER_H, overflow: "hidden" }}>
-          <Animated.View
-            style={[
-              StyleSheet.absoluteFill,
-              { transform: [{ scale: bannerScale }] },
-            ]}
-          >
+          <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ scale: bannerScale }] }]}>
             {merchant.cover_image ? (
-              <Image
-                source={{ uri: merchant.cover_image }}
-                style={StyleSheet.absoluteFill}
-                resizeMode="cover"
-              />
+              <Image source={{ uri: merchant.cover_image }} style={StyleSheet.absoluteFill} resizeMode="cover" />
             ) : (
               <LinearGradient
-                colors={
-                  isDark ? ["#1A1A2E", "#16213E"] : ["#1A1A2E", "#E60549"]
-                }
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+                colors={isDark ? ["#0F172A", "#1E293B"] : ["#1E293B", "#E60549"]}
+                start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
                 style={StyleSheet.absoluteFill}
               />
             )}
-            <LinearGradient
-              colors={["transparent", "rgba(0,0,0,0.35)"]}
-              style={styles.bannerScrim}
-            />
+            <LinearGradient colors={["transparent", "rgba(0,0,0,0.5)"]} style={styles.bannerScrim} />
           </Animated.View>
         </View>
 
-        {/* Avatar — sits over the banner/info boundary */}
+        {/* Avatar straddles banner/info boundary */}
         <View style={styles.avatarWrap}>
           {merchant.logo ? (
-            <Image
-              source={{ uri: merchant.logo }}
-              style={styles.avatar}
-              resizeMode="cover"
-            />
+            <Image source={{ uri: merchant.logo }} style={styles.avatar} resizeMode="cover" />
           ) : (
-            <View
-              style={[
-                styles.avatar,
-                styles.avatarFallback,
-                { backgroundColor: colors.backgroundSecondary },
-              ]}
-            >
-              <Ionicons name="storefront" size={30} color={colors.primary} />
+            <View style={[styles.avatar, styles.avatarFallback, { backgroundColor: colors.backgroundSecondary }]}>
+              <Ionicons name="storefront" size={36} color={colors.primary} />
             </View>
           )}
           {merchant.verified && (
             <View style={[styles.verifiedDot, { borderColor: colors.surface }]}>
-              <Ionicons name="checkmark" size={9} color="#fff" />
+              <Ionicons name="checkmark-sharp" size={16} color="#fff" />
             </View>
           )}
         </View>
       </View>
 
-      {/* ── Info section ── */}
-      <View
-        style={[
-          styles.infoSection,
-          {
-            backgroundColor: colors.surface,
-            paddingTop: AVATAR_SIZE - AVATAR_OVERLAP + 12,
-          },
-        ]}
-      >
-        {/* Name + verified chip */}
-        <View style={styles.nameRow}>
-          <Text style={[styles.storeName, { color: colors.textPrimary }]}>
-            {merchant.display_name}
-          </Text>
-          {merchant.verified && (
-            <View style={styles.verifiedChip}>
-              <Ionicons name="shield-checkmark" size={10} color="#4CAF50" />
-              <Text style={styles.verifiedChipText}>Verified</Text>
-            </View>
-          )}
-        </View>
+      {/* ── Info card ── */}
+      <View style={[styles.infoCard, { backgroundColor: colors.surface, paddingTop: AVATAR_SIZE - AVATAR_OVERLAP + 14 }]}>
 
-        {/* Business name + member since */}
-        <Text style={[styles.subMeta, { color: colors.textMuted }]}>
-          {merchant.business_name !== merchant.display_name
-            ? `${merchant.business_name} · `
-            : ""}
-          Member {memberSince(merchant.created_at)}
-        </Text>
-
-        {/* Rating */}
-        <View style={styles.ratingRow}>
-          <View style={styles.starsWrap}>{renderStars(merchant.rating)}</View>
-          <Text style={[styles.ratingNum, { color: colors.textPrimary }]}>
-            {merchant.rating > 0 ? merchant.rating.toFixed(1) : "—"}
-          </Text>
-          {merchant.total_reviews > 0 && (
-            <Text style={[styles.ratingReviews, { color: colors.textMuted }]}>
-              ({merchant.total_reviews} reviews)
+        {/* Name row + status badge */}
+        <View style={styles.nameStatusRow}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.storeName, { color: colors.textPrimary }]} numberOfLines={1}>
+              {merchant.display_name}
             </Text>
-          )}
+            {merchant.business_name !== merchant.display_name && (
+              <Text style={[styles.businessName, { color: colors.textMuted }]} numberOfLines={1}>
+                {merchant.business_name}
+              </Text>
+            )}
+          </View>
+          <View style={[styles.statusBadge, { backgroundColor: statusConfig.bg }]}>
+            <Ionicons name={statusConfig.icon} size={12} color={statusConfig.color} />
+            <Text style={[styles.statusBadgeText, { color: statusConfig.color }]}>{statusConfig.label}</Text>
+          </View>
         </View>
 
-        {/* Description */}
-        {!!merchant.description && (
-          <Text
-            style={[styles.description, { color: colors.textSecondary }]}
-            numberOfLines={3}
-          >
-            {merchant.description}
-          </Text>
+        {merchant.featured && (
+          <View style={styles.featuredStrip}>
+            <Ionicons name="star" size={11} color="#F59E0B" />
+            <Text style={styles.featuredStripText}>Featured Seller</Text>
+          </View>
         )}
 
-        {/* Stats strip */}
-        <View
-          style={[
-            styles.statsStrip,
-            { backgroundColor: colors.backgroundSecondary },
-          ]}
-        >
-          <StatChip value={listings.length} label="Listings" colors={colors} />
-          <View
-            style={[styles.statDivider, { backgroundColor: colors.border }]}
-          />
-          <StatChip
-            value={merchant.total_reviews ?? 0}
-            label="Reviews"
-            colors={colors}
-          />
-          <View
-            style={[styles.statDivider, { backgroundColor: colors.border }]}
-          />
-          <StatChip
-            value={memberSince(merchant.created_at)}
-            label="Member"
-            colors={colors}
-          />
+        {/* ── Stats row ── */}
+        <View style={[styles.statsRow, { borderColor: colors.border }]}>
+          <View style={styles.statItem}>
+            <Text style={[styles.statNum, { color: colors.textPrimary }]}>{listings.length}</Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>Listings</Text>
+          </View>
+          <View style={[styles.statSep, { backgroundColor: colors.border }]} />
+          <View style={styles.statItem}>
+            <View style={styles.ratingInline}>
+              <Ionicons name="star" size={14} color="#F59E0B" />
+              <Text style={[styles.statNum, { color: colors.textPrimary }]}>
+                {merchant.rating > 0 ? merchant.rating.toFixed(1) : "—"}
+              </Text>
+            </View>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>
+              {merchant.total_reviews > 0 ? `${merchant.total_reviews} reviews` : "No reviews"}
+            </Text>
+          </View>
+          <View style={[styles.statSep, { backgroundColor: colors.border }]} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statNum, { color: colors.textPrimary }]}>{tenure.value}</Text>
+            <Text style={[styles.statLabel, { color: colors.textMuted }]}>{tenure.label}</Text>
+          </View>
         </View>
 
-        {/* Contact pills */}
-        <View style={styles.contactRow}>
-          {!!merchant.business_phone && (
-            <TouchableOpacity
-              style={[styles.contactPill, styles.contactPillPrimary]}
-              onPress={() =>
-                Linking.openURL(
-                  `tel:${merchant.business_phone.replace(/\s/g, "")}`
-                )
-              }
-              activeOpacity={0.75}
+        {/* ── Description ── */}
+        {!!merchant.description && (
+          <View style={[styles.descBlock, { borderColor: colors.border }]}>
+            <Text
+              style={[styles.descText, { color: colors.textSecondary }]}
+              numberOfLines={descExpanded ? undefined : 3}
             >
-              <Ionicons name="call" size={14} color="#E60549" />
-              <Text
-                style={[styles.contactPillText, { color: "#E60549" }]}
-                numberOfLines={1}
+              {merchant.description}
+            </Text>
+            {merchant.description.length > 120 && (
+              <TouchableOpacity onPress={() => setDescExpanded(v => !v)} activeOpacity={0.7}>
+                <Text style={[styles.descToggle, { color: colors.primary }]}>
+                  {descExpanded ? "Show less" : "Read more"}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        {/* ── Contact ── */}
+        {(!!merchant.business_phone || !!merchant.business_email) && (
+          <View style={[styles.contactBlock, { borderColor: colors.border }]}>
+            <Text style={[styles.contactHeader, { color: colors.textPrimary }]}>Contact</Text>
+            {!!merchant.business_phone && (
+              <TouchableOpacity
+                style={styles.contactRow}
+                onPress={() => Linking.openURL(`tel:${merchant.business_phone.replace(/\s/g, "")}`)}
+                activeOpacity={0.7}
               >
-                {merchant.business_phone}
-              </Text>
-            </TouchableOpacity>
-          )}
-          {!!merchant.business_email && (
-            <TouchableOpacity
-              style={[
-                styles.contactPill,
-                {
-                  backgroundColor: colors.backgroundSecondary,
-                  borderColor: colors.border,
-                },
-              ]}
-              onPress={() =>
-                Linking.openURL(`mailto:${merchant.business_email}`)
-              }
-              activeOpacity={0.75}
-            >
-              <Ionicons
-                name="mail-outline"
-                size={14}
-                color={colors.textSecondary}
-              />
-              <Text
-                style={[
-                  styles.contactPillText,
-                  { color: colors.textSecondary },
-                ]}
-                numberOfLines={1}
+                <View style={[styles.contactIconWrap, { backgroundColor: "#E6054912" }]}>
+                  <Ionicons name="call" size={15} color="#E60549" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.contactLabel, { color: colors.textMuted }]}>Phone</Text>
+                  <Text style={[styles.contactValue, { color: colors.textPrimary }]}>{merchant.business_phone}</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+              </TouchableOpacity>
+            )}
+            {!!merchant.business_phone && !!merchant.business_email && (
+              <View style={[styles.contactDivider, { backgroundColor: colors.border }]} />
+            )}
+            {!!merchant.business_email && (
+              <TouchableOpacity
+                style={styles.contactRow}
+                onPress={() => Linking.openURL(`mailto:${merchant.business_email}`)}
+                activeOpacity={0.7}
               >
-                {merchant.business_email}
-              </Text>
-            </TouchableOpacity>
-          )}
-        </View>
+                <View style={[styles.contactIconWrap, { backgroundColor: colors.backgroundSecondary }]}>
+                  <Ionicons name="mail" size={15} color={colors.textSecondary} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.contactLabel, { color: colors.textMuted }]}>Email</Text>
+                  <Text style={[styles.contactValue, { color: colors.textPrimary }]} numberOfLines={1}>
+                    {merchant.business_email}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
       </View>
 
-      {/* ── Listings tab bar ── */}
-      <View
-        style={[
-          styles.listingsBar,
-          { backgroundColor: colors.surface, borderTopColor: colors.border },
-        ]}
-      >
+      {/* ── Listings bar ── */}
+      <View style={[styles.listingsBar, {  borderTopColor: colors.border, marginBottom: 10 }]}>
         <View style={styles.listingsBarLeft}>
-          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>
-            Listings
-          </Text>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Listings</Text>
           {listings.length > 0 && (
             <View style={styles.listingsCountBadge}>
               <Text style={styles.listingsCountText}>{listings.length}</Text>
             </View>
           )}
         </View>
-
-        {/* Grid / List toggle */}
-        <View
-          style={[
-            styles.toggleGroup,
-            { backgroundColor: colors.backgroundSecondary },
-          ]}
-        >
+        <View style={[styles.toggleGroup, { backgroundColor: colors.backgroundSecondary }]}>
           <TouchableOpacity
-            style={[
-              styles.toggleBtn,
-              !gridView && { backgroundColor: colors.primary },
-            ]}
-            onPress={() => setGridView(false)}
-            activeOpacity={0.8}
+            style={[styles.toggleBtn, !gridView && { backgroundColor: colors.primary }]}
+            onPress={() => setGridView(false)} activeOpacity={0.8}
           >
-            <Ionicons
-              name="list"
-              size={15}
-              color={!gridView ? "#fff" : colors.textMuted}
-            />
+            <Ionicons name="list" size={15} color={!gridView ? "#fff" : colors.textMuted} />
           </TouchableOpacity>
           <TouchableOpacity
-            style={[
-              styles.toggleBtn,
-              gridView && { backgroundColor: colors.primary },
-            ]}
-            onPress={() => setGridView(true)}
-            activeOpacity={0.8}
+            style={[styles.toggleBtn, gridView && { backgroundColor: colors.primary }]}
+            onPress={() => setGridView(true)} activeOpacity={0.8}
           >
-            <Ionicons
-              name="grid"
-              size={15}
-              color={gridView ? "#fff" : colors.textMuted}
-            />
+            <Ionicons name="grid" size={15} color={gridView ? "#fff" : colors.textMuted} />
           </TouchableOpacity>
         </View>
       </View>
@@ -567,7 +511,11 @@ export default function MerchantProfileScreen() {
             progressViewOffset={BANNER_H}
           />
         }
-        renderItem={({ item }) => <ListingCard item={item} colors={colors} />}
+        renderItem={({ item }) =>
+          gridView
+            ? <GridCard item={item} colors={colors} />
+            : <RowCard item={item} colors={colors} />
+        }
         ListEmptyComponent={
           loadingListings ? (
             <View style={styles.centered}>
@@ -603,277 +551,186 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 12,
+    gap: 14,
     paddingVertical: 60,
+    paddingHorizontal: 32,
   },
-  notFoundTitle: { fontSize: 18, fontWeight: "700", marginTop: 4 },
-  notFoundText: { fontSize: 14, textAlign: "center", lineHeight: 21, paddingHorizontal: 32 },
-  backPill: {
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 20,
-    marginTop: 4,
-  },
+  notFoundTitle: { fontSize: 18, fontWeight: "700" },
+  notFoundText: { fontSize: 14, textAlign: "center", lineHeight: 21 },
+  backPill: { paddingHorizontal: 24, paddingVertical: 11, borderRadius: 22, marginTop: 4 },
 
-  // ── Sticky header bar ──
+  // ── Sticky bar ──
   stickyBar: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 20,
-    height: 56 + 44,
-    justifyContent: "flex-end",
-    alignItems: "center",
-    paddingBottom: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    position: "absolute", top: 0, left: 0, right: 0, zIndex: 20,
+    height: 56 + 44, justifyContent: "flex-end", alignItems: "center",
+    paddingBottom: 12, borderBottomWidth: StyleSheet.hairlineWidth,
   },
   stickyTitle: { fontSize: 16, fontWeight: "700" },
 
   // ── Floating nav ──
   floatingNav: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 30,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 12,
-    paddingTop: 12,
+    position: "absolute", top: 0, left: 0, right: 0, zIndex: 30,
+    flexDirection: "row", justifyContent: "space-between",
+    paddingHorizontal: 12, paddingTop: 12,
   },
   floatingBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "rgba(0,0,0,0.38)",
-    alignItems: "center",
-    justifyContent: "center",
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: "rgba(0,0,0,0.42)",
+    alignItems: "center", justifyContent: "center",
   },
 
   // ── Banner ──
-  bannerScrim: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 70,
-  },
+  bannerScrim: { position: "absolute", bottom: 0, left: 0, right: 0, height: 80 },
 
-  // ── Avatar + follow row ──
-  avatarRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    paddingHorizontal: PAD,
-    paddingBottom: 12,
-    marginTop: -AVATAR_OVERLAP,
-  },
+  // ── Avatar ──
   avatarWrap: {
     position: "absolute",
-    bottom: -(AVATAR_SIZE - AVATAR_OVERLAP), // hangs below the banner
+    bottom: -(AVATAR_SIZE - AVATAR_OVERLAP),
     left: PAD,
-    zIndex: 2,  
+    zIndex: 2,
   },
   avatar: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: 20,
-    borderWidth: 3,
-    borderColor: "#000",
+    width: AVATAR_SIZE, height: AVATAR_SIZE,
+    borderRadius: 22, borderWidth: 3, borderColor: "#000",
   },
-  avatarFallback: {
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  avatarFallback: { alignItems: "center", justifyContent: "center" },
   verifiedDot: {
-    position: "absolute",
-    bottom: -3,
-    right: -3,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    backgroundColor: "#4CAF50",
-    borderWidth: 2.5,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  followBtn: {
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 22,
-    marginBottom: 6,
-  },
-  followBtnText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "700",
-    letterSpacing: 0.1,
+    position: "absolute", bottom: -4, right: -4,
+    width: 30, height: 30, borderRadius: 15,
+    backgroundColor: "#1D9BF0", borderWidth: 3,
+    alignItems: "center", justifyContent: "center",
   },
 
-  // ── Info section ──
-  infoSection: {
-    paddingHorizontal: PAD,
-    paddingBottom: 18,
-  },
-  nameRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    flexWrap: "wrap",
-    marginBottom: 3,
-  },
-  storeName: {
-    fontSize: 20,
-    fontWeight: "800",
-    letterSpacing: -0.3,
-    flexShrink: 1,
-  },
-  verifiedChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    backgroundColor: "#E8F5E9",
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 20,
-  },
-  verifiedChipText: { fontSize: 10, fontWeight: "700", color: "#4CAF50" },
+  // ── Info card ──
+  infoCard: { paddingHorizontal: PAD, paddingBottom: 0 },
 
-  subMeta: { fontSize: 12.5, marginBottom: 8 },
-
-  ratingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 5,
-    marginBottom: 10,
+  nameStatusRow: {
+    flexDirection: "row", alignItems: "flex-start",
+    gap: 10, marginBottom: 4,
   },
-  starsWrap: { flexDirection: "row", gap: 2 },
-  ratingNum: { fontSize: 13, fontWeight: "700" },
-  ratingReviews: { fontSize: 12 },
+  storeName: { fontSize: 21, fontWeight: "800", letterSpacing: -0.4 },
+  businessName: { fontSize: 13, marginTop: 2 },
+  statusBadge: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 9, paddingVertical: 5,
+    borderRadius: 20, marginTop: 2, alignSelf: "flex-start",
+  },
+  statusBadgeText: { fontSize: 11, fontWeight: "700" },
 
-  description: {
-    fontSize: 13,
-    lineHeight: 20,
+  featuredStrip: {
+    flexDirection: "row", alignItems: "center", gap: 5,
     marginBottom: 14,
   },
+  featuredStripText: { fontSize: 12, fontWeight: "600", color: "#F59E0B" },
 
-  // ── Stats strip ──
-  statsStrip: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 14,
-    paddingVertical: 14,
-    marginBottom: 14,
+  // ── Stats row ──
+  statsRow: {
+    flexDirection: "row", alignItems: "stretch",
+    borderWidth: StyleSheet.hairlineWidth, borderRadius: 16,
+    marginBottom: 16, overflow: "hidden",
   },
-  statChip: { flex: 1, alignItems: "center", gap: 3 },
-  statValue: { fontSize: 17, fontWeight: "800", letterSpacing: -0.3 },
+  statItem: { flex: 1, alignItems: "center", paddingVertical: 14, gap: 4 },
+  statNum: { fontSize: 18, fontWeight: "800", letterSpacing: -0.5 },
   statLabel: { fontSize: 11, fontWeight: "500" },
-  statDivider: { width: StyleSheet.hairlineWidth, height: 28 },
+  statSep: { width: StyleSheet.hairlineWidth },
+  ratingInline: { flexDirection: "row", alignItems: "center", gap: 4 },
 
-  // ── Contact pills ──
-  contactRow: { flexDirection: "row", gap: 8 },
-  contactPill: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
+  // ── Description ──
+  descBlock: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 14, paddingBottom: 16,
     gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 9,
-    borderRadius: 22,
-    borderWidth: 1,
-    overflow: "hidden",
   },
-  contactPillPrimary: {
-    backgroundColor: "#E6054910",
-    borderColor: "#E6054940",
-  },
-  contactPillText: { fontSize: 13, fontWeight: "600", flexShrink: 1 },
+  descText: { fontSize: 14, lineHeight: 22 },
+  descToggle: { fontSize: 13, fontWeight: "600", marginTop: 2 },
 
-  // ── Listings tab bar ──
+  // ── Contact ──
+  contactBlock: {
+    borderTopWidth: StyleSheet.hairlineWidth,
+    paddingTop: 14, paddingBottom: 18,
+  },
+  contactHeader: { fontSize: 13, fontWeight: "700", marginBottom: 12, letterSpacing: 0.2 },
+  contactRow: {
+    flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 6,
+  },
+  contactIconWrap: {
+    width: 38, height: 38, borderRadius: 12,
+    alignItems: "center", justifyContent: "center",
+  },
+  contactLabel: { fontSize: 11, fontWeight: "500", marginBottom: 1 },
+  contactValue: { fontSize: 14, fontWeight: "600" },
+  contactDivider: { height: StyleSheet.hairlineWidth, marginVertical: 4, marginLeft: 50 },
+
+  // ── Listings bar ──
   listingsBar: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: PAD,
-    paddingVertical: 12,
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: PAD, paddingVertical: 13,
     borderTopWidth: StyleSheet.hairlineWidth,
   },
-  listingsBarLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
+  listingsBarLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
   sectionTitle: { fontSize: 16, fontWeight: "800" },
   listingsCountBadge: {
-    backgroundColor: "#E6054915",
-    paddingHorizontal: 9,
-    paddingVertical: 2,
-    borderRadius: 20,
+    backgroundColor: "#E6054915", paddingHorizontal: 9,
+    paddingVertical: 3, borderRadius: 20,
   },
-  listingsCountText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#E60549",
-  },
+  listingsCountText: { fontSize: 12, fontWeight: "700", color: "#E60549" },
   toggleGroup: {
-    flexDirection: "row",
-    borderRadius: 10,
-    overflow: "hidden",
-    padding: 3,
-    gap: 3,
+    flexDirection: "row", borderRadius: 10, overflow: "hidden", padding: 3, gap: 3,
   },
-  toggleBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  toggleBtn: { width: 30, height: 30, borderRadius: 8, alignItems: "center", justifyContent: "center" },
 
   // ── Grid ──
   gridContent: { paddingBottom: 8 },
-  gridRow: {
-    gap: GAP,
-    marginBottom: GAP,
-    paddingHorizontal: PAD,
-  },
+  gridRow: { gap: GAP, marginBottom: GAP, paddingHorizontal: PAD },
 
-  // ── Listing card ──
-  card: {
-    width: CARD_W,
-    borderRadius: 14,
-    overflow: "hidden",
-  },
-  cardImageWrap: {
-    width: "100%",
-    height: CARD_W,
-    position: "relative",
-  },
+  // ── Grid card ──
+  card: { width: CARD_W, borderRadius: 14, overflow: "hidden" },
+  cardImageWrap: { width: "100%", height: CARD_W, position: "relative" },
   cardImage: { width: "100%", height: "100%" },
   featuredBadge: {
-    position: "absolute",
-    top: 8,
-    left: 8,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    backgroundColor: "#E60549",
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 20,
+    position: "absolute", top: 8, left: 8,
+    flexDirection: "row", alignItems: "center", gap: 3,
+    backgroundColor: "#E60549", paddingHorizontal: 7,
+    paddingVertical: 3, borderRadius: 20,
   },
   featuredText: { fontSize: 10, fontWeight: "700", color: "#fff" },
   cardBody: { padding: 10, gap: 3 },
   cardTitle: { fontSize: 12.5, fontWeight: "600", lineHeight: 18 },
   cardPrice: { fontSize: 13, fontWeight: "800" },
 
-  // ── Empty state ──
-  emptyState: {
-    alignItems: "center",
-    paddingVertical: 60,
-    paddingHorizontal: 32,
-    gap: 10,
+  // ── Row card (list view) ──
+  rowCard: {
+    flexDirection: "row", alignItems: "center",
+    paddingHorizontal: PAD, paddingVertical: 12,
+    gap: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
+  rowImageWrap: {
+    width: 86, height: 86,
+    borderRadius: 12, overflow: "hidden",
+    flexShrink: 0, position: "relative",
+  },
+  rowImage: { width: "100%", height: "100%" },
+  rowFeaturedDot: {
+    position: "absolute", top: 6, left: 6,
+    width: 20, height: 20, borderRadius: 10,
+    backgroundColor: "#E60549",
+    alignItems: "center", justifyContent: "center",
+  },
+  rowBody: { flex: 1, gap: 3 },
+  rowTitle: { fontSize: 14, fontWeight: "600", lineHeight: 20 },
+  rowCategory: { fontSize: 12 },
+  rowFooter: { flexDirection: "row", alignItems: "center", gap: 8, marginTop: 4 },
+  rowPrice: { fontSize: 14, fontWeight: "800" },
+  rowFeaturedChip: {
+    backgroundColor: "#E6054915",
+    paddingHorizontal: 7, paddingVertical: 2,
+    borderRadius: 10,
+  },
+  rowFeaturedText: { fontSize: 10, fontWeight: "700", color: "#E60549" },
+
+  // ── Empty state ──
+  emptyState: { alignItems: "center", paddingVertical: 60, paddingHorizontal: 32, gap: 10 },
   emptyTitle: { fontSize: 16, fontWeight: "700" },
   emptyMsg: { fontSize: 13, textAlign: "center", lineHeight: 20 },
 });
