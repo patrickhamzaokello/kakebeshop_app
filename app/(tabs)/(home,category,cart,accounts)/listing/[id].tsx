@@ -50,10 +50,10 @@ const ImageLightbox: React.FC<ImageLightboxProps> = ({ visible, images, initialI
     if (visible) {
       setCurrentIndex(initialIndex);
       Animated.timing(fadeAnim, { toValue: 1, duration: 220, useNativeDriver: true }).start();
-      // Scroll to initial index after mount
-      setTimeout(() => {
+      const timeout = setTimeout(() => {
         scrollRef.current?.scrollTo({ x: initialIndex * SCREEN_WIDTH, animated: false });
       }, 50);
+      return () => clearTimeout(timeout);
     } else {
       fadeAnim.setValue(0);
     }
@@ -424,8 +424,11 @@ export default function ListingDetailsScreen() {
 
   useEffect(() => {
     fetchAllData(false);
-    if (id) incrementListingViews(id);
   }, [fetchAllData]);
+
+  useEffect(() => {
+    if (id) incrementListingViews(id);
+  }, [id]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
@@ -584,15 +587,18 @@ export default function ListingDetailsScreen() {
     if (!id) return;
     if (page === 1) setCommentsLoading(true);
     else setLoadingMoreComments(true);
-    const result = await listingDetailsService.getComments(id, page);
-    if (result) {
-      setComments((prev) => append ? [...prev, ...result.results] : result.results);
-      setHasMoreComments(!!result.next);
-      setCommentPage(page);
-      if (page === 1) setCommentCount(result.count);
+    try {
+      const result = await listingDetailsService.getComments(id, page);
+      if (result) {
+        setComments((prev) => append ? [...prev, ...result.results] : result.results);
+        setHasMoreComments(!!result.next);
+        setCommentPage(page);
+        if (page === 1) setCommentCount(result.count);
+      }
+    } finally {
+      setCommentsLoading(false);
+      setLoadingMoreComments(false);
     }
-    setCommentsLoading(false);
-    setLoadingMoreComments(false);
   };
 
   const loadMoreComments = () => {
@@ -611,12 +617,15 @@ export default function ListingDetailsScreen() {
       return;
     }
     setLoadingRepliesFor(commentId);
-    const result = await listingDetailsService.getCommentReplies(commentId);
-    if (result) {
-      setRepliesMap((prev) => ({ ...prev, [commentId]: result.results }));
-      setExpandedReplies((prev) => ({ ...prev, [commentId]: true }));
+    try {
+      const result = await listingDetailsService.getCommentReplies(commentId);
+      if (result) {
+        setRepliesMap((prev) => ({ ...prev, [commentId]: result.results }));
+        setExpandedReplies((prev) => ({ ...prev, [commentId]: true }));
+      }
+    } finally {
+      setLoadingRepliesFor(null);
     }
-    setLoadingRepliesFor(null);
   };
 
   const handleDeleteComment = (commentId: string, isReply: boolean, parentId?: string) => {
@@ -1404,7 +1413,7 @@ export default function ListingDetailsScreen() {
                 <View>
                   {/* Comment row */}
                   <View style={styles.commentItem}>
-                    <View style={[styles.commentAvatar, styles.commentAvatarFallback, { backgroundColor: colors.backgroundSecondary }]}>
+                    <View style={[styles.commentAvatar, styles.commentAvatarFallback, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
                       <Text style={[styles.commentAvatarInitial, { color: colors.textMuted }]}>
                         {(item.user_name || "?")[0].toUpperCase()}
                       </Text>
@@ -1466,7 +1475,7 @@ export default function ListingDetailsScreen() {
                   {expandedReplies[item.id] &&
                     (repliesMap[item.id] ?? []).map((reply) => (
                       <View key={reply.id} style={styles.replyItem}>
-                        <View style={[styles.replyAvatar, styles.commentAvatarFallback, { backgroundColor: colors.backgroundSecondary }]}>
+                        <View style={[styles.replyAvatar, styles.commentAvatarFallback, { backgroundColor: colors.backgroundSecondary, borderColor: colors.border }]}>
                           <Text style={[styles.commentAvatarInitial, { color: colors.textMuted, fontSize: 11 }]}>
                             {(reply.user_name || "?")[0].toUpperCase()}
                           </Text>
@@ -2322,8 +2331,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    borderColor: colors.border,
-    borderWidth: 1
+    borderWidth: 1,
   },
   commentAvatarFallback: {
     alignItems: "center",
@@ -2351,7 +2359,7 @@ const styles = StyleSheet.create({
   commentDate: {
     fontSize: 11,
     marginTop: 2,
-    fontWeight: "light"
+    fontWeight: "300",
   },
   commentInputAvatar: {
     width: 32,
@@ -2407,7 +2415,6 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    borderColor: colors.border,
     borderWidth: 1,
   },
 

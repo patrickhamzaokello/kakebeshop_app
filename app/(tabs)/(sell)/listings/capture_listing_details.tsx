@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { TextInput } from "@/components/TextInput";
 import { ActivityIndicator, Alert, FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput as RNTextInput, TouchableOpacity, View } from "react-native";
 import { StatusBar } from "expo-status-bar";
@@ -77,7 +77,7 @@ function SectionHeader({ title, colors }: { title: string; colors: any }) {
   return (
     <View style={sectionStyles.row}>
       <View style={[sectionStyles.dot, { backgroundColor: colors.primary }]} />
-      <Typo size={13} fontWeight="700" color={colors.textMuted} style={sectionStyles.text}>
+      <Typo size={13} fontWeight="700" color={colors.textSecondary} style={sectionStyles.text}>
         {title.toUpperCase()}
       </Typo>
     </View>
@@ -95,14 +95,13 @@ const sectionStyles = StyleSheet.create({
 export default function CaptureListingDetails() {
   const { colors, isDark } = useTheme();
   const params = useLocalSearchParams();
-  let image_group_ids: string[] = [];
-  try {
-    image_group_ids = params.image_group_ids
-      ? JSON.parse(params.image_group_ids as string)
-      : [];
-  } catch {
-    image_group_ids = [];
-  }
+  const image_group_ids = useMemo<string[]>(() => {
+    try {
+      return params.image_group_ids ? JSON.parse(params.image_group_ids as string) : [];
+    } catch {
+      return [];
+    }
+  }, [params.image_group_ids]);
 
   // ── Form state ──
   const [title, setTitle] = useState("");
@@ -162,6 +161,12 @@ export default function CaptureListingDetails() {
         setLoadingData(false);
       }
     })();
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    };
   }, []);
 
   const loadMoreCategories = async () => {
@@ -348,7 +353,6 @@ export default function CaptureListingDetails() {
     );
   };
 
-  const selectedCategory = selectedCategoryObj;
   const priceTypeLabel = priceType === "FIXED" ? "Fixed Price" : priceType === "RANGE" ? "Price Range" : "On Request";
 
   // ── Loading state ──
@@ -365,7 +369,10 @@ export default function CaptureListingDetails() {
   }
 
   return (
-    <View style={[styles.root, { backgroundColor: colors.background }]}>
+    <KeyboardAvoidingView
+      style={[styles.root, { backgroundColor: colors.background }]}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+    >
       <StatusBar style={isDark ? "light" : "dark"} />
 
       {/* Header */}
@@ -391,17 +398,13 @@ export default function CaptureListingDetails() {
         </View>
       </SafeAreaView>
 
-      <KeyboardAvoidingView
+      <ScrollView
+        ref={scrollRef}
         style={{ flex: 1 }}
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
-        <ScrollView
-          ref={scrollRef}
-          contentContainerStyle={styles.scroll}
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-        >
           {/* ── Basic info ── */}
           <SectionHeader title="Basic Information" colors={colors} />
 
@@ -464,7 +467,7 @@ export default function CaptureListingDetails() {
                     styles.typeBtn,
                     {
                       borderColor: listingType === t ? colors.primary : colors.inputBorder,
-                      backgroundColor: listingType === t ? colors.primary + "12" : colors.inputBackground,
+                      backgroundColor: listingType === t ? colors.primary + "22" : colors.inputBackground,
                     },
                   ]}
                   onPress={() => setListingType(t)}
@@ -500,8 +503,8 @@ export default function CaptureListingDetails() {
               onPress={() => { Keyboard.dismiss(); setShowCategoryModal(true); }}
               disabled={submitting}
             >
-              <Typo size={15} color={selectedCategory ? colors.textPrimary : colors.textPlaceholder}>
-                {selectedCategory ? selectedCategory.name : "Select a category…"}
+              <Typo size={15} color={selectedCategoryObj ? colors.textPrimary : colors.textPlaceholder}>
+                {selectedCategoryObj ? selectedCategoryObj.name : "Select a category…"}
               </Typo>
               <Ionicons name="chevron-down" size={18} color={colors.textMuted} />
             </TouchableOpacity>
@@ -625,7 +628,7 @@ export default function CaptureListingDetails() {
                   disabled={submitting}
                   activeOpacity={0.7}
                 >
-                  <View style={[dmStyles.iconWrap, { backgroundColor: isOn ? colors.primary + "18" : colors.backgroundSecondary }]}>
+                  <View style={[dmStyles.iconWrap, { backgroundColor: isOn ? colors.primary + "28" : colors.backgroundSecondary }]}>
                     <Ionicons name={opt.icon} size={18} color={isOn ? colors.primary : colors.textMuted} />
                   </View>
                   <View style={dmStyles.labelWrap}>
@@ -725,27 +728,26 @@ export default function CaptureListingDetails() {
           </View>
         </ScrollView>
 
-        {/* ── Sticky footer ── */}
-        <SafeAreaView edges={["bottom"]} style={[styles.footer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-          <TouchableOpacity
-            style={[styles.submitBtn, { backgroundColor: colors.primary }, submitting && { opacity: 0.6 }]}
-            onPress={handleSubmit}
-            disabled={submitting}
-            activeOpacity={0.85}
-          >
-            {submitting ? (
-              <ActivityIndicator color="#fff" size="small" />
-            ) : (
-              <>
-                <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
-                <Typo size={16} fontWeight="700" color="#fff" style={{ marginLeft: 8 }}>
-                  Create Listing
-                </Typo>
-              </>
-            )}
-          </TouchableOpacity>
-        </SafeAreaView>
-      </KeyboardAvoidingView>
+      {/* ── Sticky footer ── */}
+      <SafeAreaView edges={["bottom"]} style={[styles.footer, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+        <TouchableOpacity
+          style={[styles.submitBtn, { backgroundColor: colors.primary }, submitting && { opacity: 0.6 }]}
+          onPress={handleSubmit}
+          disabled={submitting}
+          activeOpacity={0.85}
+        >
+          {submitting ? (
+            <ActivityIndicator color="#fff" size="small" />
+          ) : (
+            <>
+              <Ionicons name="checkmark-circle-outline" size={20} color="#fff" />
+              <Typo size={16} fontWeight="700" color="#fff" style={{ marginLeft: 8 }}>
+                Create Listing
+              </Typo>
+            </>
+          )}
+        </TouchableOpacity>
+      </SafeAreaView>
 
       {/* ── Category picker — full-screen modal ── */}
       <Modal
@@ -901,7 +903,7 @@ export default function CaptureListingDetails() {
                 ]}
                 onPress={() => { setPriceType(opt.value); setShowPriceTypeModal(false); }}
               >
-                <View style={[styles.modalOptIcon, { backgroundColor: priceType === opt.value ? colors.primary + "20" : colors.backgroundSecondary }]}>
+                <View style={[styles.modalOptIcon, { backgroundColor: priceType === opt.value ? colors.primary + "30" : colors.backgroundSecondary }]}>
                   <Ionicons name={opt.icon} size={18} color={priceType === opt.value ? colors.primary : colors.textMuted} />
                 </View>
                 <View style={{ flex: 1, marginLeft: 12 }}>
@@ -917,7 +919,7 @@ export default function CaptureListingDetails() {
           </Pressable>
         </Pressable>
       </Modal>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
