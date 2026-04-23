@@ -7,19 +7,22 @@ import {
   Alert,
   ActivityIndicator,
   ScrollView,
+  Modal,
+  Dimensions,
 } from "react-native";
 import Typo from "@/components/Typo";
 import { spacingY, spacingX, borderRadius } from "@/constants/theme";
 import { useTheme } from "@/contexts/ThemeContext";
 import { router } from "expo-router";
 import Button from "@/components/CustomButton";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import * as ImagePicker from "expo-image-picker";
 import { manipulateAsync, SaveFormat } from "expo-image-manipulator";
 import apiService from "@/utils/apiBase";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { CameraView, useCameraPermissions } from "expo-camera";
 
 
 type ImageStatus =
@@ -51,6 +54,237 @@ interface ImageSlot {
   currentVariant?: string;
 }
 
+// ─── Camera guide constants ───────────────────────────────────────────────────
+const { width: SCREEN_W, height: SCREEN_H } = Dimensions.get("window");
+const GUIDE_SIZE = SCREEN_W * 0.78;
+const GUIDE_L = (SCREEN_W - GUIDE_SIZE) / 2;
+const BRACKET = 24;
+const BRACKET_T = 3;
+
+// ─── Camera guide modal ───────────────────────────────────────────────────────
+const CameraGuideModal: React.FC<{
+  visible: boolean;
+  onCapture: (uri: string) => void;
+  onClose: () => void;
+}> = ({ visible, onCapture, onClose }) => {
+  const [permission, requestPermission] = useCameraPermissions();
+  const [facing, setFacing] = useState<"back" | "front">("back");
+  const [flash, setFlash] = useState<"off" | "on">("off");
+  const [capturing, setCapturing] = useState(false);
+  const cameraRef = useRef<CameraView>(null);
+  const insets = useSafeAreaInsets();
+
+  const TOP_H = insets.top + 60;
+  const BOT_H = Math.max(insets.bottom, 16) + 96;
+  const GUIDE_T = TOP_H + (SCREEN_H - TOP_H - BOT_H - GUIDE_SIZE) / 2;
+
+  const handleCapture = async () => {
+    if (!cameraRef.current || capturing) return;
+    setCapturing(true);
+    try {
+      const photo = await cameraRef.current.takePictureAsync({ quality: 1 });
+      if (photo?.uri) onCapture(photo.uri);
+    } catch {
+      Alert.alert("Error", "Could not take photo. Please try again.");
+    } finally {
+      setCapturing(false);
+    }
+  };
+
+  if (!visible) return null;
+
+  if (!permission?.granted) {
+    return (
+      <Modal visible animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+        <View style={camStyles.permRoot}>
+          <Ionicons name="camera-outline" size={52} color="#fff" />
+          <Typo size={18} fontWeight="700" color="#fff" style={camStyles.permTitle}>
+            Camera Access Required
+          </Typo>
+          <Typo size={13} color="rgba(255,255,255,0.6)" style={camStyles.permBody}>
+            {permission?.canAskAgain === false
+              ? "Camera access was denied. Please enable it in your device Settings."
+              : "Allow camera access to take product photos."}
+          </Typo>
+          {permission?.canAskAgain !== false && (
+            <TouchableOpacity style={camStyles.grantBtn} onPress={requestPermission}>
+              <Typo size={15} fontWeight="700" color="#fff">Grant Camera Access</Typo>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity onPress={onClose} style={{ marginTop: 20 }}>
+            <Typo size={14} color="rgba(255,255,255,0.4)">Cancel</Typo>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+    );
+  }
+
+  return (
+    <Modal visible animationType="slide" statusBarTranslucent onRequestClose={onClose}>
+      <View style={camStyles.root}>
+        {/* Live camera feed */}
+        <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} flash={flash} />
+
+        {/* ── Dark overlay: 4 panels leaving the guide frame clear ── */}
+        <View pointerEvents="none" style={[camStyles.overlay, { top: 0, left: 0, right: 0, height: GUIDE_T }]} />
+        <View pointerEvents="none" style={[camStyles.overlay, { top: GUIDE_T, left: 0, width: GUIDE_L, height: GUIDE_SIZE }]} />
+        <View pointerEvents="none" style={[camStyles.overlay, { top: GUIDE_T, right: 0, width: GUIDE_L, height: GUIDE_SIZE }]} />
+        <View pointerEvents="none" style={[camStyles.overlay, { top: GUIDE_T + GUIDE_SIZE, left: 0, right: 0, bottom: 0 }]} />
+
+        {/* ── Guide frame hairline border ── */}
+        <View
+          pointerEvents="none"
+          style={{ position: "absolute", top: GUIDE_T, left: GUIDE_L, width: GUIDE_SIZE, height: GUIDE_SIZE, borderWidth: 1, borderColor: "rgba(255,255,255,0.22)" }}
+        />
+
+        {/* ── Rule-of-thirds grid ── */}
+        {[1 / 3, 2 / 3].map((t, i) => (
+          <View key={`rh${i}`} pointerEvents="none"
+            style={{ position: "absolute", top: GUIDE_T + GUIDE_SIZE * t, left: GUIDE_L, width: GUIDE_SIZE, height: StyleSheet.hairlineWidth, backgroundColor: "rgba(255,255,255,0.16)" }}
+          />
+        ))}
+        {[1 / 3, 2 / 3].map((t, i) => (
+          <View key={`rv${i}`} pointerEvents="none"
+            style={{ position: "absolute", top: GUIDE_T, left: GUIDE_L + GUIDE_SIZE * t, width: StyleSheet.hairlineWidth, height: GUIDE_SIZE, backgroundColor: "rgba(255,255,255,0.16)" }}
+          />
+        ))}
+
+        {/* ── Corner brackets ── */}
+        <View pointerEvents="none" style={[camStyles.bracket, { top: GUIDE_T,                        left: GUIDE_L,                        borderTopWidth: BRACKET_T, borderLeftWidth: BRACKET_T  }]} />
+        <View pointerEvents="none" style={[camStyles.bracket, { top: GUIDE_T,                        left: GUIDE_L + GUIDE_SIZE - BRACKET, borderTopWidth: BRACKET_T, borderRightWidth: BRACKET_T }]} />
+        <View pointerEvents="none" style={[camStyles.bracket, { top: GUIDE_T + GUIDE_SIZE - BRACKET, left: GUIDE_L,                        borderBottomWidth: BRACKET_T, borderLeftWidth: BRACKET_T  }]} />
+        <View pointerEvents="none" style={[camStyles.bracket, { top: GUIDE_T + GUIDE_SIZE - BRACKET, left: GUIDE_L + GUIDE_SIZE - BRACKET, borderBottomWidth: BRACKET_T, borderRightWidth: BRACKET_T }]} />
+
+        {/* ── Instruction label above the frame ── */}
+        <View pointerEvents="none" style={{ position: "absolute", top: GUIDE_T - 26, left: 0, right: 0, alignItems: "center" }}>
+          <Typo size={11} fontWeight="600" color="rgba(255,255,255,0.78)" style={{ letterSpacing: 0.8 }}>
+            CENTER YOUR PRODUCT IN THE FRAME
+          </Typo>
+        </View>
+
+        {/* ── Top controls ── */}
+        <View style={[camStyles.topBar, { paddingTop: insets.top + 10 }]}>
+          <TouchableOpacity style={camStyles.ctrlBtn} onPress={onClose} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+            <Ionicons name="close" size={22} color="#fff" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[camStyles.ctrlBtn, flash === "on" && camStyles.ctrlBtnActive]}
+            onPress={() => setFlash((f) => (f === "off" ? "on" : "off"))}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name={flash === "on" ? "flash" : "flash-off"} size={20} color={flash === "on" ? "#FFD700" : "#fff"} />
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Bottom controls ── */}
+        <View style={[camStyles.bottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+          <View style={{ width: 50 }} />
+          <TouchableOpacity
+            style={[camStyles.shutter, capturing && { opacity: 0.55 }]}
+            onPress={handleCapture}
+            disabled={capturing}
+            activeOpacity={0.8}
+          >
+            {capturing ? (
+              <ActivityIndicator color="#000" size="small" />
+            ) : (
+              <View style={camStyles.shutterInner} />
+            )}
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={camStyles.ctrlBtn}
+            onPress={() => setFacing((f) => (f === "back" ? "front" : "back"))}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          >
+            <Ionicons name="camera-reverse-outline" size={26} color="#fff" />
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+};
+
+const camStyles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: "#000" },
+  permRoot: {
+    flex: 1,
+    backgroundColor: "#111",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 36,
+  },
+  permTitle: { marginTop: 18, textAlign: "center" },
+  permBody: { marginTop: 10, textAlign: "center", lineHeight: 20 },
+  grantBtn: {
+    marginTop: 28,
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.28)",
+  },
+  overlay: {
+    position: "absolute",
+    backgroundColor: "rgba(0,0,0,0.60)",
+  },
+  bracket: {
+    position: "absolute",
+    width: BRACKET,
+    height: BRACKET,
+    borderColor: "#fff",
+  },
+  topBar: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-end",
+    paddingHorizontal: 20,
+    paddingBottom: 14,
+  },
+  bottomBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "space-evenly",
+    alignItems: "center",
+    paddingTop: 16,
+  },
+  ctrlBtn: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "rgba(0,0,0,0.42)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ctrlBtnActive: {
+    backgroundColor: "rgba(255,200,0,0.22)",
+  },
+  shutter: {
+    width: 74,
+    height: 74,
+    borderRadius: 37,
+    borderWidth: 4,
+    borderColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(255,255,255,0.12)",
+  },
+  shutterInner: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: "#fff",
+  },
+});
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
 export default function CaptureListingImages() {
   const { colors, isDark } = useTheme();
   const [images, setImages] = useState<ImageSlot[]>(
@@ -64,6 +298,8 @@ export default function CaptureListingImages() {
   );
   const [isProcessing, setIsProcessing] = useState(false);
   const [allImagesUploaded, setAllImagesUploaded] = useState(false);
+  const [cameraVisible, setCameraVisible] = useState(false);
+  const [cameraTargetIndex, setCameraTargetIndex] = useState(-1);
 
   // Generate UUID (simple version)
   function generateUUID(): string {
@@ -109,23 +345,14 @@ export default function CaptureListingImages() {
   };
 
   // Open camera
-  const openCamera = async (index: number) => {
-    const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
-    if (!permissionResult.granted) {
-      Alert.alert("Permission required", "Camera permission is required");
-      return;
-    }
+  const openCamera = (index: number) => {
+    setCameraTargetIndex(index);
+    setCameraVisible(true);
+  };
 
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: "images",
-      allowsEditing: true,
-      aspect: [4, 3],
-      quality: 1,
-    });
-
-    if (!result.canceled && result.assets[0]) {
-      updateImageSlot(index, result.assets[0].uri);
-    }
+  const handleCameraCapture = (uri: string) => {
+    setCameraVisible(false);
+    if (cameraTargetIndex >= 0) updateImageSlot(cameraTargetIndex, uri);
   };
 
   // Open gallery
@@ -521,6 +748,7 @@ export default function CaptureListingImages() {
   };
 
   return (
+    <>
     <View style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -615,6 +843,13 @@ export default function CaptureListingImages() {
         </ScrollView>
       </View>
     </View>
+
+    <CameraGuideModal
+      visible={cameraVisible}
+      onCapture={handleCameraCapture}
+      onClose={() => setCameraVisible(false)}
+    />
+    </>
   );
 }
 
