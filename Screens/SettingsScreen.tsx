@@ -107,10 +107,7 @@ export default function AccountScreen() {
           text: "Logout",
           style: "destructive",
           onPress: async () => {
-            const result = await logout();
-            if (result.success) {
-              router.replace("/login" as any);
-            }
+            await logout();
           },
         },
       ]
